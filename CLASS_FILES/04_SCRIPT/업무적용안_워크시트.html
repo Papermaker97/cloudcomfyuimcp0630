@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 14mm 14mm 12mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "NanumGothic","NanumBarunGothic",sans-serif; color:#1a1a1a; font-size:11px; line-height:1.5; margin:0; }
+  .head { border-bottom:3px solid #E8452C; padding-bottom:8px; margin-bottom:10px; }
+  .kicker { color:#E8452C; font-weight:700; font-size:10px; letter-spacing:1px; }
+  h1 { font-size:19px; margin:4px 0 2px; }
+  .sub { color:#666; font-size:10px; }
+  .meta { display:flex; gap:16px; margin:8px 0 12px; font-size:10px; }
+  .meta div { border:1px solid #ddd; border-radius:5px; padding:5px 9px; flex:1; }
+  .meta b { color:#E8452C; }
+  h2 { font-size:12px; background:#E8452C; color:#fff; padding:5px 9px; border-radius:4px; margin:14px 0 8px; }
+  .step { color:#666; font-weight:400; font-size:10px; }
+  table { width:100%; border-collapse:collapse; margin:6px 0; }
+  th,td { border:1px solid #cfcfcf; padding:7px 8px; vertical-align:top; text-align:left; }
+  th { background:#faf0ee; width:26%; font-size:10.5px; }
+  td { height:34px; }
+  .hint { color:#999; font-weight:400; font-size:9px; display:block; margin-top:2px; }
+  .ipo { display:flex; gap:8px; margin:6px 0; }
+  .ipo .box { flex:1; border:1px solid #cfcfcf; border-radius:6px; padding:8px; min-height:90px; }
+  .ipo .box .t { font-weight:700; color:#E8452C; font-size:10px; margin-bottom:4px; }
+  .ipo .arrow { align-self:center; color:#E8452C; font-weight:700; }
+  .tools { display:flex; flex-wrap:wrap; gap:5px; margin:4px 0; }
+  .tools span { border:1px solid #E8452C; color:#E8452C; border-radius:12px; padding:2px 9px; font-size:9.5px; }
+  .example { background:#f7f7f7; border-left:3px solid #E8452C; padding:7px 9px; font-size:9.5px; color:#444; border-radius:0 4px 4px 0; margin:6px 0; }
+  .footer { margin-top:14px; border-top:1px solid #ddd; padding-top:6px; color:#999; font-size:9px; display:flex; justify-content:space-between; }
+  .check { font-size:10.5px; }
+  .check div { padding:4px 0; border-bottom:1px dashed #e0e0e0; }
+  .check .b { display:inline-block; width:11px; height:11px; border:1.5px solid #E8452C; border-radius:3px; margin-right:7px; vertical-align:-1px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="kicker">신세계라이브쇼핑 · 방송 업무 AI 자동화 공통과정</div>
+    <h1>내 업무 자동화 적용안 워크시트</h1>
+    <div class="sub">AI를 활용한 Adobe 그래픽 업무 자동화 — PART 6 통합 실습 (25분)</div>
+  </div>
+
+  <div class="meta">
+    <div>이름 / 팀 <br><b>________________________</b></div>
+    <div>날짜 <br><b>2026. 07. 28.</b></div>
+    <div>작성 후 <br><b>패들렛에 업로드 · 공유</b></div>
+  </div>
+
+  <p style="font-size:10px;color:#555;margin:0 0 4px;">
+    오늘 배운 핵심: <b>"코드는 만지지 않는다. 데이터만 바꾼다."</b>
+    엔진(액션·템플릿·검증된 스크립트)은 그대로 두고, 데이터(이미지·상품명·가격·규격)만 교체합니다.
+    아래 5단계로 내 반복 업무 <b>1개</b>를 자동화 설계해 봅니다.
+  </p>
+
+  <h2>STEP 1. 내 반복 업무 고르기 <span class="step">— 매주/매 방송마다 되풀이하는 손이 많이 가는 일</span></h2>
+  <table>
+    <tr><th>자동화할 반복 업무</th><td><span class="hint">예) 방송별 상품 배너 20종을 규격별로 다시 저장</span></td></tr>
+    <tr><th>얼마나 자주 하나요?</th><td><span class="hint">예) 방송 준비마다 / 주 3회</span></td></tr>
+    <tr><th>1회당 평균 소요 시간</th><td><span class="hint">예) 약 90분</span></td></tr>
+  </table>
+
+  <h2>STEP 2. 업무를 3조각으로 쪼개기 (INPUT → PROCESS → OUTPUT)</h2>
+  <div class="ipo">
+    <div class="box"><div class="t">INPUT (입력)</div><span class="hint">가진 것: 원본 이미지, 상품명·가격, 로고 …</span></div>
+    <div class="arrow">▶</div>
+    <div class="box"><div class="t">PROCESS (반복 작업)</div><span class="hint">되풀이하는 손작업: 리사이즈, 누끼, 문구 교체 …</span></div>
+    <div class="arrow">▶</div>
+    <div class="box"><div class="t">OUTPUT (결과물)</div><span class="hint">최종 산출: 규격별 배너 JPG, 방송 영상 …</span></div>
+  </div>
+  <div class="example">작성 예시 — INPUT: 상품 원본 사진 1장 + 상품명/가격 &nbsp;▶&nbsp; PROCESS: 정사각·가로·세로 3규격 리사이즈, 배경 흰색 채움 &nbsp;▶&nbsp; OUTPUT: 규격별 JPG 3장</div>
+
+  <h2>STEP 3. 어떤 단계가 자동화 가능한가?</h2>
+  <table>
+    <tr><th>사람이 판단할 부분<br><span class="hint">(감각·선택·검수)</span></th><td><span class="hint">예) 어떤 컷이 상품이 예쁘게 나왔는지 고르기</span></td></tr>
+    <tr><th>기계가 반복할 부분<br><span class="hint">(자동화 대상)</span></th><td><span class="hint">예) 규격 변환, 파일명 규칙 저장, 텍스트 교체</span></td></tr>
+  </table>
+
+  <h2>STEP 4. 어떤 도구/기능을 쓸까? <span class="step">— 되는 건 액션으로, 안 되는 것만 스크립트로</span></h2>
+  <div class="tools">
+    <span>PS 액션</span><span>Image Processor</span><span>배경 제거/생성형 채우기</span>
+    <span>스마트 오브젝트 템플릿</span><span>규격변환.jsx</span><span>배너채우기.jsx</span>
+    <span>AE Essential Graphics</span><span>표현식</span><span>영상채우기.jsx</span><span>config.json</span><span>AI에게 수정 요청</span>
+  </div>
+  <table>
+    <tr><th>선택한 기능 / 스크립트</th><td><span class="hint">예) 규격변환.jsx + 배너채우기.jsx</span></td></tr>
+    <tr><th>필요한 템플릿·출력 규격</th><td><span class="hint">예) banner_template.psd / 1080×1080, 1920×1080</span></td></tr>
+    <tr><th>config.json에 바꿀 데이터</th><td><span class="hint">예) productName, price, productImage</span></td></tr>
+  </table>
+
+  <h2>STEP 5. 도입 전 확인 사항 (현실 점검)</h2>
+  <div class="check">
+    <div><span class="b"></span> 우리 팀 노트북의 Photoshop / After Effects에서 스크립트가 실행되는가?</div>
+    <div><span class="b"></span> 레이어·컴포지션 이름을 표준(PRODUCT_IMAGE, PRODUCT_NAME, PRICE …)으로 맞출 수 있는가?</div>
+    <div><span class="b"></span> 민감 정보(미공개 상품·매출)를 외부 AI에 넣지 않아도 되는 업무인가?</div>
+    <div><span class="b"></span> 이 자동화를 팀 공용 템플릿/폴더로 만들어 자산화할 수 있는가?</div>
+    <div><span class="b"></span> 막히는 부분이 생기면 AI에게 물어볼 프롬프트를 준비했는가? (프롬프트_예시.txt 참고)</div>
+  </div>
+
+  <div class="footer">
+    <span>패스트캠퍼스 × 신세계라이브쇼핑 · 강사 김진성</span>
+    <span>작성 완료 후 패들렛 보드에 업로드해 주세요</span>
+  </div>
+</body>
+</html>

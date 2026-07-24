@@ -1,0 +1,7 @@
+{
+  "productName": "신상 초코 케이크",
+  "price": 25000,
+  "productImage": "01_INPUT/product_01.png",
+  "brandColor": "#E8452C",
+  "outputSizes": ["1080x1080", "1920x1080"]
+}
