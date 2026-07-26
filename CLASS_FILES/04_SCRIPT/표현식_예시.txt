@@ -25,6 +25,15 @@
    레이어 안쪽의  콘텐츠 > 사각형 1 > 사각형 경로 1 > "크기(Size)"
    속성에 붙여야 합니다. (엉뚱한 곳에 붙이면 undefined 오류가 납니다)
 
+ ★ 두 가지 버전이 있습니다 — 상황에 맞는 걸 쓰세요:
+   · 기본형: 텍스트 레이어 "1개"만 박스가 감쌀 때 (예: 상품명만)
+   · 확장형: 텍스트 레이어 "2개"를 박스 하나가 같이 감쌀 때
+            (이 실습 템플릿처럼 하단바 안에 상품명+가격이 나란히 있는 경우 — 이걸 쓰세요)
+
+────────────────────────────────────────────────────────────
+ 기본형 — 텍스트 1개만 감쌀 때
+────────────────────────────────────────────────────────────
+
  (A) "크기(Size)" 에 붙일 표현식
  아래 ┌ ─ ┐ 박스 안의 4줄만 마우스로 긁어서 복사하세요. (박스 밖 글자는 복사하지 마세요)
 
@@ -55,6 +64,70 @@
  ※ (B)가 잘 맞으려면: 박스(셰이프) 레이어의 "위치"와 "앵커 포인트"를
     글자 텍스트 레이어와 같은 기준으로 맞춰두세요.
     (실습 템플릿에는 이미 맞춰져 있습니다. 값만 바꿔 쓰면 됩니다)
+
+
+────────────────────────────────────────────────────────────
+ 확장형 — 상품명 + 가격, 텍스트 2개를 하나의 하단바가 같이 감쌀 때
+────────────────────────────────────────────────────────────
+
+ ※ 기본형 그대로 쓰면 박스가 PRODUCT_NAME 하나만 재기 때문에,
+   PRICE 글자가 박스 밖으로 튀어나옵니다. 이 버전으로 교체하세요.
+
+ (A) "크기(Size)" 에 붙일 표현식
+
+ ┌── 여기부터 복사 ──────────────────────────────────────────
+ │ // 상품명과 가격, 두 텍스트 레이어를 모두 읽어옵니다.
+ │ nameLayer = thisComp.layer("PRODUCT_NAME");
+ │ priceLayer = thisComp.layer("PRICE");
+ │ // 박스가 글자보다 얼마나 더 클지 여백(px)입니다.
+ │ pad = [40, 24];
+ │ // 각 텍스트가 실제로 차지하는 영역(자기 자신 기준 좌표)을 잽니다.
+ │ nameRect = nameLayer.sourceRectAtTime(time, false);
+ │ priceRect = priceLayer.sourceRectAtTime(time, false);
+ │ // 각 텍스트의 위치를 더해서, 화면(컴포지션) 기준 좌표로 바꿉니다.
+ │ nameLeft = nameLayer.transform.position[0] + nameRect.left;
+ │ nameRight = nameLeft + nameRect.width;
+ │ nameTop = nameLayer.transform.position[1] + nameRect.top;
+ │ nameBottom = nameTop + nameRect.height;
+ │ priceLeft = priceLayer.transform.position[0] + priceRect.left;
+ │ priceRight = priceLeft + priceRect.width;
+ │ priceTop = priceLayer.transform.position[1] + priceRect.top;
+ │ priceBottom = priceTop + priceRect.height;
+ │ // 두 텍스트를 모두 감싸는 가장 바깥 범위를 계산합니다.
+ │ left = Math.min(nameLeft, priceLeft);
+ │ right = Math.max(nameRight, priceRight);
+ │ top = Math.min(nameTop, priceTop);
+ │ bottom = Math.max(nameBottom, priceBottom);
+ │ // 그 범위에 여백을 더해 박스 크기로 돌려줍니다.
+ │ [(right - left), (bottom - top)] + pad*2;
+ └── 여기까지 복사 ──────────────────────────────────────────
+
+ (B) 같은 사각형 경로의 "위치(Position)" 에 붙일 짝꿍 표현식
+
+ ┌── 여기부터 복사 ──────────────────────────────────────────
+ │ nameLayer = thisComp.layer("PRODUCT_NAME");
+ │ priceLayer = thisComp.layer("PRICE");
+ │ nameRect = nameLayer.sourceRectAtTime(time, false);
+ │ priceRect = priceLayer.sourceRectAtTime(time, false);
+ │ nameLeft = nameLayer.transform.position[0] + nameRect.left;
+ │ nameRight = nameLeft + nameRect.width;
+ │ nameTop = nameLayer.transform.position[1] + nameRect.top;
+ │ nameBottom = nameTop + nameRect.height;
+ │ priceLeft = priceLayer.transform.position[0] + priceRect.left;
+ │ priceRight = priceLeft + priceRect.width;
+ │ priceTop = priceLayer.transform.position[1] + priceRect.top;
+ │ priceBottom = priceTop + priceRect.height;
+ │ left = Math.min(nameLeft, priceLeft);
+ │ right = Math.max(nameRight, priceRight);
+ │ top = Math.min(nameTop, priceTop);
+ │ bottom = Math.max(nameBottom, priceBottom);
+ │ [(left + right)/2, (top + bottom)/2];
+ └── 여기까지 복사 ──────────────────────────────────────────
+
+ ※ 주의: 이 확장형을 쓰려면 PRODUCT_NAME·PRICE 두 레이어가
+   MAIN 컴포지션에 "그대로(Pre-compose 하지 않고)" 있어야 합니다.
+   Pre-compose로 두 레이어를 합쳐버리면 영상채우기.jsx 스크립트가
+   PRODUCT_NAME/PRICE 레이어를 못 찾아 에러가 납니다.
 
 
 ────────────────────────────────────────────────────────────
