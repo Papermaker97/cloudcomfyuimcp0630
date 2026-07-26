@@ -102,7 +102,20 @@
  │ [(right - left), (bottom - top)] + pad*2;
  └── 여기까지 복사 ──────────────────────────────────────────
 
- (B) 같은 사각형 경로의 "위치(Position)" 에 붙일 짝꿍 표현식
+ (B) 위치 표현식 — ★★★ 붙이는 곳이 (A)와 다릅니다, 주의 ★★★
+   이 코드는 "Rectangle Path > Position"이 아니라
+   "Shape Layer 1 자신의 Transform > Position" 에 붙여야 합니다.
+   (레이어를 선택하면 맨 위 Transform 안에 Position이 있습니다. Contents 밖입니다)
+
+   이유: Rectangle Path의 Position은 셰이프 레이어 "자기 자신 기준" 상대좌표라서,
+   여기에 화면 전체 기준 절대좌표를 넣으면 레이어가 원래 갖고 있던 위치값 위에
+   또 더해져서 캔버스 밖으로 튕겨 나갑니다(박스가 안 보이게 됨).
+   반면 레이어 자신의 Transform > Position은 화면 전체 기준 절대좌표라서
+   이 코드가 계산하는 값과 정확히 맞습니다.
+
+   → Rectangle Path 1 > Position에 표현식을 넣었었다면, 그 표현식은 꺼서
+     (스톱워치 다시 Alt+클릭) 값을 0, 0으로 되돌리고, 아래 코드는
+     Shape Layer 1의 Transform > Position에 새로 붙이세요.
 
  ┌── 여기부터 복사 ──────────────────────────────────────────
  │ nameLayer = thisComp.layer("PRODUCT_NAME");
@@ -123,6 +136,10 @@
  │ bottom = Math.max(nameBottom, priceBottom);
  │ [(left + right)/2, (top + bottom)/2];
  └── 여기까지 복사 ──────────────────────────────────────────
+
+ ※ 이렇게 해도 박스가 살짝 밀려 보이면:
+   Shape Layer 1의 Transform > Anchor Point가 0,0 인지 확인하고,
+   아니면 0,0으로 맞추세요.
 
  ※ 주의: 이 확장형을 쓰려면 PRODUCT_NAME·PRICE 두 레이어가
    MAIN 컴포지션에 "그대로(Pre-compose 하지 않고)" 있어야 합니다.
