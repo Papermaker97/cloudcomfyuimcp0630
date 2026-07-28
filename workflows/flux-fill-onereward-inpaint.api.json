@@ -1,0 +1,156 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "_meta": { "title": "1. 원본 이미지 + 마스크 (우클릭 → Open in MaskEditor)" },
+    "inputs": {
+      "image": "image_flux.1_fill_dev_OneReward_input_image.png",
+      "upload": "image"
+    }
+  },
+  "2": {
+    "class_type": "InpaintCropImproved",
+    "_meta": { "title": "2. 마스크 주변 컨텍스트 크롭 (1024 정렬)" },
+    "inputs": {
+      "image": ["1", 0],
+      "mask": ["1", 1],
+      "downscale_algorithm": "bilinear",
+      "upscale_algorithm": "bicubic",
+      "preresize": false,
+      "preresize_mode": "ensure minimum resolution",
+      "preresize_min_width": 1024,
+      "preresize_min_height": 1024,
+      "preresize_max_width": 16384,
+      "preresize_max_height": 16384,
+      "mask_fill_holes": true,
+      "mask_expand_pixels": 8,
+      "mask_invert": false,
+      "mask_blend_pixels": 32,
+      "mask_hipass_filter": 0.1,
+      "extend_for_outpainting": false,
+      "extend_up_factor": 1.0,
+      "extend_down_factor": 1.0,
+      "extend_left_factor": 1.0,
+      "extend_right_factor": 1.0,
+      "context_from_mask_extend_factor": 1.4,
+      "output_resize_to_target_size": true,
+      "output_target_width": 1024,
+      "output_target_height": 1024,
+      "output_padding": "32"
+    }
+  },
+  "3": {
+    "class_type": "UNETLoader",
+    "_meta": { "title": "3. Flux.1 Fill dev — OneReward" },
+    "inputs": {
+      "unet_name": "flux.1-fill-dev-OneReward-transformer_fp8.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "4": {
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": { "title": "4. 물체 제거 LoRA (제거 작업 시 strength 1.0)" },
+    "inputs": {
+      "model": ["3", 0],
+      "lora_name": "removal_timestep_alpha-2-1740.safetensors",
+      "strength_model": 0.0
+    }
+  },
+  "5": {
+    "class_type": "DifferentialDiffusion",
+    "_meta": { "title": "5. Differential Diffusion (경계 부드럽게)" },
+    "inputs": { "model": ["4", 0] }
+  },
+  "6": {
+    "class_type": "DualCLIPLoader",
+    "_meta": { "title": "6. 텍스트 인코더" },
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp16.safetensors",
+      "type": "flux",
+      "device": "default"
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "7. 프롬프트 (마스크 영역에 무엇을 그릴지)" },
+    "inputs": {
+      "clip": ["6", 0],
+      "text": "a woven straw sun hat with a black ribbon band, sitting naturally on her head, soft daylight, photorealistic, matching the original photo's grain and lighting"
+    }
+  },
+  "8": {
+    "class_type": "FluxGuidance",
+    "_meta": { "title": "8. FluxGuidance 30 (OneReward 권장)" },
+    "inputs": {
+      "conditioning": ["7", 0],
+      "guidance": 30.0
+    }
+  },
+  "9": {
+    "class_type": "ConditioningZeroOut",
+    "_meta": { "title": "9. 네거티브 (Flux는 빈 조건 사용)" },
+    "inputs": { "conditioning": ["7", 0] }
+  },
+  "10": {
+    "class_type": "VAELoader",
+    "_meta": { "title": "10. Flux VAE" },
+    "inputs": { "vae_name": "ae.safetensors" }
+  },
+  "11": {
+    "class_type": "InpaintModelConditioning",
+    "_meta": { "title": "11. Fill 인페인팅 컨디셔닝" },
+    "inputs": {
+      "positive": ["8", 0],
+      "negative": ["9", 0],
+      "vae": ["10", 0],
+      "pixels": ["2", 1],
+      "mask": ["2", 2],
+      "noise_mask": true
+    }
+  },
+  "12": {
+    "class_type": "KSampler",
+    "_meta": { "title": "12. 샘플러 (20 steps / cfg 1 / euler)" },
+    "inputs": {
+      "model": ["5", 0],
+      "positive": ["11", 0],
+      "negative": ["11", 1],
+      "latent_image": ["11", 2],
+      "seed": 875421903,
+      "steps": 20,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0
+    }
+  },
+  "13": {
+    "class_type": "VAEDecode",
+    "_meta": { "title": "13. 디코드" },
+    "inputs": {
+      "samples": ["12", 0],
+      "vae": ["10", 0]
+    }
+  },
+  "14": {
+    "class_type": "InpaintStitchImproved",
+    "_meta": { "title": "14. 원본 해상도로 다시 합성" },
+    "inputs": {
+      "stitcher": ["2", 0],
+      "inpainted_image": ["13", 0]
+    }
+  },
+  "15": {
+    "class_type": "SaveImage",
+    "_meta": { "title": "15. 최종 결과 (원본 해상도)" },
+    "inputs": {
+      "images": ["14", 0],
+      "filename_prefix": "OneReward_Inpaint"
+    }
+  },
+  "16": {
+    "class_type": "PreviewImage",
+    "_meta": { "title": "크롭 영역 확인용" },
+    "inputs": { "images": ["13", 0] }
+  }
+}
