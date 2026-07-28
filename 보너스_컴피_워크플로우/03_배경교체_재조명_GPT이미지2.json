@@ -1,0 +1,93 @@
+{
+  "id": "0e9503b6-c16d-48e4-ae4a-b02534825a17",
+  "revision": 0,
+  "last_node_id": 276,
+  "last_link_id": 385,
+  "nodes": [
+    {
+      "id": 269,
+      "type": "SaveImage",
+      "pos": [-330, 580],
+      "size": [510, 430],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        { "name": "images", "type": "IMAGE", "link": 385 }
+      ],
+      "outputs": [
+        { "name": "images", "type": "IMAGE", "links": null }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.19.3",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": ["배경교체_재조명_GPT결과"]
+    },
+    {
+      "id": 271,
+      "type": "LoadImage",
+      "pos": [-1230, 580],
+      "size": [370, 410],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [384] },
+        { "name": "MASK", "type": "MASK", "links": null }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.19.3",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": ["여기에_상품_원본사진.png", "image"]
+    },
+    {
+      "id": 276,
+      "type": "OpenAIGPTImageNodeV2",
+      "pos": [-790, 580],
+      "size": [400, 420],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        { "label": "image_1", "name": "model.images.image_1", "shape": 7, "type": "IMAGE", "link": 384 },
+        { "label": "image_2", "name": "model.images.image_2", "shape": 7, "type": "IMAGE", "link": null },
+        { "label": "mask", "name": "model.mask", "shape": 7, "type": "MASK", "link": null }
+      ],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [385] }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.28.0",
+        "Node name for S&R": "OpenAIGPTImageNodeV2"
+      },
+      "widgets_values": [
+        "이 상품 사진에서 상품 자체(모양·색상·로고·질감)는 절대 바꾸지 말고, 배경만 밝고 깨끗한 스튜디오 화이트 배경 또는 따뜻한 톤의 라이프스타일 배경으로 자연스럽게 교체해줘. 새 배경의 조명 방향에 맞춰 상품에 드리운 그림자와 반사광도 사실적으로 다시 그려줘.",
+        "gpt-image-2",
+        "auto",
+        1024,
+        1024,
+        "auto",
+        "low",
+        1,
+        0,
+        "randomize"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [384, 271, 0, 276, 0, "IMAGE"],
+    [385, 276, 0, 269, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
