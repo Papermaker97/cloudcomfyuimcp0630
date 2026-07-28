@@ -1,61 +1,104 @@
-# Flux.1 Fill dev (OneReward) 인페인팅 워크플로우
+# ComfyUI 인페인팅 워크플로우
 
-현재 공개된 오픈소스 모델 중 인페인팅 품질이 가장 좋은 조합으로 구성한 ComfyUI
-워크플로우입니다. Comfy Cloud 노드 카탈로그 기준으로 dry-run 검증을 마쳤습니다
-(경고 0건).
+Comfy Cloud 카탈로그를 조사해서 만든 마스크 기반 인페인팅 워크플로우입니다.
+두 개 모두 실제로 클라우드에서 실행해 성공을 확인했습니다.
 
-- 파일: [`flux-fill-onereward-inpaint.api.json`](./flux-fill-onereward-inpaint.api.json) (API 포맷)
-- 캔버스: https://cloud.comfy.org/?share=ecc7af9e3f6f
+| 워크플로우 | 모델 | 출시 | 캔버스 |
+| --- | --- | --- | --- |
+| [`flux2-klein-9b-inpaint.api.json`](./flux2-klein-9b-inpaint.api.json) **(권장)** | FLUX.2 Klein 9B | 2026-01 | https://cloud.comfy.org/?share=0971a11a862f |
+| [`flux-fill-onereward-inpaint.api.json`](./flux-fill-onereward-inpaint.api.json) | Flux.1 Fill dev + OneReward | 2024-11 / 2025-08 | https://cloud.comfy.org/?share=ecc7af9e3f6f |
 
-## 왜 이 조합인가
+## 2026년 7월 기준 오픈 인페인팅 모델 지형
 
-| 구성 요소 | 역할 |
-| --- | --- |
-| `flux.1-fill-dev-OneReward-transformer_fp8` | ByteDance Research가 Flux.1 Fill dev를 단일 리워드 모델로 추가 정렬한 버전. 인페인팅·아웃페인팅·물체 제거에서 원본 Fill dev보다 마스크 밖 컨텍스트 일치도가 높다. |
-| `removal_timestep_alpha-2-1740` LoRA | 물체 제거 전용. 기본값 0.0(비활성), 제거 작업일 때만 1.0. |
-| Differential Diffusion | 마스크의 회색조를 denoise 강도로 해석해 경계를 단계적으로 섞는다. 하드 엣지 티가 사라진다. |
-| Inpaint Crop / Stitch (Improved) | 마스크 주변만 1024px로 크롭해 샘플링하고 원본 해상도로 되돌린다. 4K 사진에서도 마스크 영역이 풀 해상도로 생성되고, 마스크 밖 픽셀은 전혀 손상되지 않는다. |
-| `InpaintModelConditioning` | Fill 계열 전용 컨디셔닝. `SetLatentNoiseMask` 방식보다 Fill 모델과 맞다. |
+| 모델 | 출시 | 라이선스 | 마스크 인페인팅 적합성 |
+| --- | --- | --- | --- |
+| **FLUX.2 Klein 9B** | 2026-01 | Apache 2.0 | 편집 모델 + ReferenceLatent. 커뮤니티에서 현시점 최상급 평가. **채택** |
+| Krea 2 Raw / Turbo | 2026-06 | 커스텀 커뮤니티 | 12.9B T2I 파운데이션. 미학은 최상위지만 **전용 인페인팅 경로 없음** — SetLatentNoiseMask img2img만 가능 |
+| Qwen-Image-Edit 2511 | 2025-11 | Apache 2.0 | 지시문 편집·텍스트 렌더링 강함. 마스크는 네이티브 아님 |
+| Z-Image Turbo (ZiT) | 2025-11 | Apache 2.0 | 6B / 8스텝. 빠르지만 인페인팅은 ControlNet·LoRA 경유 |
+| Flux.1 Fill dev + OneReward | 2024-11 / 2025-08 | 비상업 (FLUX.1 dev) | 유일한 **전용 인페인팅 아키텍처** (마스크가 입력 채널). 물체 제거는 여전히 강력 |
+
+Klein을 고른 이유는 세 가지입니다 — 가장 최신이고, Apache 2.0이라 상업 사용에
+제약이 없고, ReferenceLatent로 원본 이미지 전체를 편집 컨텍스트로 넣으면서
+SetLatentNoiseMask로 마스크 밖 latent를 고정할 수 있습니다.
+
+Krea 2는 카탈로그에 `krea2_raw_bf16` / `krea2_turbo_bf16`로 존재하지만
+인페인팅용 조건부 입력이 없습니다. 마스크 편집에는 부적합해 채택하지 않았습니다.
+
+## Klein 9B 워크플로우 구조
+
+```
+LoadImage ─┬─ IMAGE ─┐
+           └─ MASK  ─┤
+                     ├─> InpaintCropImproved ─┬─> stitcher ────────────┐
+                                              ├─> cropped_image ─┐     │
+                                              └─> cropped_mask ─┐│     │
+                                                                ││     │
+CLIPTextEncode ─> ReferenceLatent <── VAEEncode <────────────────┘│     │
+       └─> FluxGuidance(4.0) ─> BasicGuider <── DifferentialDiffusion   │
+                                     │                                  │
+       SetLatentNoiseMask <──────────┼──────────────────────────────────┘
+              └─> SamplerCustomAdvanced(Flux2Scheduler, euler, 20)
+                          └─> VAEDecode ─> InpaintStitchImproved ─> SaveImage
+```
+
+핵심 설계:
+
+- **ReferenceLatent** — Klein은 Fill 계열처럼 마스크 입력 채널이 없는 편집
+  모델이다. 원본 latent를 편집 레퍼런스로 넣어야 마스크 안을 주변과 일치하게
+  채운다.
+- **SetLatentNoiseMask** — 마스크 밖 latent를 샘플링에서 고정한다. 이게 없으면
+  Klein이 이미지 전체를 다시 그린다.
+- **Flux2Scheduler** — Flux.2 전용 해상도 인지 시그마 스케줄. 일반 KSampler의
+  `simple` 스케줄러와 다르며, Flux.2에서는 이쪽이 맞다.
+- **DifferentialDiffusion** — 마스크 회색조를 denoise 강도로 해석해 경계를
+  단계적으로 섞는다.
+- **Inpaint Crop / Stitch** — 마스크 주변만 1024px로 크롭해 샘플링하고 원본
+  해상도로 되돌린다. 마스크 밖 픽셀은 손상되지 않는다.
 
 ## 사용법
 
-1. `LoadImage`에 이미지를 올리고 우클릭 → **Open in MaskEditor**로 채울 영역을 칠한다.
-2. `CLIPTextEncode`에 **마스크 영역에 무엇이 있어야 하는지**를 자연어 문장으로 쓴다.
-   장면 전체 묘사가 아니라 채울 대상만 쓰는 편이 정확하다.
-3. 물체를 지우는 작업이면 `LoraLoaderModelOnly`의 `strength_model`을 `1.0`으로 올리고
-   프롬프트는 비우거나 배경만 묘사한다 (예: `empty wooden table surface`).
+1. `LoadImage`에 이미지를 올린다. **반드시 본인 이미지를 업로드해야 한다** —
+   기본값은 템플릿 예제 파일명이고, 그 파일이 워크스페이스에 없으면 실행이
+   막힌다.
+2. 우클릭 → **Open in MaskEditor**로 채울 영역을 칠한다.
+3. `CLIPTextEncode`에 마스크 영역에 무엇이 있어야 하는지 자연어 문장으로 쓴다.
 4. 실행. `SaveImage`가 원본 해상도 결과, `PreviewImage`가 크롭 영역 결과다.
 
-## 파라미터 조정 가이드
+## 파라미터 조정
 
 | 노드 | 값 | 조정 기준 |
 | --- | --- | --- |
-| `FluxGuidance.guidance` | 30 | OneReward 권장값. 프롬프트를 덜 따르면 40~50, 결과가 과하게 튀면 20까지 낮춘다. |
-| `KSampler.steps` | 20 | 미세 디테일이 필요하면 28~30. |
-| `KSampler.cfg` | 1.0 | **고정.** Flux는 CFG > 1에서 품질이 무너진다. 프롬프트 반영은 FluxGuidance로 조절. |
-| `InpaintCropImproved.context_from_mask_extend_factor` | 1.4 | 주변 맥락을 더 참고해야 하면 1.6~2.0. 값이 클수록 마스크 영역의 유효 해상도는 떨어진다. |
-| `InpaintCropImproved.mask_blend_pixels` | 32 | 경계선이 보이면 48~64로 올린다. |
-| `InpaintCropImproved.mask_expand_pixels` | 8 | 지우려는 물체의 그림자·반사가 남으면 16~32로 올린다. |
-| `InpaintCropImproved.output_target_*` | 1024 | 얼굴 등 디테일이 중요하면 1536. VRAM/시간이 늘어난다. |
+| `FluxGuidance.guidance` | 4.0 | Flux.2 계열 기본값. 프롬프트를 덜 따르면 5~6, 결과가 튀면 2.5~3 |
+| `Flux2Scheduler.steps` | 20 | 디테일이 필요하면 28~30 |
+| `Flux2Scheduler.width/height` | 1024 | `InpaintCropImproved`의 output_target과 **반드시 일치**시킨다 |
+| `InpaintCropImproved.context_from_mask_extend_factor` | 1.4 | 주변 맥락이 더 필요하면 1.6~2.0 (마스크 영역 유효 해상도는 떨어진다) |
+| `InpaintCropImproved.mask_blend_pixels` | 32 | 경계선이 보이면 48~64 |
+| `InpaintCropImproved.mask_expand_pixels` | 8 | 지운 물체의 그림자·반사가 남으면 16~32 |
 
-네거티브 프롬프트는 쓰지 않는다. Flux는 이를 무시하며, 워크플로우는
-`ConditioningZeroOut`으로 빈 조건을 넣는다.
+CFG는 별도 노드로 두지 않았다. Klein은 guidance-distilled 모델이라
+`BasicGuider`로 충분하고, 네거티브 프롬프트는 무시된다.
 
-## 필요 모델
+## 필요 모델 (Klein 9B)
 
 | 종류 | 파일명 |
 | --- | --- |
-| diffusion_model | `flux.1-fill-dev-OneReward-transformer_fp8.safetensors` |
-| lora | `removal_timestep_alpha-2-1740.safetensors` |
-| text_encoder | `clip_l.safetensors`, `t5xxl_fp16.safetensors` |
-| vae | `ae.safetensors` |
+| diffusion_model | `flux-2-klein-9b.safetensors` |
+| text_encoder | `qwen_3_8b_fp8mixed.safetensors` (CLIPLoader type=`flux2`) |
+| vae | `flux2-vae.safetensors` |
 
-커스텀 노드는 `comfyui-inpaint-cropandstitch` 하나만 필요하고 나머지는 코어 노드다.
-Comfy Cloud에는 모두 사전 설치되어 있다.
+커스텀 노드는 `comfyui-inpaint-cropandstitch` 하나만 필요하고 나머지는 코어다.
 
-## 대안
+## 검증 기록
 
-- **Qwen-Image InstantX Inpainting ControlNet** (`image_qwen_image_instantx_inpainting_controlnet`
-  템플릿): 마스크 영역에 글자를 넣거나 지시문 기반 편집("이 간판 문구를 …로 바꿔")을
-  할 때는 Qwen 쪽이 강하다. 사진 리터치·물체 제거는 OneReward가 낫다.
-- **Wan 2.2 Fun Inpaint / VACE**: 동영상 인페인팅용.
+| 워크플로우 | prompt_id | 결과 |
+| --- | --- | --- |
+| Klein 9B | `bf5b8f6d-8fa8-4820-9658-b77b32661b35` | 성공, 이미지 2장 출력 |
+| OneReward | `1ab86640-f0f0-411f-9030-160735855610` | 성공 |
+
+## 관련 자료
+
+- [FLUX Klein Unified Image Editing (RunComfy)](https://www.runcomfy.com/comfyui-workflows/flux-klein-unified-image-editing-inpaint-remove-outpaint-in-comfyui-advanced-image-restoration)
+- [Flux2 Klein 9B Inpainting 워크플로우 (axiomgraph)](https://github.com/axiomgraph/ComfyUIWorkflow/blob/main/Flux2%20Klein%209b%20Inpainting.json)
+- [Krea 2 오픈웨이트 공개](https://www.krea.ai/krea-2-open-source)
+- [Z-Image Turbo (Tongyi-MAI)](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo)
