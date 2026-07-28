@@ -1,7 +1,8 @@
 {
-  "productName": "신상 초코 케이크",
-  "price": 25000,
-  "productImage": "01_INPUT/product_01.png",
-  "brandColor": "#E8452C",
+  "productName": "진한 초콜릿 무스 케이크 스페셜 에디션",
+  "price": 35000,
+  "productImage": "01_INPUT/product_02.png",
+  "logoImage": "",
+  "brandColor": "auto",
   "outputSizes": ["1080x1080", "1920x1080"]
 }
