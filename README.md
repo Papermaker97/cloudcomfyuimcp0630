@@ -40,6 +40,13 @@ search models/nodes/templates, run workflows) are available in the session.
 2. Set the URL to `https://cloud.comfy.org/mcp`.
 3. Save, then sign in when prompted.
 
+## Workflows
+
+- [`workflows/`](./workflows/) — ready-to-run workflows built against this
+  connector. Currently: a Seedance 2.0 multi-scene lip-sync workflow that
+  shares one song + character sheet across scenes and varies only the audio
+  cut, key visual, lyrics, and staging prompt.
+
 ## Reference
 
 - [Comfy MCP announcement](https://blog.comfy.org/p/comfy-mcp-turn-your-agent-into-a)

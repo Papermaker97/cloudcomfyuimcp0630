@@ -1,0 +1,127 @@
+{
+  "1": {
+    "class_type": "LoadAudio",
+    "_meta": { "title": "[SHARED] 1. Full song (upload once)" },
+    "inputs": {
+      "audio": "song_full.mp3"
+    }
+  },
+  "2": {
+    "class_type": "TrimAudioDuration",
+    "_meta": { "title": "[PER-SCENE] 2. Cut the part for this shot" },
+    "inputs": {
+      "audio": ["1", 0],
+      "start_index": 0.0,
+      "duration": 8.0
+    }
+  },
+  "3": {
+    "class_type": "PreviewAudio",
+    "_meta": { "title": "Check the cut before spending credits" },
+    "inputs": {
+      "audio": ["2", 0]
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "_meta": { "title": "[SHARED] 3. Character sheet (multi-angle face)" },
+    "inputs": {
+      "image": "character_sheet.png"
+    }
+  },
+  "11": {
+    "class_type": "LoadImage",
+    "_meta": { "title": "[PER-SCENE] 4. Key visual (space / bg / lighting)" },
+    "inputs": {
+      "image": "key_visual.png"
+    }
+  },
+  "20": {
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": { "title": "[FIXED] Prompt A - lip-sync + identity rules" },
+    "inputs": {
+      "value": "LIP-SYNC PERFORMANCE VIDEO.\n\nIDENTITY: The performer is the character in the character-sheet reference image. That sheet is the single source of truth for identity - same face, same facial structure, same hairstyle, same proportions from every angle it shows. Do not restyle, do not change age, ethnicity, hair or wardrobe. Keep one single subject on screen; no duplicated or background copies of the character.\n\nLIP SYNC: The character sings the reference audio track. Mouth shape, jaw opening and tongue position must match the phonemes of that audio frame by frame. Full lip closure on m / b / p, teeth-to-lip contact on f / v, wide open vowels on sustained notes, and a still, closed or relaxed mouth during instrumental gaps and rests. Never mouth words that are not in the audio.\n\nPERFORMANCE: Breathing, head bobs, shoulder motion, eyebrow lifts and micro-expressions follow the rhythm, dynamics and emotion of the vocal. Natural blinks. Consistent teeth and inner mouth. Body motion is alive but never louder than the singing.\n\nWORLD: Location, time of day, color grading, lighting direction and intensity stay coherent with the key-visual reference image throughout the shot.\n\nQUALITY: Photoreal continuity, stable identity, no face morphing, no identity drift, no warped hands, no extra limbs, no on-screen text, no lyrics captions, no subtitles, no watermark, no split screen."
+    }
+  },
+  "21": {
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": { "title": "[PER-SCENE] Prompt B - lyrics of this shot" },
+    "inputs": {
+      "value": "LYRICS SUNG IN THIS SHOT (must match the reference audio exactly):\n\"<put the lyric line(s) covered by the audio cut here>\"\n\nLanguage: Korean. Delivery: <soft / belting / whisper / falsetto>. Emotional tone: <longing / defiant / joyful>."
+    }
+  },
+  "22": {
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": { "title": "[PER-SCENE] Prompt C - space, staging, camera" },
+    "inputs": {
+      "value": "SCENE AND STAGING:\nLocation: <as in the key visual, e.g. neon-lit rooftop at blue hour>.\nFraming: <medium close-up, chest up>.\nCamera: <slow push-in on a gimbal, 35mm, shallow depth of field>.\nAngle: <slightly low angle, eye contact with the lens>.\nLighting: <key from the left neon sign, cool rim light from behind, soft practical fill>.\nAction: <the character holds the mic with one hand, steps forward on the downbeat>.\nMood / grade: <teal-magenta night grade, gentle film grain>."
+    }
+  },
+  "30": {
+    "class_type": "StringConcatenate",
+    "_meta": { "title": "A + B" },
+    "inputs": {
+      "string_a": ["20", 0],
+      "string_b": ["21", 0],
+      "delimiter": "\n\n"
+    }
+  },
+  "31": {
+    "class_type": "StringConcatenate",
+    "_meta": { "title": "(A + B) + C  ->  final prompt" },
+    "inputs": {
+      "string_a": ["30", 0],
+      "string_b": ["22", 0],
+      "delimiter": "\n\n"
+    }
+  },
+  "40": {
+    "class_type": "ByteDance2ReferenceNode",
+    "_meta": { "title": "Seedance 2.0 - Reference to Video (lip sync)" },
+    "inputs": {
+      "model": "Seedance 2.0",
+      "model.prompt": ["31", 0],
+      "model.resolution": "1080p",
+      "model.ratio": "16:9",
+      "model.duration": 8,
+      "model.generate_audio": true,
+      "model.reference_images.image_1": ["10", 0],
+      "model.reference_images.image_2": ["11", 0],
+      "model.reference_audios.audio_1": ["2", 0],
+      "model.auto_downscale": true,
+      "model.auto_upscale": false,
+      "seed": 0,
+      "watermark": false
+    }
+  },
+  "50": {
+    "class_type": "SaveVideo",
+    "_meta": { "title": "Output 1 - Seedance audio track" },
+    "inputs": {
+      "video": ["40", 0],
+      "filename_prefix": "video/lipsync_seedance2",
+      "format": "auto",
+      "codec": "auto"
+    }
+  },
+  "60": {
+    "class_type": "AudioVideoCombine",
+    "_meta": { "title": "Mux the original song cut back in" },
+    "inputs": {
+      "audio": ["2", 0],
+      "video": ["40", 0],
+      "video_start_time": "0:00",
+      "video_end_time": ""
+    }
+  },
+  "61": {
+    "class_type": "SaveVideo",
+    "_meta": { "title": "Output 2 - original song audio (use for editing)" },
+    "inputs": {
+      "video": ["60", 0],
+      "filename_prefix": "video/lipsync_seedance2_srcaudio",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}
