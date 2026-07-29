@@ -137,3 +137,9 @@ Comfy Cloud 템플릿 라이브러리 + 오픈소스/커뮤니티(GitHub, Civita
 ### 주의사항
 - ggvfx / rik-python 계열은 **로컬 ComfyUI 전제**(24GB VRAM). Comfy Cloud MCP는 클라우드 전용이라 이 워크플로우들을 그대로 실행할 수 없고, 노드 구성을 참고해 재구축하거나 로컬에서 돌려야 합니다.
 - `comfycompositing.com` 과 `comfy.org/workflows` 개별 페이지는 자동 조회(403)를 차단해 직접 검증하지 못했습니다. 해당 항목은 검색 스니펫 기반이므로 직접 방문 확인을 권장합니다.
+
+---
+
+## 실제 워크플로우 JSON
+
+검증된 워크플로우 JSON 45개는 [`workflows/`](../workflows/README.md) 에 카테고리별로 정리돼 있습니다.
