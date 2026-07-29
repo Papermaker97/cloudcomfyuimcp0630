@@ -2,25 +2,43 @@
 
 Comfy Cloud에서 실행 검증을 마친 마스크 기반 인페인팅 워크플로우입니다.
 
-| 워크플로우 | 모델 | 출시 | 캔버스 |
-| --- | --- | --- | --- |
-| [`qwen-image-edit-2511-inpaint.api.json`](./qwen-image-edit-2511-inpaint.api.json) **(권장)** | Qwen-Image-Edit 2511 | 2025-11 | https://cloud.comfy.org/?share=4af4905c4ff3 |
-| [`flux-fill-onereward-inpaint.api.json`](./flux-fill-onereward-inpaint.api.json) | Flux.1 Fill dev + OneReward | 2024-11 / 2025-08 | https://cloud.comfy.org/?share=09188b15cee1 |
-| [`flux2-klein-9b-inpaint.api.json`](./flux2-klein-9b-inpaint.api.json) (비권장) | FLUX.2 Klein 9B | 2026-01 | https://cloud.comfy.org/?share=0971a11a862f |
+| 워크플로우 | 모델 | 출시 | 스텝 | 캔버스 |
+| --- | --- | --- | --- | --- |
+| [`flux2-klein-9b-inpaint.api.json`](./flux2-klein-9b-inpaint.api.json) **(권장)** | FLUX.2 Klein 9B distilled | 2026-01 | 6 | https://cloud.comfy.org/?share=65471d474dd2 |
+| [`qwen-image-edit-2511-inpaint.api.json`](./qwen-image-edit-2511-inpaint.api.json) | Qwen-Image-Edit 2511 | 2025-11 | 20 | https://cloud.comfy.org/?share=4af4905c4ff3 |
+| [`flux-fill-onereward-inpaint.api.json`](./flux-fill-onereward-inpaint.api.json) | Flux.1 Fill dev + OneReward | 2024-11 / 2025-08 | 24 | https://cloud.comfy.org/?share=09188b15cee1 |
 
 ## 실측 비교
 
 동일 이미지·동일 마스크·동일 시드(875421903)로 실행한 결과를 육안 비교했습니다.
 
-| | Qwen-Image-Edit 2511 | Flux.1 Fill OneReward |
-| --- | --- | --- |
-| 밀짚 짜임 텍스처 | 선명하고 결이 살아있음 | 평평하고 단조로움 |
-| 리본 | 그로그랭 질감 + 리본 매듭까지 형성 | 단색 평면 밴드, 매듭 거의 없음 |
-| 마스크 경계 | 이음선 없음 | 이음선 없음 |
-| 종합 | **디테일 우위** | 보수적이고 밋밋함 |
+| | Klein 9B (6스텝) | Qwen-Image-Edit 2511 | Flux.1 Fill OneReward |
+| --- | --- | --- | --- |
+| 밀짚 짜임 | **땋은 결이 또렷하게 분리됨** | 선명하지만 다소 부드러움 | 평평하고 단조로움 |
+| 리본 | 그로그랭 질감, 형태 깔끔 | 질감 + 리본 매듭까지 형성 | 단색 평면 밴드, 매듭 거의 없음 |
+| 브림 디테일 | **미세한 타공 짜임까지 표현** | 보통 | 뭉개짐 |
+| 마스크 경계 | 이음선 없음 | 이음선 없음 | 이음선 없음 |
+| 종합 | **최상 + 가장 빠름** | 좋음, 프롬프트 반영 우수 | 보수적이고 밋밋함 |
 
-시드 하나·이미지 하나짜리 비교라 벤치마크가 아니라 일화입니다. 다만 프롬프트를
-따라가는 정도와 텍스처 밀도에서 차이가 뚜렷했습니다.
+시드 하나·이미지 하나짜리 비교라 벤치마크가 아니라 일화입니다. 다만 텍스처 밀도
+차이는 뚜렷했습니다.
+
+### Klein 품질 문제의 원인 — 스텝 수
+
+초기 Klein 워크플로우가 형편없던 이유는 모델이 아니라 **스텝 수**였습니다.
+
+`flux-2-klein-9b.safetensors`는 **distilled 변형**입니다 (undistilled는
+`flux-2-klein-base-9b-fp8.safetensors`). Distilled 모델은 소수 스텝으로 증류
+학습되었기 때문에 과샘플링하면 품질이 무너집니다. 카탈로그의 권장값
+`steps 20`은 Flux.2 계열 일반값이라 distilled 변형에는 맞지 않습니다.
+
+20 → 6스텝으로 내리자 세 워크플로우 중 최고 품질이 됐고, 실행 시간도 가장
+짧습니다. Klein을 쓸 때 변형 이름을 먼저 확인해야 합니다:
+
+| 파일명 | 종류 | 스텝 |
+| --- | --- | --- |
+| `flux-2-klein-9b` / `-4b` | distilled | 4~8 |
+| `flux-2-klein-base-9b-fp8` / `-base-4b` | undistilled (base) | 20 |
 
 ## 설계 원칙 — 왜 이 배선인가
 
@@ -44,6 +62,41 @@ Comfy Cloud에서 실행 검증을 마친 마스크 기반 인페인팅 워크�
 넣는다. 페더링은 픽셀 합성 단계에서만 쓴다.
 
 3번은 초기 Klein 워크플로우의 실제 버그였고, 아래 논문들이 다루는 주제다.
+세 워크플로우 모두 이 세 원칙을 동일하게 적용했다.
+
+## Klein 9B 워크플로우 구조 (권장)
+
+```
+LoadImage ─┬─ IMAGE ─┐
+           └─ MASK  ─┤
+                     ├─> InpaintCropImproved ─┬─> stitcher ──────────────────┐
+                                              ├─> cropped_image ─> VAEEncode ─┬─> ReferenceLatent
+                                              └─> cropped_mask ─> ThresholdMask ─> GrowMask ─┐
+                                                                                             │
+CLIPTextEncode ─> ReferenceLatent ─> FluxGuidance(4.0) ─> BasicGuider <── UNETLoader          │
+                                                              │                              │
+                                        SetLatentNoiseMask <──┼──────────────────────────────┘
+                                                 │            │
+                              SamplerCustomAdvanced(Flux2Scheduler 6스텝, euler)
+                                                 └─> VAEDecode ─> ImageCompositeMasked
+                                                                   (feathered mask, 픽셀 공간)
+                                                                        └─> InpaintStitchImproved ─> SaveImage
+```
+
+`Flux2Scheduler`는 Flux.2 전용 해상도 인지 시그마 스케줄이다. `width`/`height`를
+`InpaintCropImproved`의 `output_target`과 반드시 일치시켜야 한다.
+`ReferenceLatent`로 원본 latent를 편집 레퍼런스로 넣는 것이 핵심 — Klein은 Fill
+계열처럼 마스크 입력 채널이 없는 편집 모델이라, 이게 없으면 마스크 안이 주변과
+어긋난다. Klein은 guidance-distilled이므로 `BasicGuider`로 충분하고 네거티브
+프롬프트는 무시된다.
+
+### Klein 파라미터 조정
+
+| 노드 | 값 | 조정 기준 |
+| --- | --- | --- |
+| `Flux2Scheduler.steps` | 6 | distilled는 4~8. **20으로 올리면 품질이 무너진다** |
+| `FluxGuidance.guidance` | 4.0 | 커뮤니티 표준값. 프롬프트를 덜 따르면 5~6 |
+| `Flux2Scheduler.width/height` | 1024 | `output_target`과 일치 필수 |
 
 ## Qwen 2511 워크플로우 구조
 
@@ -93,7 +146,17 @@ UNETLoader ─> ModelSamplingAuraFlow ─> CFGNorm ─────────> 
 속도가 필요하면 `Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` LoRA를
 `LoraLoaderModelOnly`로 붙이고 steps 8 / cfg 1.0으로 내린다.
 
-## 필요 모델 (Qwen 2511)
+## 필요 모델
+
+**Klein 9B (권장)**
+
+| 종류 | 파일명 |
+| --- | --- |
+| diffusion_model | `flux-2-klein-9b.safetensors` |
+| text_encoder | `qwen_3_8b.safetensors` (CLIPLoader type=`flux2`) |
+| vae | `flux2-vae.safetensors` |
+
+**Qwen 2511**
 
 | 종류 | 파일명 |
 | --- | --- |
@@ -112,6 +175,11 @@ UNETLoader ─> ModelSamplingAuraFlow ─> CFGNorm ─────────> 
 
 커뮤니티는 전용 모델을 기다리는 대신 **최신 모델 + 태스크 LoRA + crop&stitch +
 세컨드 패스** 패턴으로 우회했다. 이게 현재의 실질적 SOTA다.
+
+실측 결과도 이 방향을 지지한다. 마스크 네이티브인 OneReward가 세 워크플로우 중
+가장 품질이 낮았고, 마스크 채널이 없는 편집 모델(Klein, Qwen-Edit)에 crop&stitch와
+픽셀 합성을 붙인 쪽이 더 좋았다. 전용 아키텍처보다 **모델 자체의 최신성**이 결과에
+더 크게 기여한다는 뜻이다.
 
 ### 클라우드에서 쓸 수 있는 인페인팅 관련 LoRA
 
@@ -134,7 +202,8 @@ Krea 2는 클라우드에 스타일 LoRA만 있고 인페인팅 LoRA는 없다. 
 | --- | --- | --- |
 | Qwen 2511 | `7f89e468-678b-49de-b3f5-b0fd0c5702e4` | 성공, 육안 확인 |
 | OneReward (수정판) | `919aa3b0-ca41-4aeb-b901-75c7fab56d68` | 성공, 육안 확인 |
-| Klein 9B | `bf5b8f6d-8fa8-4820-9658-b77b32661b35` | 실행은 성공했으나 마스크 경계 품질 불량 |
+| Klein 9B (6스텝, 수정판) | `b1236062-a68d-44e1-8dc6-1acf1f23df0e` | 성공, 육안 확인 — 최고 품질 |
+| Klein 9B (20스텝, 초기판) | `bf5b8f6d-8fa8-4820-9658-b77b32661b35` | 실행은 성공했으나 품질 불량 (과샘플링) |
 
 ## 참고 자료
 
