@@ -1,51 +1,112 @@
-# BEST 12 — 최신·고품질만 추림 (2026-07)
+# ComfyUI VFX — Best 12 Workflows
 
-45개 중 **모델 세대가 최신이고 실무에서 실제로 쓸 값어치가 있는 12개**만 남겼습니다.
-전부 Comfy Cloud 레지스트리에서 MCP로 조회 검증 완료 → **클라우드에서 돕니다.**
+Filenames are the exact Comfy Cloud `template_id`, so you can run any of them directly:
 
-`run_template(template_id="<원본이름>")` 으로 실행하거나, JSON을 ComfyUI에 드래그앤드롭.
+```
+run_template(template_id="templates_shane_change_any_objects")
+```
 
-| # | 파일 | 원본 template_id | 모델 | 왜 이걸 골랐나 |
-|---|---|---|---|---|
-| 01 | BG 알파추출 | `api_bria_remove_video_background_transparent` | BRIA | 알파 WebM + **마스크 시퀀스** 동시 출력. Nuke/AE로 넘길 때 유일하게 제대로 된 출력 |
-| 02 | **BG교체+라이팅통합** | `video_bernini_r_video_editing` | **Wan2.2 Bernini-R** | ⭐ **이번 조사 최고 발견.** 아래 설명 참조 |
-| 03 | 오브젝트 교체 | `templates_shane_change_any_objects` | SAM3 + Wan2.1 VACE | 30노드 풀그래프. 프롬프트로 마스킹→교체, 전 단계 튜닝 가능 |
-| 04 | 오브젝트 제거 | `utility_void_video_inpainting` | VOID + SAM3 | **그림자·반사까지 제거.** `sam3_text_prompt`로 대상 지정 |
-| 05 | 캐릭터 교체 | `video_wan21_scail2_character_replacement_int8` | SCAIL-2 int8 + sam3.1_multiplex | int8이 fp8보다 품질↑ 속도↑. Base/Extend 2단이라 긴 샷 가능 |
-| 06 | 모션보존 편집 | `api_runway_aleph2_video_edit` | Runway Aleph2 | 원본 모션·타이밍 락. 02가 안 먹을 때 대안 |
-| 07 | FX 스타일라이즈 | `templates_shane_video_restyle` | Wan2.1 VACE + **Depth Anything v2** | 25노드. 뎁스로 원본 구조 잡고 스타일만 갈아끼움 |
-| 08 | FX 궤적 드로잉 | `templates_rob_wan_ati_motion_control` | Wan ATI | 이펙트 경로를 **직접 그려서** 지정 |
-| 09 | 마스크 생성 | `utility_video_segment_sam3` | SAM3 | 03/04 앞단에 물리거나 단독으로 로토 대체 |
-| 10 | 업스케일 | `utility_seedvr2_3b_int8_upscale_video` | SeedVR2 3B int8 | 1-step diffusion, temporal consistency 유지. 속도/품질 밸런스 최선 |
-| 11 | 뎁스맵 | `utility_depth_anything3_video_depth_estimation` | Depth Anything **v3** | ControlNet 구동용. 07과 조합 |
-| 12 | 합성 노드 부품창고 | `basic_mask_operations_and_compositing` | 없음 | 41노드. **모델 불필요.** 마스크 논리연산·페더 합성 레퍼런스 |
+…or drag the `.json` into the ComfyUI canvas.
 
-## ⭐ 02번을 최우선으로 보세요
+**Node titles, types, IDs and positions are byte-identical to the official templates.** Nothing was renamed or moved.
 
-`video_bernini_r_video_editing`의 **기본 프롬프트가 문자 그대로 배경 교체 지시문**입니다:
+---
 
-> "Replace the gray studio backdrop with a daytime urban street... Keep the model's outfit, accessories, body pose, motion, and full-body framing unchanged. **Only the environment behind the subject should change.**"
+## Two kinds of graph in here
 
-즉 이건 릴라이팅 템플릿으로 분류돼 있지만 실제로는 **배경 교체 + 라이팅 통합을 한 패스에 하는 워크플로우**입니다. Wan2.2 기반(`wan2.2_bernini_r_high/low_noise_fp8_scaled` + lightx2v distill LoRA)이라 세대도 가장 최신입니다.
+| | What you see on canvas | Can you tune it? |
+|---|---|---|
+| **Full graph** (3, 7, 12) | Every loader, sampler, LoRA and ControlNet is a real node | Yes — full control |
+| **Subgraph wrapper** (the rest) | One packed node between Load and Save | No — models resolve server-side |
 
-기존 "Bria로 분리 → 배경 생성 → 릴라이팅" 3단 파이프라인을 **이거 하나로 대체**할 수 있습니다. 분리 단계가 없으니 엣지 아티팩트도 안 생깁니다.
+That's why the model column below says "server-side" for some: the checkpoints are real, they just aren't exposed as loader nodes on the canvas. Model names for those were read from the template schema.
 
-## ⚠️ 슬롯 기본값 표시 버그
+---
 
-`get_template_schema`가 돌려주는 `default` 값이 **한 칸씩 밀려 있습니다.** 예를 들어 02번에서:
+## 1. `api_bria_remove_video_background_transparent`
+**Role** — Extract the subject from a video and output it with a real alpha channel.
+**Base model** — BRIA (server-side)
+**Graph** — `LoadVideo → GetVideoComponents → BriaTransparentVideoBackground → JoinImageWithAlpha → SaveWEBM`
+**Why it's here** — Outputs alpha WebM **plus** a mask sequence. The only one in the set that hands off cleanly to Nuke/After Effects.
 
-- `video` 슬롯의 default에 텍스트 프롬프트가 들어있음
-- `length` 슬롯의 default에 `.safetensors` 파일명이 들어있음
-- `height` = 848, `width` = 81 (뒤바뀜)
+## 2. `video_bernini_r_video_editing` ⭐
+**Role** — Replace the background *and* integrate lighting in a single pass. Filed under "relighting" in the catalog, but its stock prompt is literally a background-replacement instruction: *"Replace the gray studio backdrop with a daytime urban street… Only the environment behind the subject should change."*
+**Base model** — Wan 2.2 Bernini-R: `wan2.2_bernini_r_high_noise_fp8_scaled` + `wan2.2_bernini_r_low_noise_fp8_scaled`, `lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16`, `umt5_xxl_fp8_e4m3fn_scaled`, `Wan2_1_VAE_bf16`
+**Graph** — `LoadVideo + LoadImage(ref) → Video Slice → Bernini-R Video Edit → SaveVideo`
+**Why it's here** — Newest model generation in the set, and it collapses the usual matte → generate → relight chain into one pass, so there's no keying edge to fix afterwards.
 
-**이 기본값들을 그대로 믿고 쓰면 안 됩니다.** 슬롯 이름과 타입(`type` 필드)은 정확하니 그것만 보고, 값은 직접 지정하세요. ComfyUI UI에서 열면 정상적으로 보입니다.
+## 3. `templates_shane_change_any_objects` ⭐
+**Role** — Name an object in text, get it masked and replaced by a prompt or a reference image.
+**Base model** — `wan2.1_vace_14B_fp16` + `Wan21_CausVid_14B_T2V_lora_rank32_v2` + `umt5-xxl-enc-bf16` + `Wan2_1_VAE_bf16`, with SAM3 for segmentation
+**Graph** — 30 nodes in 9 labelled groups: `INPUT VIDEOS AND SETTINGS → SAM3 LOADERS + SAMPLERS → MASK SETTINGS / COMPOSITE → WAN VACE MODEL LOADERS → WAN SAMPLERS → SAVE VIDEO`
+**Why it's here** — The most tunable graph in the set. Mask growth, blur and VACE strength are all real nodes you can adjust.
 
-## 뺀 것들과 이유
+## 4. `utility_void_video_inpainting`
+**Role** — Remove an object **together with its shadows and reflections**. Target it via the `sam3_text_prompt` field.
+**Base model** — VOID two-pass: `void_pass1` + `void_pass2`, `t5xxl_fp16`, `cogvideox_vae`, plus a SAM3 checkpoint and an optical-flow model (server-side)
+**Graph** — `LoadVideo → Video Inpaint (VOID) → SaveVideo`
+**Why it's here** — Most removal tools leave the contact shadow behind. This one models the physical interaction.
 
-- **ggvfx 7개** — 로컬 24GB VRAM 전용, 클라우드에서 안 돔. 모델 경로도 Windows 역슬래시
-- **Bria 나머지 3개** — 01번의 열화판 (단색배경/그린스크린). 01이 상위호환
-- **스틸 전용 릴라이팅 6개** — 영상 작업엔 02가 나음
-- **LTX-2.3 계열** — 원클릭이라 편하지만 5~6노드 API 래퍼라 튜닝 여지 없음. 빠른 초벌엔 유용하니 전체 ZIP에 남겨둠
-- **Seedance/Kling/Gemini 등** — 생성 위주라 VFX 합성 파이프라인과 결이 다름
+## 5. `video_wan21_scail2_character_replacement_int8`
+**Role** — Swap the person in a shot for a reference character, keeping the original motion.
+**Base model** — `wan2.1_14B_SCAIL_2_int8_convrot` + `wan2.1_SCAIL_2_DPO_lora_bf16` + `lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16`, `clip_vision_h`, `sam3.1_multiplex_fp16` (server-side)
+**Graph** — Base pass + Extend pass, so shots longer than one clip window chain together (81-frame segments, 5-frame overlap)
+**Why it's here** — int8 beats the fp8 build on both quality and speed.
 
-전체 45개가 필요하시면 이전 ZIP의 `workflows/` 폴더를 쓰세요.
+## 6. `api_runway_aleph2_video_edit`
+**Role** — Apply a described change while locking original motion and timing.
+**Base model** — Runway Aleph2 (partner API)
+**Graph** — `LoadVideo (+ optional guidance images) → RunwayAleph2VideoToVideo → SaveVideo`
+**Why it's here** — Fallback when #2 drifts on motion. Closed API, no tuning.
+
+## 7. `templates_shane_video_restyle`
+**Role** — Restyle a video from a reference image while holding original structure via depth.
+**Base model** — `wan2.1_vace_14B_fp16` + `Wan2_1-VACE_module_14B_bf16` + `Wan21_CausVid_14B_T2V_lora_rank32`, with `depth_anything_v2_vitl_fp32` driving the ControlNet
+**Graph** — `Load Control Video → Control Video Preprocessing (depth) → Load Reference Image → VACE encode → sampler → Save Video (Mp4)`
+**Why it's here** — Depth conditioning is what stops restyling from sliding around between frames.
+
+## 8. `templates_rob_wan_ati_motion_control`
+**Role** — Draw motion paths directly on the image and generate video that follows them.
+**Base model** — Wan ATI (server-side)
+**Graph** — `LoadImage → Animate Path → SaveVideo`
+**Why it's here** — Only workflow here with hand-drawn trajectory control — useful for placing an effect along a specific path.
+
+## 9. `utility_video_segment_sam3`
+**Role** — Produce mask sequences from a video by text prompt.
+**Base model** — SAM3 (server-side)
+**Graph** — `LoadVideo → SAM3 segmentation → mask output`
+**Why it's here** — Feed it into #3/#4, or use it standalone as a roto replacement.
+
+## 10. `utility_seedvr2_3b_int8_upscale_video`
+**Role** — Upscale and restore video without inter-frame flicker.
+**Base model** — `seedvr2_3b_int8_convrot` + `seedvr2_ema_vae_fp16` (server-side)
+**Graph** — `LoadVideo → SeedVR2 3B Int8 upscale → SaveVideo`
+**Why it's here** — One-step diffusion, so it's the best speed/quality trade in the set. Exposes `color_correction_method`, which matters when matching a graded plate.
+
+## 11. `utility_depth_anything3_video_depth_estimation`
+**Role** — Generate a depth pass for a video.
+**Base model** — Depth Anything v3 (server-side)
+**Graph** — `LoadVideo → depth estimation → PreviewImage / CreateVideo → SaveVideo`
+**Why it's here** — Drives ControlNet in #7, and works as a depth pass for comp (fog, DOF, atmospheric perspective).
+
+## 12. `basic_mask_operations_and_compositing`
+**Role** — Reference graph for mask creation, boolean mask ops, feathering and compositing. **No model required.**
+**Base model** — none
+**Graph** — 41 nodes in 5 groups: `Example Input`, `Mask Operations`, `Combine Masks`, `Image & Mask Compositing`, `Try It Yourself`
+**Why it's here** — Parts bin. Copy nodes out of this when building your own comp graph.
+
+---
+
+## Suggested chains
+
+**Background replacement** — `#2` alone. If you need a real matte for downstream comp, run `#1` first and composite manually.
+
+**Object replacement** — `#9` (mask) → `#3` (replace) → `#4` if a contact shadow survives.
+
+**FX** — `#8` (path) → `#7` (restyle, swapping in an effect LoRA) → `#10` (finish).
+
+## Notes
+
+- **Group boxes**: 12 group rectangles across workflows 3, 5, 6 and 7 were slightly too small for the nodes inside them. The boxes were enlarged. **No node was moved** — verified id/type/title/pos/size identical to source.
+- **Don't trust `default` values from `get_template_schema`** — they're shifted by one slot (e.g. `width`=81, `height`=848 on #2). Slot names and types are correct; set values yourself. The ComfyUI UI shows them correctly.
+- Workflows 3, 7 and 12 are full local-style graphs; the rest wrap server-side subgraphs.

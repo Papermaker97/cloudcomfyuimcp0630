@@ -360,10 +360,10 @@
       "id": 1,
       "title": "Guidance Images (Optional)",
       "bounding": [
-        -190,
+        -200.0,
         4070,
-        650,
-        869.984375
+        670.0,
+        879.984375
       ],
       "color": "#444",
       "flags": {}
