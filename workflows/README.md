@@ -4,7 +4,7 @@ Comfy Cloud에서 실행 검증을 마친 마스크 기반 인페인팅 워크�
 
 | 워크플로우 | 모델 | 출시 | 스텝 | 캔버스 |
 | --- | --- | --- | --- | --- |
-| [`flux2-klein-9b-inpaint.api.json`](./flux2-klein-9b-inpaint.api.json) **(권장)** | FLUX.2 Klein 9B distilled | 2026-01 | 6 | https://cloud.comfy.org/?share=65471d474dd2 |
+| [`flux2-klein-9b-inpaint.api.json`](./flux2-klein-9b-inpaint.api.json) **(권장)** | FLUX.2 Klein 9B distilled | 2026-01 | 8 | https://cloud.comfy.org/?share=65471d474dd2 |
 | [`qwen-image-edit-2511-inpaint.api.json`](./qwen-image-edit-2511-inpaint.api.json) | Qwen-Image-Edit 2511 | 2025-11 | 20 | https://cloud.comfy.org/?share=4af4905c4ff3 |
 | [`flux-fill-onereward-inpaint.api.json`](./flux-fill-onereward-inpaint.api.json) | Flux.1 Fill dev + OneReward | 2024-11 / 2025-08 | 24 | https://cloud.comfy.org/?share=09188b15cee1 |
 
@@ -12,7 +12,7 @@ Comfy Cloud에서 실행 검증을 마친 마스크 기반 인페인팅 워크�
 
 동일 이미지·동일 마스크·동일 시드(875421903)로 실행한 결과를 육안 비교했습니다.
 
-| | Klein 9B (6스텝) | Qwen-Image-Edit 2511 | Flux.1 Fill OneReward |
+| | Klein 9B (8스텝) | Qwen-Image-Edit 2511 | Flux.1 Fill OneReward |
 | --- | --- | --- | --- |
 | 밀짚 짜임 | **땋은 결이 또렷하게 분리됨** | 선명하지만 다소 부드러움 | 평평하고 단조로움 |
 | 리본 | 그로그랭 질감, 형태 깔끔 | 질감 + 리본 매듭까지 형성 | 단색 평면 밴드, 매듭 거의 없음 |
@@ -32,7 +32,7 @@ Comfy Cloud에서 실행 검증을 마친 마스크 기반 인페인팅 워크�
 학습되었기 때문에 과샘플링하면 품질이 무너집니다. 카탈로그의 권장값
 `steps 20`은 Flux.2 계열 일반값이라 distilled 변형에는 맞지 않습니다.
 
-20 → 6스텝으로 내리자 세 워크플로우 중 최고 품질이 됐고, 실행 시간도 가장
+20 → 6~8스텝으로 내리자 세 워크플로우 중 최고 품질이 됐고, 실행 시간도 가장
 짧습니다. Klein을 쓸 때 변형 이름을 먼저 확인해야 합니다:
 
 | 파일명 | 종류 | 스텝 |
@@ -58,8 +58,8 @@ Comfy Cloud에서 실행 검증을 마친 마스크 기반 인페인팅 워크�
 **3. latent 마스크는 반드시 이진이어야 한다.** 페더링된 마스크를
 `SetLatentNoiseMask`에 넣으면 latent 다운샘플 과정에서 경계에 부분 노이즈 밴드가
 생기고, 마스크 주변이 지저분해진다.
-→ `ThresholdMask(0.5)` → `GrowMask(8)`로 **이진화 후 팽창**한 마스크만 모델에
-넣는다. 페더링은 픽셀 합성 단계에서만 쓴다.
+→ `ThresholdMask(0.5)` → `GrowMask`로 **이진화 후 팽창**한 마스크만 모델에
+넣는다. 페더링은 픽셀 합성 단계에서만 쓴다. 자세한 근거는 아래 경계 절 참고.
 
 3번은 초기 Klein 워크플로우의 실제 버그였고, 아래 논문들이 다루는 주제다.
 세 워크플로우 모두 이 세 원칙을 동일하게 적용했다.
@@ -77,7 +77,7 @@ CLIPTextEncode ─> ReferenceLatent ─> FluxGuidance(4.0) ─> BasicGuider <─
                                                               │                              │
                                         SetLatentNoiseMask <──┼──────────────────────────────┘
                                                  │            │
-                              SamplerCustomAdvanced(Flux2Scheduler 6스텝, euler)
+                              SamplerCustomAdvanced(Flux2Scheduler 8스텝, euler)
                                                  └─> VAEDecode ─> ImageCompositeMasked
                                                                    (feathered mask, 픽셀 공간)
                                                                         └─> InpaintStitchImproved ─> SaveImage
@@ -90,13 +90,35 @@ CLIPTextEncode ─> ReferenceLatent ─> FluxGuidance(4.0) ─> BasicGuider <─
 어긋난다. Klein은 guidance-distilled이므로 `BasicGuider`로 충분하고 네거티브
 프롬프트는 무시된다.
 
+### 경계를 부드럽게 만드는 법 — latent가 아니라 픽셀에서
+
+경계가 칼같이 잘려 어색하면 **latent 마스크를 흐리게 하지 말고** 두 값을 조정한다.
+
+| 노드 | 값 | 역할 |
+| --- | --- | --- |
+| `GrowMask.expand` | 20 | 생성 영역을 마스크보다 넓게 준다. 모델이 자연스러운 실루엣을 배치할 여유가 생겨 내용물이 마스크 외곽선에 잘리지 않는다 |
+| `InpaintCropImproved.mask_blend_pixels` | 48 | 픽셀 합성 페더링 폭. 시각적 전환을 여기서 담당한다 |
+
+**latent 마스크를 블러하면 안 된다.** `GrowMaskWithBlur`로 blur_radius를 주고
+`DifferentialDiffusion`을 켜서 테스트했더니, 경계 밴드에서 모델이 애매한 내용을
+생성해 브림 외곽에 **톱니 같은 프린지 아티팩트**가 생겼다 (blur 16에서 심하고
+blur 6에서도 잔존). 부드러움은 픽셀 합성에서만 만들어야 한다.
+
+| 시도 | latent 마스크 | DD | 결과 |
+| --- | --- | --- | --- |
+| **채택** | 이진, 20px 팽창 | off | 외곽 매끄럽고 전환 자연스러움 |
+| | 소프트, blur 6 | on | 브림에 미세 프린지 |
+| | 소프트, blur 16 | on | 브림에 뚜렷한 톱니 돌출 |
+
 ### Klein 파라미터 조정
 
 | 노드 | 값 | 조정 기준 |
 | --- | --- | --- |
-| `Flux2Scheduler.steps` | 6 | distilled는 4~8. **20으로 올리면 품질이 무너진다** |
+| `Flux2Scheduler.steps` | 8 | distilled는 4~8. **20으로 올리면 품질이 무너진다** |
 | `FluxGuidance.guidance` | 4.0 | 커뮤니티 표준값. 프롬프트를 덜 따르면 5~6 |
 | `Flux2Scheduler.width/height` | 1024 | `output_target`과 일치 필수 |
+| `GrowMask.expand` | 20 | 내용물이 마스크 모양대로 잘려 보이면 더 키운다 |
+| `InpaintCropImproved.mask_blend_pixels` | 48 | 경계가 티나면 64까지. 크롭이 업스케일된 경우 스티치 시 페더 폭이 좁아지므로 넉넉하게 |
 
 ## Qwen 2511 워크플로우 구조
 
@@ -202,7 +224,10 @@ Krea 2는 클라우드에 스타일 LoRA만 있고 인페인팅 LoRA는 없다. 
 | --- | --- | --- |
 | Qwen 2511 | `7f89e468-678b-49de-b3f5-b0fd0c5702e4` | 성공, 육안 확인 |
 | OneReward (수정판) | `919aa3b0-ca41-4aeb-b901-75c7fab56d68` | 성공, 육안 확인 |
-| Klein 9B (6스텝, 수정판) | `b1236062-a68d-44e1-8dc6-1acf1f23df0e` | 성공, 육안 확인 — 최고 품질 |
+| Klein 9B (최종: 이진 20px + 페더 48) | `7c7e4ce3-b752-429e-a636-9cc97ee68cf2` | 성공, 육안 확인 — 외곽 매끄러움 |
+| Klein 9B (소프트 마스크 blur 6 + DD) | `554dd2b8-2900-4cd0-8565-355633347d88` | 브림에 미세 프린지 |
+| Klein 9B (소프트 마스크 blur 16 + DD) | `f1851310-c59b-4a12-9dd0-ec2c9f1d1226` | 브림에 톱니 돌출 |
+| Klein 9B (6스텝, 이진 8px + 페더 24) | `b1236062-a68d-44e1-8dc6-1acf1f23df0e` | 성공, 다만 경계 전환이 급함 |
 | Klein 9B (20스텝, 초기판) | `bf5b8f6d-8fa8-4820-9658-b77b32661b35` | 실행은 성공했으나 품질 불량 (과샘플링) |
 
 ## 참고 자료

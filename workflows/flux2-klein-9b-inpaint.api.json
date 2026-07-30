@@ -7,7 +7,7 @@
            "preresize_min_width": 1024, "preresize_min_height": 1024,
            "preresize_max_width": 16384, "preresize_max_height": 16384,
            "mask_fill_holes": true, "mask_expand_pixels": 0, "mask_invert": false,
-           "mask_blend_pixels": 24, "mask_hipass_filter": 0.1,
+           "mask_blend_pixels": 48, "mask_hipass_filter": 0.1,
            "extend_for_outpainting": false,
            "extend_up_factor": 1, "extend_down_factor": 1,
            "extend_left_factor": 1, "extend_right_factor": 1,
@@ -16,7 +16,7 @@
            "output_target_width": 1024, "output_target_height": 1024,
            "output_padding": "32" } },
   "3": { "class_type": "ThresholdMask", "inputs": { "mask": ["2", 2], "value": 0.5 } },
-  "4": { "class_type": "GrowMask", "inputs": { "mask": ["3", 0], "expand": 8, "tapered_corners": true } },
+  "4": { "class_type": "GrowMask", "inputs": { "mask": ["3", 0], "expand": 20, "tapered_corners": true } },
   "5": { "class_type": "UNETLoader", "inputs": { "unet_name": "flux-2-klein-9b.safetensors", "weight_dtype": "default" } },
   "6": { "class_type": "CLIPLoader", "inputs": { "clip_name": "qwen_3_8b.safetensors", "type": "flux2", "device": "default" } },
   "7": { "class_type": "VAELoader", "inputs": { "vae_name": "flux2-vae.safetensors" } },
@@ -29,7 +29,7 @@
   "12": { "class_type": "SetLatentNoiseMask", "inputs": { "samples": ["9", 0], "mask": ["4", 0] } },
   "13": { "class_type": "RandomNoise", "inputs": { "noise_seed": 875421903 } },
   "14": { "class_type": "KSamplerSelect", "inputs": { "sampler_name": "euler" } },
-  "15": { "class_type": "Flux2Scheduler", "inputs": { "steps": 6, "width": 1024, "height": 1024 } },
+  "15": { "class_type": "Flux2Scheduler", "inputs": { "steps": 8, "width": 1024, "height": 1024 } },
   "16": { "class_type": "BasicGuider", "inputs": { "model": ["5", 0], "conditioning": ["11", 0] } },
   "17": { "class_type": "SamplerCustomAdvanced", "inputs": {
             "noise": ["13", 0], "guider": ["16", 0], "sampler": ["14", 0],
@@ -39,6 +39,6 @@
             "destination": ["2", 1], "source": ["18", 0],
             "x": 0, "y": 0, "resize_source": false, "mask": ["2", 2] } },
   "20": { "class_type": "InpaintStitchImproved", "inputs": { "stitcher": ["2", 0], "inpainted_image": ["19", 0] } },
-  "21": { "class_type": "SaveImage", "inputs": { "images": ["20", 0], "filename_prefix": "Klein9B_Fixed" } },
+  "21": { "class_type": "SaveImage", "inputs": { "images": ["20", 0], "filename_prefix": "Klein9B_Inpaint" } },
   "22": { "class_type": "PreviewImage", "inputs": { "images": ["19", 0] } }
 }
