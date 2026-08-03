@@ -77,7 +77,7 @@ CLIPTextEncode ─> ReferenceLatent ─> FluxGuidance(4.0) ─> BasicGuider <─
                                                               │                              │
                                         SetLatentNoiseMask <──┼──────────────────────────────┘
                                                  │            │
-                              SamplerCustomAdvanced(Flux2Scheduler 8스텝, euler)
+                              SamplerCustomAdvanced(Flux2Scheduler 8스텝 ← GetImageSize, euler)
                                                  └─> VAEDecode ─> ImageCompositeMasked
                                                                    (feathered mask, 픽셀 공간)
                                                                         └─> InpaintStitchImproved ─> SaveImage
@@ -116,7 +116,7 @@ blur 6에서도 잔존). 부드러움은 픽셀 합성에서만 만들어야 한
 | --- | --- | --- |
 | `Flux2Scheduler.steps` | 8 | distilled는 4~8. **20으로 올리면 품질이 무너진다** |
 | `FluxGuidance.guidance` | 4.0 | 커뮤니티 표준값. 프롬프트를 덜 따르면 5~6 |
-| `Flux2Scheduler.width/height` | 1024 | `output_target`과 일치 필수 |
+| `Flux2Scheduler.width/height` | `GetImageSize` 연결 | 크롭이 가변 크기이므로 하드코딩하지 않는다 |
 | `GrowMask.expand` | 20 | 내용물이 마스크 모양대로 잘려 보이면 더 키운다 |
 | `InpaintCropImproved.mask_blend_pixels` | 48 | 경계가 티나면 64까지. 크롭이 업스케일된 경우 스티치 시 페더 폭이 좁아지므로 넉넉하게 |
 
@@ -159,17 +159,51 @@ UNETLoader ─> ModelSamplingAuraFlow ─> CFGNorm ─────────> 
 **2. 지우는 작업이면 그림자·반사까지 포함시킨다.**
 물체만 칠하고 그림자를 남기면 물체 없는 그림자가 남아 가장 부자연스럽다.
 
-## 경계가 어색한 세 가지 원인과 대응
+## 경계가 어색한 원인 — 리샘플링이 가장 컸다
+
+가장 큰 원인은 `InpaintCropImproved`의 **`output_resize_to_target_size`** 였다.
+
+이 옵션이 켜져 있으면 크롭이 1024로 리사이즈되어 생성되고, 스티치에서 원래
+크기로 되돌려진다. 즉 **생성 영역만 업스케일 → 생성 → 다운스케일 왕복**을 거친다.
+주변 원본 픽셀은 그 과정을 겪지 않으므로, 두 영역의 텍스처 주파수와 선명도가
+달라진다. 색을 맞추든 페더를 넓히든 이 차이는 사라지지 않는다.
+
+`output_resize_to_target_size: false`로 두면 크롭이 원본 해상도 그대로 유지되고
+(패딩만 32의 배수로 맞춤), 리샘플링이 아예 일어나지 않는다. 생성 영역과 주변이
+같은 픽셀 스케일을 공유하므로 훨씬 자연스럽게 붙는다.
+
+### 실측 (Qwen 2511, 동일 시드)
+
+| 변형 | 설정 | 결과 |
+| --- | --- | --- |
+| **A (채택)** | `resize: false` | 텍스처 주파수가 주변과 일치, 가장 자연스러움 |
+| B | `resize: true`, context 2.5 | 밀짚이 주변보다 선명해 튐 |
+| C | `resize: true`, context 1.4 | B와 사실상 동일 |
+
+B와 C가 거의 같다는 것은 `context_from_mask_extend_factor`가 이 케이스에서
+영향이 거의 없었다는 뜻이다. 그리고 C는 `ColorTransfer`만 뺀 이전 버전과도
+구별되지 않았다 — **`ColorTransfer`는 효과가 없어 제거했다.**
+
+### 트레이드오프
+
+`resize: false`는 마스크 영역이 모델 적정 해상도에 가까울 때 최선이다. 마스크가
+아주 작으면(가방 로고처럼 200px 수준) 모델이 저해상도에서 생성하게 되어 디테일이
+떨어진다. 그때는 둘 중 하나:
+
+- `preresize: true` + `preresize_min_width/height`로 **이미지 전체를** 먼저 키운다.
+  크롭과 주변이 같은 스케일을 유지하므로 왕복 불일치가 생기지 않는다.
+- `resize: true`로 돌아가되 `downscale_algorithm`을 `lanczos`로 둔다 (기본
+  `bilinear`는 다운스케일에서 뭉갠다). 두 워크플로우 모두 lanczos로 바꿔뒀다.
+
+### 나머지 두 원인
 
 | 원인 | 증상 | 대응 |
 | --- | --- | --- |
 | 생성물이 마스크 외곽선에 잘림 | 칼로 자른 듯한 단면 | `GrowMask.expand` ↑ (20~32) |
-| 톤·노출·화이트밸런스 드리프트 | 붙여넣은 듯 붕 뜸 | `ColorTransfer` (strength 0.4~0.6) |
-| 페더 구간의 이중 노출 | 경계가 뿌옇게 겹쳐 보임 | 페더를 무작정 늘리지 말고 마스크를 평탄한 영역까지 확장 |
+| 페더 구간의 이중 노출 | 경계가 뿌옇게 겹쳐 보임 | 페더를 늘리지 말고 마스크를 평탄한 영역까지 확장 |
 
 페더링을 키우는 것이 항상 답은 아니다. 서로 다른 두 이미지를 넓은 폭으로 알파
-블렌딩하면 고스팅이 생긴다. 페더는 48 전후에서 멈추고, 나머지는 마스크 위치와
-색 정합으로 푸는 것이 맞다.
+블렌딩하면 고스팅이 생긴다. 페더는 48 전후에서 멈춘다.
 
 ## 사용법
 
@@ -191,7 +225,8 @@ UNETLoader ─> ModelSamplingAuraFlow ─> CFGNorm ─────────> 
 | `InpaintCropImproved.context_from_mask_extend_factor` | 1.4 | 주변 맥락이 더 필요하면 1.6~2.0 |
 | `InpaintCropImproved.mask_blend_pixels` | 48 | 픽셀 합성 페더링 폭. 64 이상은 고스팅이 생기니 그 위로는 올리지 않는다 |
 | `GrowMask.expand` | 20 | 생성물이 마스크 모양대로 잘려 보이면 32까지 |
-| `ColorTransfer.strength` | 0.5 | 생성 영역이 붕 뜨면 0.7까지. 1.0은 새 내용물의 색까지 원본 히스토그램에 끌려간다 |
+| `InpaintCropImproved.output_resize_to_target_size` | false | 리샘플링 왕복을 없앤다. 마스크가 아주 작을 때만 true를 고려 |
+| `InpaintCropImproved.downscale_algorithm` | lanczos | resize를 켤 경우 기본 bilinear는 다운스케일에서 뭉갠다 |
 
 속도가 필요하면 `Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` LoRA를
 `LoraLoaderModelOnly`로 붙이고 steps 8 / cfg 1.0으로 내린다.
@@ -250,7 +285,11 @@ Krea 2는 클라우드에 스타일 LoRA만 있고 인페인팅 LoRA는 없다. 
 
 | 워크플로우 | prompt_id | 결과 |
 | --- | --- | --- |
-| Qwen 2511 (최종: 20px 팽창 + ColorTransfer) | `7882d1cd-8d97-4ddb-b314-91f2c6e51d01` | 성공, 육안 확인 — 톤 정합 개선 |
+| Qwen 2511 (최종: resize off) | 배치 `b5f302d0` | 성공, 육안 확인 — 텍스처가 주변과 일치 |
+| Qwen 2511 (resize on, context 2.5) | 배치 `f0bf977c` | 밀짚이 주변보다 선명해 튐 |
+| Qwen 2511 (resize on, context 1.4) | 배치 `59201725` | 위와 사실상 동일 |
+| Klein 9B (최종: resize off + GetImageSize) | `ef61b878-38b8-42c1-84f1-ec6dd3a76a7b` | 성공, 육안 확인 |
+| Qwen 2511 (ColorTransfer 시도) | `7882d1cd-8d97-4ddb-b314-91f2c6e51d01` | 효과 확인 안 됨, 제거 |
 | Qwen 2511 (초기: 8px 팽창, 색 정합 없음) | `7f89e468-678b-49de-b3f5-b0fd0c5702e4` | 성공, 다만 경계가 붕 뜸 |
 | OneReward (수정판) | `919aa3b0-ca41-4aeb-b901-75c7fab56d68` | 성공, 육안 확인 |
 | Klein 9B (최종: 이진 20px + 페더 48) | `7c7e4ce3-b752-429e-a636-9cc97ee68cf2` | 성공, 육안 확인 — 외곽 매끄러움 |

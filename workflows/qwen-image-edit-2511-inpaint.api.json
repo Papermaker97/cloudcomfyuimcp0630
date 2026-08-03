@@ -17,7 +17,7 @@
         "1",
         1
       ],
-      "downscale_algorithm": "bilinear",
+      "downscale_algorithm": "lanczos",
       "upscale_algorithm": "bicubic",
       "preresize": false,
       "preresize_mode": "ensure minimum resolution",
@@ -36,7 +36,7 @@
       "extend_left_factor": 1,
       "extend_right_factor": 1,
       "context_from_mask_extend_factor": 1.4,
-      "output_resize_to_target_size": true,
+      "output_resize_to_target_size": false,
       "output_target_width": 1024,
       "output_target_height": 1024,
       "output_padding": "32"
@@ -206,22 +206,6 @@
       ]
     }
   },
-  "16": {
-    "class_type": "ColorTransfer",
-    "inputs": {
-      "image_target": [
-        "15",
-        0
-      ],
-      "image_ref": [
-        "2",
-        1
-      ],
-      "method": "mkl_lab",
-      "source_stats": "per_frame",
-      "strength": 0.5
-    }
-  },
   "17": {
     "class_type": "ImageCompositeMasked",
     "inputs": {
@@ -230,7 +214,7 @@
         1
       ],
       "source": [
-        "16",
+        "15",
         0
       ],
       "x": 0,
