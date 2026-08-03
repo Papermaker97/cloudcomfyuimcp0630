@@ -40,6 +40,15 @@ search models/nodes/templates, run workflows) are available in the session.
 2. Set the URL to `https://cloud.comfy.org/mcp`.
 3. Save, then sign in when prompted.
 
+## Workflows
+
+[`workflows/`](./workflows) holds ComfyUI workflows built through this setup,
+in editor save format — drag a `.json` onto the canvas to load it.
+
+- [`minimax_h3_flf2v.json`](./workflows/minimax_h3_flf2v.json) — MiniMax H3
+  first/last-frame to video, on the open-weights checkpoint rather than the
+  paid API node. See [`workflows/README.md`](./workflows/README.md).
+
 ## Reference
 
 - [Comfy MCP announcement](https://blog.comfy.org/p/comfy-mcp-turn-your-agent-into-a)
