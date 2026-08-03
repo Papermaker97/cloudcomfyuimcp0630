@@ -52,8 +52,8 @@ Comfy Cloud에서 실행 검증을 마친 마스크 기반 인페인팅 워크�
 
 **2. 작게 나오는 물체(가방, 제품)는 디테일이 떨어진다.** 전체 프레임을 그리면
 마스크 영역에 할당되는 유효 해상도가 작다.
-→ `InpaintCropImproved`로 마스크 주변만 1024px로 크롭해 생성하고
-`InpaintStitchImproved`로 원본 해상도에 되돌린다.
+→ `InpaintCropImproved`로 마스크 주변만 크롭해 생성하고 `InpaintStitchImproved`로
+원본 위치에 되돌린다. 리사이즈는 끄고 원본 해상도 그대로 처리한다 (아래 참고).
 
 **3. latent 마스크는 반드시 이진이어야 한다.** 페더링된 마스크를
 `SetLatentNoiseMask`에 넣으면 latent 다운샘플 과정에서 경계에 부분 노이즈 밴드가
@@ -83,8 +83,8 @@ CLIPTextEncode ─> ReferenceLatent ─> FluxGuidance(4.0) ─> BasicGuider <─
                                                                         └─> InpaintStitchImproved ─> SaveImage
 ```
 
-`Flux2Scheduler`는 Flux.2 전용 해상도 인지 시그마 스케줄이다. `width`/`height`를
-`InpaintCropImproved`의 `output_target`과 반드시 일치시켜야 한다.
+`Flux2Scheduler`는 Flux.2 전용 해상도 인지 시그마 스케줄이다. 크롭이 가변 크기이므로
+`width`/`height`는 `GetImageSize`로 크롭 이미지에서 읽어 연결한다 (하드코딩 금지).
 `ReferenceLatent`로 원본 latent를 편집 레퍼런스로 넣는 것이 핵심 — Klein은 Fill
 계열처럼 마스크 입력 채널이 없는 편집 모델이라, 이게 없으면 마스크 안이 주변과
 어긋난다. Klein은 guidance-distilled이므로 `BasicGuider`로 충분하고 네거티브
@@ -134,8 +134,7 @@ LoadImage ─┬─ IMAGE ─┐
                                                                 │            │
 UNETLoader ─> ModelSamplingAuraFlow ─> CFGNorm ─────────> KSampler(20, cfg 2.5)
                                                                  └─> VAEDecode
-                                                                       └─> ColorTransfer(ref=cropped_image)
-                                                                             └─> ImageCompositeMasked
+                                                                       └─> ImageCompositeMasked
                                                                                   (feathered mask, 픽셀 공간)
                                                                                    └─> InpaintStitchImproved ─> SaveImage
 ```
