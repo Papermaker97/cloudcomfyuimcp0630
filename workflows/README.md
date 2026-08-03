@@ -133,16 +133,43 @@ LoadImage ─┬─ IMAGE ─┐
                                                                 │   SetLatentNoiseMask <───────┘
                                                                 │            │
 UNETLoader ─> ModelSamplingAuraFlow ─> CFGNorm ─────────> KSampler(20, cfg 2.5)
-                                                                 └─> VAEDecode ─┐
-                                                                                │
-                                                 ImageCompositeMasked <─────────┘
-                                                  (feathered mask, pixel space)
-                                                          └─> InpaintStitchImproved ─> SaveImage
+                                                                 └─> VAEDecode
+                                                                       └─> ColorTransfer(ref=cropped_image)
+                                                                             └─> ImageCompositeMasked
+                                                                                  (feathered mask, 픽셀 공간)
+                                                                                   └─> InpaintStitchImproved ─> SaveImage
 ```
 
 `ModelSamplingAuraFlow`와 `CFGNorm`은 Qwen 계열 필수 패치다. 빼면 품질이 무너진다.
 `TextEncodeQwenImageEditPlus`가 레퍼런스 latent 컨디셔닝을 내부에서 처리하므로
 별도 `ReferenceLatent`는 필요 없다.
+
+## 마스크를 어떻게 칠할 것인가 — 경계 품질의 최대 변수
+
+**MaskEditor의 브러시 경도(hardness)는 이 워크플로우들에서 의미가 없다.**
+`ThresholdMask(0.5)`가 마스크를 이진화하므로 부드럽게 칠한 가장자리는 버려진다.
+대신 아래 두 가지가 결과를 좌우한다.
+
+**1. 대상에 딱 붙여 칠하지 말고 넉넉하게 칠한다.**
+경계 전환은 결국 "생성된 픽셀"과 "원본 픽셀"을 섞는 구간이다. 그 구간이
+디테일이 많은 곳(머리카락 끝, 제품 로고, 질감 경계)에 놓이면 아무리 잘 섞어도
+이중 노출처럼 보인다. 마스크를 대상보다 넓게 잡아 **전환이 평탄한 영역
+(배경, 매끈한 면, 그림자)에서 일어나도록** 만들어야 한다.
+
+**2. 지우는 작업이면 그림자·반사까지 포함시킨다.**
+물체만 칠하고 그림자를 남기면 물체 없는 그림자가 남아 가장 부자연스럽다.
+
+## 경계가 어색한 세 가지 원인과 대응
+
+| 원인 | 증상 | 대응 |
+| --- | --- | --- |
+| 생성물이 마스크 외곽선에 잘림 | 칼로 자른 듯한 단면 | `GrowMask.expand` ↑ (20~32) |
+| 톤·노출·화이트밸런스 드리프트 | 붙여넣은 듯 붕 뜸 | `ColorTransfer` (strength 0.4~0.6) |
+| 페더 구간의 이중 노출 | 경계가 뿌옇게 겹쳐 보임 | 페더를 무작정 늘리지 말고 마스크를 평탄한 영역까지 확장 |
+
+페더링을 키우는 것이 항상 답은 아니다. 서로 다른 두 이미지를 넓은 폭으로 알파
+블렌딩하면 고스팅이 생긴다. 페더는 48 전후에서 멈추고, 나머지는 마스크 위치와
+색 정합으로 푸는 것이 맞다.
 
 ## 사용법
 
@@ -160,10 +187,11 @@ UNETLoader ─> ModelSamplingAuraFlow ─> CFGNorm ─────────> 
 | `KSampler.cfg` | 2.5 | Qwen은 진짜 CFG를 쓴다. 2.5~4 유지. 7 이상은 색이 과포화된다 |
 | `KSampler.steps` | 20 | Lightning LoRA를 쓰면 4~8 + cfg 1.0으로 내린다 |
 | `ModelSamplingAuraFlow.shift` | 1.73 | Qwen 기본값. 건드리지 않는 편이 낫다 |
-| `GrowMask.expand` | 8 | 경계가 지저분하면 16으로. VAE가 8배 다운샘플이라 latent 1px = 원본 8px |
 | `InpaintCropImproved.output_target_*` | 1024 | 작은 제품 디테일이 부족하면 1536 |
 | `InpaintCropImproved.context_from_mask_extend_factor` | 1.4 | 주변 맥락이 더 필요하면 1.6~2.0 |
-| `InpaintCropImproved.mask_blend_pixels` | 24 | 픽셀 합성 페더링 폭. 경계가 보이면 40~64 |
+| `InpaintCropImproved.mask_blend_pixels` | 48 | 픽셀 합성 페더링 폭. 64 이상은 고스팅이 생기니 그 위로는 올리지 않는다 |
+| `GrowMask.expand` | 20 | 생성물이 마스크 모양대로 잘려 보이면 32까지 |
+| `ColorTransfer.strength` | 0.5 | 생성 영역이 붕 뜨면 0.7까지. 1.0은 새 내용물의 색까지 원본 히스토그램에 끌려간다 |
 
 속도가 필요하면 `Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` LoRA를
 `LoraLoaderModelOnly`로 붙이고 steps 8 / cfg 1.0으로 내린다.
@@ -222,7 +250,8 @@ Krea 2는 클라우드에 스타일 LoRA만 있고 인페인팅 LoRA는 없다. 
 
 | 워크플로우 | prompt_id | 결과 |
 | --- | --- | --- |
-| Qwen 2511 | `7f89e468-678b-49de-b3f5-b0fd0c5702e4` | 성공, 육안 확인 |
+| Qwen 2511 (최종: 20px 팽창 + ColorTransfer) | `7882d1cd-8d97-4ddb-b314-91f2c6e51d01` | 성공, 육안 확인 — 톤 정합 개선 |
+| Qwen 2511 (초기: 8px 팽창, 색 정합 없음) | `7f89e468-678b-49de-b3f5-b0fd0c5702e4` | 성공, 다만 경계가 붕 뜸 |
 | OneReward (수정판) | `919aa3b0-ca41-4aeb-b901-75c7fab56d68` | 성공, 육안 확인 |
 | Klein 9B (최종: 이진 20px + 페더 48) | `7c7e4ce3-b752-429e-a636-9cc97ee68cf2` | 성공, 육안 확인 — 외곽 매끄러움 |
 | Klein 9B (소프트 마스크 blur 6 + DD) | `554dd2b8-2900-4cd0-8565-355633347d88` | 브림에 미세 프린지 |
