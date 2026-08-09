@@ -275,6 +275,29 @@ B와 C가 거의 같다는 것은 `context_from_mask_extend_factor`가 이 케�
 | `flux.1-fill-dev-object-removal-lora` | Flux Fill | 제거 |
 | `Z-Image-Turbo-Fun-Controlnet-Union-2.1` | Z-Image Turbo | ControlNet 경유 인페인팅 |
 
+### Krea 2로 같은 워크플로우를 만들면
+
+만들 수는 있다. 배선은 거의 동일하고 `ReferenceLatent`만 빠진다
+(`SetLatentNoiseMask`는 모델 종류를 가리지 않는다). 로드아웃은 다음과 같다:
+
+| 종류 | 파일명 |
+| --- | --- |
+| diffusion_model | `krea2_turbo_fp8_scaled.safetensors` (8스텝, cfg 1) |
+| text_encoder | `qwen3vl_4b_fp8_scaled.safetensors` (CLIPLoader type=**`krea2`**) |
+| vae | `qwen_image_vae.safetensors` |
+
+**하지만 결과가 쓸 수 없다** (`prompt_id: 139ecb35-159a-4c29-8fe4-4a80083a28aa`).
+밀짚 질감 자체는 세 모델 중 가장 사실적이지만, 모자의 크기·원근·위치가 머리와
+전혀 맞지 않고 프레임을 뒤덮으며 배경에 흰 얼룩까지 생겼다.
+
+이유는 명확하다. Krea 2는 T2I 파운데이션이라 **이미지를 조건으로 받는 경로가
+없다.** Klein은 `ReferenceLatent`로, Qwen-Edit은 `TextEncodeQwenImageEditPlus`로
+원본을 편집 레퍼런스로 넣지만 Krea 2에는 대응물이 없다. 마스크 밖 latent가
+어텐션으로 간접 참조될 뿐이라 "주변에 맞춰 그린다"가 성립하지 않는다.
+
+즉 마스크 인페인팅에서 결정적인 것은 모델의 화질이 아니라 **이미지 조건부 경로의
+유무**다. Krea 2는 화질로는 앞서지만 그 경로가 없어서 진다.
+
 Krea 2는 클라우드에 스타일 LoRA만 있고 인페인팅 LoRA는 없다. 커뮤니티의
 [Krea 2 Identity Edit LoRA v1.2](https://civitai.com/models/2761113/krea-2-identity-edit)가
 "near-pixel 보존" 마스크 편집을 지원하지만 `ComfyUI-Krea2Edit` 커스텀 노드 팩이
