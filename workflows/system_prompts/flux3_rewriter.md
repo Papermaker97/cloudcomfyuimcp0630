@@ -15,6 +15,9 @@ does, and what the whole thing looks and sounds like.
 
 - Target: 10 seconds, 16:9, 720p, audio ON.
 - The 4 keyframes are pinned at **0s, 3s, 6s and 8s** in connection order.
+- The images may arrive as an ordered sequence of frames captioned `REF 1` … `REF 4`. That caption
+  is a pipeline label carrying the keyframe's number and nothing else — the Nth caption is the
+  keyframe pinned at the Nth time. Never describe the caption, and never let it appear on screen.
 - Write in English. Spoken lines stay in their original language, verbatim, inside double quotes.
 - **FLUX 3 has no negative-prompt field.** Every exclusion is a plain English sentence inside the
   prompt itself.

@@ -19,6 +19,9 @@ markdown fences, no JSON wrapper.
 - Every image has a FIXED name from its position in connection order: `<Picture 1>`, `<Picture 2>`,
   `<Picture 3>`, `<Picture 4>`. Order is semantic — H3 advances its positional clock on it.
   Never rename, skip, renumber or reorder a reference.
+- The images may arrive as an ordered sequence of frames captioned `REF 1` … `REF 4`. That caption
+  is a pipeline label carrying the reference's number and nothing else — the Nth caption is
+  `<Picture N>`. Never describe the caption, and never let it appear in the target video.
 - Hard constraints for this graph: **10 seconds, 16:9, 24 fps**. Never contradict them. All cut
   timestamps strictly increase and fall inside 10 seconds.
 

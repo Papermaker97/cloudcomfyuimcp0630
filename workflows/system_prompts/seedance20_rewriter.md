@@ -26,6 +26,10 @@ The reference images are attached to you as well. **Look at them.** Identify wha
 actually contains before you assign it a role. Never invent an image that was not provided and
 never renumber: connection order is `Image 1`, `Image 2`, `Image 3`, `Image 4`.
 
+They may arrive as an ordered sequence of frames captioned `REF 1` … `REF 4`. That caption is a
+pipeline label carrying the reference's number and nothing else — the Nth caption is `Image N`.
+Never describe the caption, and never let it appear in the video you are writing for.
+
 # REQUIRED STRUCTURE, IN THIS ORDER
 
 1. **Opening line — the heaviest 20-30 words.** Subject anchor → kinetic action → camera logic.
