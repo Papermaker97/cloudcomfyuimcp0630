@@ -1,0 +1,2416 @@
+{
+  "id": "ksampler-3model-compare-v2",
+  "revision": 0,
+  "last_node_id": 91,
+  "last_link_id": 60,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        -40,
+        -1120
+      ],
+      "size": [
+        560,
+        1040
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "MarkdownNote"
+      },
+      "widgets_values": [
+        "# 3-MODEL VIDEO COMPARISON RIG  ·  v2\n\nSame 4 images + **one rough prompt** -> three model-native prompts -> three videos.\n\n## What changed from v1\n\n1. **MiniMax H3 is now the open-weights model**, not the API node.\n   `MiniMaxH3ReferenceToVideo` + `UNETLoader` / `CLIPLoader` / 2x `VAELoader`,\n   sampled locally and muxed with `CreateVideo`. Weights auto-download on first run.\n2. **Seedance is 2.0, not 2.5.** There is no Seedance 2.5 node in ComfyUI yet -\n   `ByteDance2ReferenceNode` only offers `Seedance 2.0 / 2.0 Fast / 2.0 Mini`.\n   The v1 file had the string `\"Seedance 2.5\"` in that widget, which is not a\n   valid option.\n3. **A prompt rewriter sits in front of every model.** You write one rough idea\n   (Korean is fine). Three `OpenRouter LLM` nodes rewrite it into each model's\n   native prompt dialect, using that model's official prompt guide as a system\n   prompt. The four reference images are fed to the rewriters too, so they can\n   assign real roles to real pictures instead of guessing.\n4. **FLUX 3 keyframe slots are 0-indexed** (`keyframes.image_0`). v1 used\n   `image_1..image_4`, which is off by one.\n\n## How to use\n\n1. Load your 4 images into the LoadImage nodes.\n2. Write your idea, however roughly, in **ROUGH PROMPT**. It feeds all three\n   rewriters.\n3. Run. Read the three **Preview as Text** nodes to see what each model was\n   actually asked for.\n4. To run only one model, Ctrl+B the other two groups. Running all three costs\n   three generations plus three LLM calls.\n\n## The prompts are deliberately different\n\nEach model wants a different dialect, and that is the point:\n\n- **Seedance 2.0** - a shooting script. `@Image1 defines X. Do NOT take Y.`\n  role bindings, `[00:00-00:03]` time budgets, an explicit closing beat, a\n  trailing negative list.\n- **MiniMax H3** - a six-section structured brief (`subject_definitions:` ...\n  `non_diegetic_music:`), `<Picture N>` / `<Subject N>` labels, `(S1)` speaker\n  IDs, `<d>[Korean] ...</d>` dialogue tags. This mirrors MiniMax's own\n  H3-Context-IR stage.\n- **FLUX 3** - flowing prose. Keyframes land on screen pixel-exact, so the\n  prompt describes what *moves* rather than what is visible, with layered,\n  causal audio and exclusions written as plain sentences.\n\n## Read this before comparing results\n\nThe three models do NOT use your images the same way:\n\n- Seedance 2.0 and MiniMax H3 treat them as **references** - identity, style,\n  material - that the model reinterprets.\n- FLUX 3 treats them as **keyframes** - those exact pixels appear on screen at\n  0s / 3s / 6s / 8s.\n\nSo a \"fair\" comparison is only fair on prompt handling and motion, not on how\nfaithfully the source images survive. Switch the FLUX 3 `placement` widget to\n`spread across the clip` if you want it to place the frames itself.\n\nResolution is also not identical: the API models run 720p, while the local H3\ndefaults to 864x480 (0.4 MP) to keep 243 frames tractable. Set the Resolution\nSelector to **0.9 MP -> 1280x736** to match 720p, at a real cost in time.\n"
+      ],
+      "title": "READ ME",
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 10,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        -40,
+        -40
+      ],
+      "size": [
+        560,
+        300
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            2,
+            9,
+            16
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "2003년 한국 장난감 광고 느낌으로.\n\nImage 1의 손바닥만한 전자기기가 주인공. 처음엔 제품이 빙글 돌면서 반짝이고,\n그 다음 Image 2처럼 부품이 분해됐다가 다시 합쳐지고, Image 3의 모델이 제품을\n들고 웃고, 마지막에 Image 4 로고 카드로 끝.\n\n뽕짝같은 신스 음악 깔아주고, 부품 딸깍거리는 소리 넣어줘. 요즘 스마트폰 느낌 나면 안 됨."
+      ],
+      "title": "ROUGH PROMPT  -  write it lazily, Korean is fine",
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 20,
+      "type": "LoadImage",
+      "pos": [
+        -40,
+        300
+      ],
+      "size": [
+        270,
+        310
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3,
+            10,
+            17,
+            23,
+            29,
+            37
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "hero.png",
+        "image"
+      ],
+      "title": "Image 1 - hero"
+    },
+    {
+      "id": 21,
+      "type": "LoadImage",
+      "pos": [
+        250,
+        300
+      ],
+      "size": [
+        270,
+        310
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4,
+            11,
+            18,
+            24,
+            30,
+            38
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "exploded.png",
+        "image"
+      ],
+      "title": "Image 2 - exploded"
+    },
+    {
+      "id": 22,
+      "type": "LoadImage",
+      "pos": [
+        -40,
+        640
+      ],
+      "size": [
+        270,
+        310
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5,
+            12,
+            19,
+            25,
+            31,
+            39
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "model.png",
+        "image"
+      ],
+      "title": "Image 3 - model"
+    },
+    {
+      "id": 23,
+      "type": "LoadImage",
+      "pos": [
+        250,
+        640
+      ],
+      "size": [
+        270,
+        310
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            6,
+            13,
+            20,
+            26,
+            32,
+            40
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "logo.png",
+        "image"
+      ],
+      "title": "Image 4 - logo card"
+    },
+    {
+      "id": 60,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        620,
+        0
+      ],
+      "size": [
+        430,
+        560
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "# ROLE\n\nYou are a prompt rewriter for **ByteDance Seedance 2.0 Reference-to-Video**, running inside a\nComfyUI graph. You receive (a) a rough, possibly lazy, possibly Korean-language video idea, and\n(b) up to 4 reference images that are wired into the video model as `Image 1`..`Image 4` in that\nexact connection order.\n\nYou return ONE finished Seedance shooting script. Output the prompt text ONLY — no preamble, no\nexplanation, no markdown fences, no commentary.\n\nA Seedance prompt is a **shooting script**, not a wish.\n\n# HARD OUTPUT CONTRACT\n\n- Target: 10 seconds, 16:9, audio ON, 720p. Never contradict these and never restate them as a\n  prompt line — the node sets them.\n- Write in English. The one exception: **spoken dialogue stays in its original language, verbatim**\n  (Korean dialogue stays in Hangul; lip sync breaks if you translate it). State the language and\n  accent immediately before every line.\n- Write Han characters, proper nouns and numbers the way they are *pronounced*. The model is not\n  weak at languages, it is weak at the grapheme-to-sound conversion.\n\n# WHAT YOU CAN SEE\n\nThe reference images are attached to you as well. **Look at them.** Identify what each one\nactually contains before you assign it a role. Never invent an image that was not provided and\nnever renumber: connection order is `Image 1`, `Image 2`, `Image 3`, `Image 4`.\n\n# REQUIRED STRUCTURE, IN THIS ORDER\n\n1. **Opening line — the heaviest 20-30 words.** Subject anchor → kinetic action → camera logic.\n   Name exactly who or what is in frame, the movement that must persist across the cuts, and the\n   lens / shot size / move. Never open with color grading, film stock or grain. If the subject is\n   not locked here, the multi-shot engine invents a new one at the first transition.\n\n2. **Reference roles.** One line per supplied image, stating what it defines **and what must not\n   be taken from it**:\n\n   ```\n   @Image1 defines the product's shape, material and color. Do NOT take its background or lighting.\n   @Image2 defines the exploded-parts layout only. Do NOT take its color grade.\n   ```\n\n   Put a strictness marker (\"strict adherence\") on the one that matters most. If you do not write\n   this mapping, the model guesses which asset corresponds to which subject — this is the single\n   largest cause of unstable output, and this block is the single largest quality lever. Never\n   omit it.\n\n3. **Timed beats.** Use `[00:00-00:03]` brackets — Seedance reads them as edit cut markers.\n   Timecode is a *time budget*, not frame-accurate editing.\n   - Do not divide time evenly. Real edits are not 3+3+3: short hook, breathing room on the wide,\n     staccato transitions, long hold on the ending.\n   - One primary change per beat. Several actions stacked into one beat smear.\n   - Every beat ends on a **visible end state** — where the subject stands, who holds the prop,\n     where the eyes point.\n   - Keep each shot under ~25 words. Put the most important beat in the **middle**; the last beat\n     is the one that gets squeezed.\n   - Add `lens switch` when you want a genuine wide→close-up change inside one render.\n\n4. **Closing beat.** Mandatory and explicit: a held frame, a pull-back, or one named gesture.\n   Most prompts forget this and the ending falls apart.\n\n5. **Look.** Film stock, grade, grain — here, not at the top.\n\n6. **Consistency lock**, verbatim: `same face, same hairstyle, same outfit, same body type\n   throughout`. On anything long or reference-heavy, repeat a short version at both the start and\n   the end of the prompt.\n\n7. **Audio.** Name the soundscape (\"quiet indoor room tone\", \"bright upbeat synth jingle\"), then\n   match sounds to actions in the order they occur. Picture and sound are generated in one pass,\n   so sound you did not write is sound you did not control.\n\n8. **Negative list** — last line only.\n\n# CRAFT RULES\n\n- **Lock people with color and silhouette, not facial description.** One distinct color mass per\n  character. Face descriptions do not survive a cut; color blocking does.\n- **Give characters names.** \"Woman A\" binds weakly; a name is a token the model can hold for the\n  whole clip.\n- **Never drift the referring expression.** Choose one noun phrase per subject and repeat it to\n  the end. Sliding between \"a woman\" / \"she\" / \"the character\" is a top cause of appearance drift.\n- **Describe physics, not events.** Not \"the car spins\" but \"tires smoke as the car drifts 90\n  degrees\".\n- **Camera speed must be explicit** — slow, fast, smooth, violent, wide-amplitude. Replace\n  \"dynamic\" with `handheld shake`, `gimbal smooth`, `slow pan left`, `tracking shot`. Pick two or\n  three camera ideas; never stack all of them.\n- **Translate emotion into what a camera can capture**: breath, brow, gaze, jaw, hands. Never the\n  bare emotion word. Tears develop gradually and are never present at the start.\n- **If a reference image carries the information, do not spend words re-describing it.** Prompt\n  text is for what the references cannot say.\n- **One style only.** Never stack cinematic + anime + cyberpunk.\n- **Prefer the positive form.** `sharp, in-focus, high clarity` beats `no blur`;\n  `close-up on face, shoulders up` beats `don't show hands`. A negation still names the noun, and\n  naming it can summon it.\n- **Two-speaker scenes** get: `only the assigned speaker's lips move; the listener keeps their\n  mouth closed and reacts through breathing, blinking and gaze`.\n- **Crowds** get: `background characters differ in clothing color, hairstyle and face, and their\n  movements are not perfectly synchronized`.\n- **On-screen text**: type the exact words and state the language —\n  `all on-screen text is in Korean; no Chinese, no English, no broken glyphs`. Never rely on the\n  model for anything that must be 100% exact.\n- **Known weakness**: multi-body contact and complex physics. Design around it. If bodies must\n  interact, add an explicit separation clause such as `the two figures remain two distinct,\n  separate bodies in every frame, even at full contact`.\n\n# VERIFIED ENGLISH BOILERPLATE — reuse verbatim, never translate\n\n```\nConsistency:  same face, same hairstyle, same outfit, same body type throughout\n              consistent character across all shots\nTransitions:  no hard cuts, no sudden appearances\n              continue naturally with smooth motion continuity\nSound:        only naturally occurring sounds and foley are allowed; no music\nHuman set:    no distortion, no plastic skin, no extra fingers, no warped hands,\n              no gibberish text, no artificial camera acceleration, no floating objects,\n              no oversharpening\nTail set:     no subtitles, no background music, no morphing, no extra characters,\n              no watermark, no readable text\n```\n\nAlways append the human set when people appear.\n\n# LENGTH\n\n60-100 words for a single shot. Multi-shot is necessarily longer, but each shot stays under 25\nwords. A 150-word prompt is usually *worse* than a 50-word one, not three times better.\n\n---\n\nOutput the finished prompt now, and nothing else.\n"
+      ],
+      "title": "SYSTEM PROMPT - SEEDANCE 2.0",
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 61,
+      "type": "OpenRouterLLMNode",
+      "pos": [
+        1090,
+        0
+      ],
+      "size": [
+        440,
+        560
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "link": 3,
+          "label": "image_1",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_2",
+          "type": "IMAGE",
+          "link": 4,
+          "label": "image_2",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_3",
+          "type": "IMAGE",
+          "link": 5,
+          "label": "image_3",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_4",
+          "type": "IMAGE",
+          "link": 6,
+          "label": "image_4",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_5",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image_5",
+          "shape": 7
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 2
+        },
+        {
+          "name": "system_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            7,
+            22
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "OpenRouterLLMNode"
+      },
+      "widgets_values": [
+        "",
+        "openai/gpt-5.6-sol",
+        "low",
+        42,
+        ""
+      ],
+      "title": "REWRITER - SEEDANCE 2.0"
+    },
+    {
+      "id": 62,
+      "type": "PreviewAny",
+      "pos": [
+        1570,
+        0
+      ],
+      "size": [
+        400,
+        560
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "PROMPT SENT TO SEEDANCE 2.0"
+    },
+    {
+      "id": 70,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        620,
+        700
+      ],
+      "size": [
+        430,
+        560
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            8
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "# ROLE\n\nYou are a prompt rewriter for **FLUX 3 Image-to-Video** (Black Forest Labs), running inside a\nComfyUI graph. You receive (a) a rough, possibly lazy, possibly Korean-language video idea, and\n(b) up to 4 images wired into the node as **keyframes**, pinned at fixed times.\n\nReturn ONE finished FLUX 3 prompt. Output the prompt text ONLY — no preamble, no explanation, no\nmarkdown fences, no field names, no bullet lists.\n\nFLUX 3 reads a **shot brief written as flowing prose**. Not a caption. Not a form. Not an\ninventory of the objects in the scene. Say what happens, how the subject moves, what the camera\ndoes, and what the whole thing looks and sounds like.\n\n# HARD CONTRACT\n\n- Target: 10 seconds, 16:9, 720p, audio ON.\n- The 4 keyframes are pinned at **0s, 3s, 6s and 8s** in connection order.\n- Write in English. Spoken lines stay in their original language, verbatim, inside double quotes.\n- **FLUX 3 has no negative-prompt field.** Every exclusion is a plain English sentence inside the\n  prompt itself.\n\n# KEYFRAMES APPEAR ON SCREEN, PIXEL-EXACT\n\nThis is the difference that matters. A FLUX 3 keyframe is not an identity reference — those exact\npixels land on screen at that exact second. Therefore:\n\n- **Do NOT re-describe what is already visible in an image.** Redescribing visible pixels invites\n  the model to re-imagine them, and wastes the words you needed for motion and camera.\n- Write what **moves**, what the **camera** does, and what **changes between pins**.\n- A mid-clip pin is a deadline. For every pin, say what the seconds after it are for, or that\n  stretch trails off.\n- Keep consecutive pins related enough that a plausible path exists between them. Large jumps\n  invite drift.\n- Pin only what matters — extra anchors stiffen motion. If a supplied image has no job, say\n  plainly that the shot holds on it.\n- Every supplied source gets one declared job, or it is dropped.\n\n# STRUCTURE\n\nOpen with the first frame's situation in one clause, then move immediately into motion. Then pick\nexactly one of:\n\n**(a) One continuous take.** Say so explicitly, and add that the action never stops — no freezing,\nno repeated frames, no resets, same set and geometry throughout.\n\n**(b) An explicit cut sequence**, written like this:\n\n```\nSHOT ONE: wide aerial of a desert highway at dawn, a single red car speeding through.\nHARD CUT. SHOT TWO: interior close-up, the driver's hands drumming the wheel to the radio.\nHARD CUT. SHOT THREE: from the roadside, the car shrinking into the heat haze.\nWarm engine hum under one continuous music bed across all three shots.\n```\n\nConsecutive shots must contrast **hard** in scale, location or color, or the cut blends into a\ncontinuous take and reads as nothing. Each shot gets its own beat. One music bed may run across\nall cuts.\n\nClose on one final state that works as an edit point or as a still.\n\nNever write both \"one continuous unbroken shot\" and a hard cut — that is a contradiction the model\nwill resolve badly.\n\n# BUDGET\n\n**One subject action and one camera move per short clip.** A brief demanding many sequential\nactions, several locations, an exact mechanism, or multiple full dialogue lines will not survive.\nPick the one that matters and drop the rest.\n\n# CAMERA IS ONE PHYSICAL CONTRACT\n\nFraming, angle, movement, focus — and they must be mutually compatible. A locked-off camera cannot\ntrack. An extreme close-up cannot establish. Default to locked and deliberate; move only when the\nevent needs it, and name what visibly changes on screen because of the move.\n\n# STYLE MUST BE VISIBLE\n\n\"Tense\" becomes rigid posture, shallow breathing and a slow push-in. \"Vintage\" becomes a named\ncapture format, a grain structure and a practical light source. No unmotivated sparks, bells or\nlens flares.\n\nBuild the shot around **one motivated physical event**: state the visible cause, the physical\nresponse (direction, material behavior, restraint), and the payoff.\n\n# AUDIO — NAME EVERY LAYER SEPARATELY\n\nFLUX 3 makes sound in the same pass as the picture, so **every clip needs at least one audio cue.**\nName speech, voiceover, ambience, effects, music and deliberate silence as separate layers; one\nblurred description gives up control of all of them. Every sound needs a physical source or a\nnarrative role.\n\n- **Speech**: quote the exact line and name the visible speaker — or label it `voiceover` /\n  `narration` so the line is not hunting for a mouth to belong to. Anchor the voice with age\n  range, accent when relevant, register, energy, recording distance.\n- **Speakability**: write for 10 real seconds. Short sentences, one thought per line, room before\n  and after the payoff. Spell unusual names phonetically. Shorten the line rather than speeding\n  the delivery — a line that cannot finish comfortably needs a shorter script.\n- **Effects are causal**, tied to the action that makes them: \"as the cup hits the tile, it cracks\n  with one sharp ceramic snap.\"\n- **Mix**: say what leads and what stays under it. Keep background voices out when one line\n  matters. \"Her line is foreground and fully intelligible. Café chatter and espresso hiss remain\n  low and diffuse.\"\n- End with **\"No on-screen text, no subtitles.\"** unless on-screen text is genuinely wanted.\n\n# DO NOT PROMISE WHAT GENERATION CANNOT DELIVER\n\nExact typography, logos, subtitles, frame-accurate sync, precise multi-step mechanisms and\nguaranteed speaker identity across generations belong to post-production. Do not write the prompt\nas though the model will nail them.\n\n---\n\nOutput the finished prompt now, and nothing else.\n"
+      ],
+      "title": "SYSTEM PROMPT - FLUX 3",
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 71,
+      "type": "OpenRouterLLMNode",
+      "pos": [
+        1090,
+        700
+      ],
+      "size": [
+        440,
+        560
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "link": 10,
+          "label": "image_1",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_2",
+          "type": "IMAGE",
+          "link": 11,
+          "label": "image_2",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_3",
+          "type": "IMAGE",
+          "link": 12,
+          "label": "image_3",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_4",
+          "type": "IMAGE",
+          "link": 13,
+          "label": "image_4",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_5",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image_5",
+          "shape": 7
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 9
+        },
+        {
+          "name": "system_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            14,
+            28
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "OpenRouterLLMNode"
+      },
+      "widgets_values": [
+        "",
+        "openai/gpt-5.6-sol",
+        "low",
+        42,
+        ""
+      ],
+      "title": "REWRITER - FLUX 3"
+    },
+    {
+      "id": 72,
+      "type": "PreviewAny",
+      "pos": [
+        1570,
+        700
+      ],
+      "size": [
+        400,
+        560
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "PROMPT SENT TO FLUX 3"
+    },
+    {
+      "id": 80,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        620,
+        1400
+      ],
+      "size": [
+        430,
+        560
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            15
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "# ROLE\n\nYou are a prompt-enrichment engine sitting between a rough creative request and **MiniMax H3\nRef2VA** (the open-weights `MiniMaxH3ReferenceToVideo` node), a model that synthesizes video AND\nsynchronized stereo audio together in one pass.\n\nYour job mirrors MiniMax's own \"H3-Context-IR\" stage: understand the multimodal input, reason\nabout how the pieces relate, and serialize that understanding into a structured **production\nbrief** that H3-Base consumes directly.\n\nYou DO NOT generate media. You output ONLY the brief text — no preamble, no explanation, no\nmarkdown fences, no JSON wrapper.\n\n# WHAT YOU RECEIVE\n\n- A text request describing the desired video (may be lazy, may be Korean).\n- Up to 4 reference images, attached to you as real content. **Inspect them** for subjects, style,\n  composition, lighting and motion.\n- Every image has a FIXED name from its position in connection order: `<Picture 1>`, `<Picture 2>`,\n  `<Picture 3>`, `<Picture 4>`. Order is semantic — H3 advances its positional clock on it.\n  Never rename, skip, renumber or reorder a reference.\n- Hard constraints for this graph: **10 seconds, 16:9, 24 fps**. Never contradict them. All cut\n  timestamps strictly increase and fall inside 10 seconds.\n\nSince media is always attached here, always emit **Template B (the six-section full-reference\nbrief)**. Never emit the three-field text-only form. Never open the output with a frame-alignment\nline; it starts directly with `subject_definitions:`.\n\n# SHARED TIMELINE RULES\n\nThese govern the timeline text inside `detailed_description`.\n\n## Shots and cuts\n\n- `[Shot 1]` starts with NO timestamp.\n- Later shots begin `[Shot N] At MM:SS.mmm, ...` with strictly increasing cut times inside the\n  10-second budget.\n- For ordinary cuts write \"the camera cuts to\", \"the shot cuts to\", \"the shot transitions to\",\n  \"the shot changes to\" or \"the shot switches to\". Use cross-dissolve / fade / wipe only when\n  explicitly requested.\n- A cut must introduce new information about subject, space, state, viewpoint or time. If only\n  distance or a slight angle changes, use camera motion instead of a cut.\n- Structure anything longer than a single action as consecutive timed beats, **one primary change\n  per beat**, each with an observable end state a viewer could point at (an empty surface, a tool\n  in a named hand, a door now closed).\n- Put the most important beat in the **middle** of the timeline — the final beat is the one most\n  likely to be squeezed. A prop change or hand-off needs roughly four seconds. If the beats do not\n  fit in 10 seconds, drop or merge the least important one.\n\n## Camera motion\n\n- **Always specify the camera.** H3 defaults to continuous drift and reframing when you say\n  nothing.\n- Write camera motion as natural English action inside the shot: motion type + amplitude + speed\n  (omit amplitude and speed when they are medium/normal).\n- Vocabulary: Zoom In/Out, Push In/Pull Out, Pan Left/Right, Truck Left/Right, Tilt Up/Down,\n  Pedestal Up/Down, Arc Shot, Tracking Shot, Static Shot, Shake Slightly/Strongly, POV,\n  Roll Clockwise/Counterclockwise.\n- For a static shot, write \"the frame never moves\" **and list the movements that must not happen**\n  (no pan, no push-in, no reframing).\n- When you do move, name ONE move and describe what visibly changes on screen because of it.\n  Example: \"The camera pushes in with small amplitude at slow speed toward her hands.\"\n\n## Speakers and dialogue\n\n- Every speaker, singer or off-screen vocal source gets a stable ID: `(S1)`, `(S2)`, ... assigned\n  in the order of actual vocal events and reused at every later event. Use `(S1,S2)` for\n  simultaneous group speech. Characters who never vocalize get no ID.\n- On first appearance, establish identity **outside** the tag: character type, age, gender,\n  on-screen or not, pitch, timbre, speaking rate, accent.\n- Put ALL spoken content inside `<d>[Language] actual words.</d>`.\n- Supported dialogue languages: Arabic, Chinese, English, French, German, Italian, Japanese,\n  Korean, Portuguese, Russian, Spanish. Use the correct tag; never invent tags.\n- **Preserve every word and punctuation mark verbatim inside `<d>` — never translate, paraphrase\n  or summarize.** Write `[unclear]` for unintelligible spans. Standardize punctuation to `, . ? !`\n  and close every sentence before `</d>`.\n- Voiceover uses the exact phrase \"says in an off-screen voiceover\", and immediately after that\n  `<d>` block you must state that the character's lips remain completely closed.\n- When one line crosses a cut, place `<scenetrans>` at BOTH connection points and say the audio\n  \"continues seamlessly across the cut\".\n- Mark speech truncated by the end of the video with `<cutoff>`.\n- At the moment dialogue ends, describe the lips closing and speaking motion ceasing, so H3 stops\n  the mouth movement.\n\n## On-screen text\n\n- Any banner, sign, label or neon text actually visible on screen goes in English double quotes,\n  verbatim: `A red neon sign reading \"영업중\" glows above the doorway.`\n- If a word must be readable, TYPE it rather than describing it. Name the typographic treatment\n  (condensed, all-caps, serif, tracked wide) and where it sits (\"centred\", \"lower third\").\n- If no text should appear, say so explicitly.\n\n# TEMPLATE B — FULL-REFERENCE BRIEF\n\nWrite all six sections in English, in this order, each name followed by a colon:\n\n```\nsubject_definitions:\nsummary:\nretention_analysis:\ndetailed_description:\noverall_soundscape:\nnon_diegetic_music:\n```\n\nPreserve original language only inside `<d>` tags and in on-screen text.\n\n## B1 `subject_definitions`\n\nFour label types, ONE line each, stating what the label denotes, its reference role, and the main\nfeatures to follow:\n\n- `<Subject N>` — reusable visible content that will actually appear: people, animals, objects,\n  scenes, environments, clothing, props, interfaces, effects, styles, actions, expressions, poses.\n  A content unit to be used, not the source file.\n- `<Picture N>` — a concrete frame anchor: a shot's first frame, last frame, edited keyframe, or a\n  storyboard / shot-planning reference.\n- `<Video N>` — a whole-video structural source.\n- `<Audio N>` — an audio signal copied or referenced.\n\nRules:\n- **If an image only defines a character, scene, costume or style, do NOT create a standalone\n  `<Picture N>` entry — cite the image inside the corresponding `<Subject N>` definition.** Use a\n  standalone `<Picture N>` only when the image genuinely serves as a first frame, keyframe, last\n  frame or composition anchor.\n- One subject may be defined by several assets, and one asset may provide several subjects.\n  Combine sources and state what each provides: `<Subject 1> is the woman whose appearance comes\n  from <Picture 1> and whose walking motion comes from <Video 1>.`\n- When an image acts as a storyboard, state which shots it maps to.\n- Bind voice references to a speaker ID when applicable:\n  `<Audio 1> is the voice-timbre reference for <Subject 1> (S1).`\n\n## B2 `summary`\n\nONE short paragraph summarizing the task type, the target video and the main reference\nrelationships. Begin with a square-bracketed task-type prefix, joined by \" + \" when several apply,\nchosen only when an asset genuinely plays that role:\n\n`keyframe completion | reference generation | video editing | video continuation | audio reuse | audio reference`\n\nIn this graph, still images supplied as identity/style references are normally\n**`[reference generation]`**. Only use `keyframe completion` if an image truly anchors a concrete\nframe. Reuse labels from `subject_definitions`; introduce NO new labels here.\n\n## B3 `retention_analysis`\n\nOne line per reference label describing how it is preserved, with a brief justification.\n\nVisible content (`<Subject N>`, `<Picture N>`, `<Video N>`) uses exactly one marker:\n`fully_preserved | partially_preserved | attribute_transfer | weak_reference`\n\nAudio (`<Audio N>`) uses exactly one of:\n`fully_copy | partially_copy | reference | weak_reference`\n\nFormat: `<Subject 1> (appears in [Shot 1], [Shot 3]): fully_preserved - identity, hair and pink\nshirt retained.`\n\nChoose each marker only within the role already defined in `subject_definitions`. Newly added\nactions, backgrounds or plot events are NOT losses of reference fidelity. Never write `(Sx)` in\nthis section.\n\n## B4 `detailed_description`\n\nThe main body. Write it as detailed and explicit as possible.\n\n- Establish the style in ONE or TWO sentences **before** `[Shot 1]`, e.g. \"The target video is in\n  a cinematic, literary music-video style with soft lighting and a slightly desaturated palette.\"\n- Then describe visuals, actions, sound and dialogue **shot by shot in playback order**, inserting\n  reference labels where their roles apply.\n- For each shot establish: current composition, subject appearance and position, environment and\n  lighting, actions and state changes, camera movement, current sound, and the points where\n  referenced content actually appears or takes effect.\n- Do not reduce it to a plot summary or a list of reference relationships.\n- At the first clear appearance of an important `<Subject N>`, describe its referenced\n  characteristics, its position in frame and its current action — within what is actually visible.\n  Reuse the same label later without redefining it.\n- Natural phrasing for frame anchors: \"the shot begins from `<Picture 1>`\", \"the shot's keyframe\n  corresponds to `<Picture 2>`\", \"the shot ends on `<Picture 3>`\".\n- **Target 350-500 English words** for generation tasks. Dialogue-dense content prioritizes\n  fitting the complete spoken timeline over hitting a word count.\n- Speakers: when a referenced subject physically speaks, write `<Subject N> (Sx)`. `<Subject N>`\n  identifies the referenced subject; `(Sx)` identifies the actual speaker. Off-screen keeps the\n  same form, marked \"off-screen\". A speaker with no defined subject gets a stable voice\n  description followed by `(Sx)`.\n- Apply all shared timeline rules above.\n\n## B5 `overall_soundscape`\n\n1-4 sentences, ONE continuous paragraph. Summarize ambient sound, physical action sounds and\nnon-verbal human sounds across the whole video (wind, rain, traffic, footsteps, fabric, impacts,\nbreathing, laughter, panting). Dialogue, singing and shot-synchronized events stay in\n`detailed_description`. Do NOT repeat `<d>` dialogue here. Use `N/A` only when complete silence is\nexplicitly requested.\n\n## B6 `non_diegetic_music`\n\n1-3 sentences. Background music that the characters cannot hear and only the audience does:\ninstrumentation, tempo, rhythm, dynamic changes. **No abstract mood words, no emotional\nexplanation.** Music audible to the characters (radio, TV, phone, live performance) is diegetic\nand belongs in `detailed_description`. Use `N/A` when there is no audience-only score. Never\nrepeat `<d>` dialogue or lyrics here.\n\n# ENHANCEMENT BEHAVIOR\n\n- Preserve the user's original intent; never contradict explicit instructions. Enrich\n  underspecified details.\n- Add concrete production detail: subject appearance, wardrobe, environment, lighting,\n  composition, camera movement (with amplitude/speed, or explicit static plus refusals), shot\n  timings, actions and reactions, diegetic sound, musical direction.\n- **Name garments in the text even for referenced subjects** — H3 drifts wardrobe across\n  generations. Refer to recurring characters and garments by identical descriptors every time.\n- Translate emotion and mood into observable behavior a camera could see. Not \"she looks anxious\"\n  but \"her gaze is fixed downward, her fingers grip the table edge, and her shoulders stay\n  raised.\"\n- **H3 has no negative-prompt field.** Express exclusions and refusals as plain English sentences.\n  They earn their place mainly for the two things the model adds on its own: camera movement and\n  on-screen text.\n- Never assert media that was not provided; every label must map to a real input.\n\n# WORKFLOW\n\n1. Inspect the request and every attached image.\n2. Plan the temporal structure: beats, shots, cut times, camera, speakers.\n3. Fill gaps while preserving intent.\n4. Emit the six-section brief in the exact template. Output only that.\n"
+      ],
+      "title": "SYSTEM PROMPT - MINIMAX H3",
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 81,
+      "type": "OpenRouterLLMNode",
+      "pos": [
+        1090,
+        1400
+      ],
+      "size": [
+        440,
+        560
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "link": 17,
+          "label": "image_1",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_2",
+          "type": "IMAGE",
+          "link": 18,
+          "label": "image_2",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_3",
+          "type": "IMAGE",
+          "link": 19,
+          "label": "image_3",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_4",
+          "type": "IMAGE",
+          "link": 20,
+          "label": "image_4",
+          "shape": 7
+        },
+        {
+          "name": "model.images.image_5",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image_5",
+          "shape": 7
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 16
+        },
+        {
+          "name": "system_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            21,
+            41
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "OpenRouterLLMNode"
+      },
+      "widgets_values": [
+        "",
+        "openai/gpt-5.6-sol",
+        "low",
+        42,
+        ""
+      ],
+      "title": "REWRITER - MINIMAX H3"
+    },
+    {
+      "id": 82,
+      "type": "PreviewAny",
+      "pos": [
+        1570,
+        1400
+      ],
+      "size": [
+        400,
+        560
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "PROMPT SENT TO MINIMAX H3"
+    },
+    {
+      "id": 30,
+      "type": "ByteDance2ReferenceNode",
+      "pos": [
+        2000,
+        0
+      ],
+      "size": [
+        430,
+        560
+      ],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.reference_images.image_1",
+          "type": "IMAGE",
+          "link": 23,
+          "label": "image_1",
+          "shape": 7
+        },
+        {
+          "name": "model.reference_images.image_2",
+          "type": "IMAGE",
+          "link": 24,
+          "label": "image_2",
+          "shape": 7
+        },
+        {
+          "name": "model.reference_images.image_3",
+          "type": "IMAGE",
+          "link": 25,
+          "label": "image_3",
+          "shape": 7
+        },
+        {
+          "name": "model.reference_images.image_4",
+          "type": "IMAGE",
+          "link": 26,
+          "label": "image_4",
+          "shape": 7
+        },
+        {
+          "name": "model.reference_images.image_5",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image_5",
+          "shape": 7
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "type": "VIDEO",
+          "link": null,
+          "label": "video_1",
+          "shape": 7
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "type": "AUDIO",
+          "link": null,
+          "label": "audio_1",
+          "shape": 7
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "type": "STRING",
+          "link": null,
+          "label": "asset_1",
+          "shape": 7
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            27
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ByteDance2ReferenceNode"
+      },
+      "widgets_values": [
+        "Seedance 2.0",
+        "",
+        "720p",
+        "16:9",
+        10,
+        true,
+        true,
+        false,
+        42,
+        "fixed",
+        false
+      ],
+      "title": "Seedance 2.0 - Reference to Video",
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 31,
+      "type": "SaveVideo",
+      "pos": [
+        2470,
+        0
+      ],
+      "size": [
+        420,
+        480
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/seedance20_",
+        "auto",
+        "auto"
+      ],
+      "title": "SAVE - Seedance 2.0"
+    },
+    {
+      "id": 90,
+      "type": "Flux3ImageToVideoNode",
+      "pos": [
+        2000,
+        700
+      ],
+      "size": [
+        430,
+        560
+      ],
+      "flags": {},
+      "order": 32,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "keyframes.image_0",
+          "type": "IMAGE",
+          "link": 29,
+          "label": "image_0"
+        },
+        {
+          "name": "keyframes.image_1",
+          "type": "IMAGE",
+          "link": 30,
+          "label": "image_1",
+          "shape": 7
+        },
+        {
+          "name": "keyframes.image_2",
+          "type": "IMAGE",
+          "link": 31,
+          "label": "image_2",
+          "shape": 7
+        },
+        {
+          "name": "keyframes.image_3",
+          "type": "IMAGE",
+          "link": 32,
+          "label": "image_3",
+          "shape": 7
+        },
+        {
+          "name": "keyframes.image_4",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image_4",
+          "shape": 7
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            33
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Flux3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "",
+        "at times",
+        "0, 3, 6, 8",
+        "16:9",
+        "10",
+        "720p",
+        true,
+        2,
+        42,
+        "fixed"
+      ],
+      "title": "FLUX 3 - Image to Video",
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 91,
+      "type": "SaveVideo",
+      "pos": [
+        2470,
+        700
+      ],
+      "size": [
+        420,
+        480
+      ],
+      "flags": {},
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 33
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/flux3_",
+        "auto",
+        "auto"
+      ],
+      "title": "SAVE - FLUX 3"
+    },
+    {
+      "id": 40,
+      "type": "UNETLoader",
+      "pos": [
+        0,
+        1900
+      ],
+      "size": [
+        620,
+        100
+      ],
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            46,
+            47
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "default"
+      ]
+    },
+    {
+      "id": 41,
+      "type": "CLIPLoader",
+      "pos": [
+        0,
+        2040
+      ],
+      "size": [
+        620,
+        130
+      ],
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            34
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "minimax",
+        "default"
+      ]
+    },
+    {
+      "id": 42,
+      "type": "VAELoader",
+      "pos": [
+        0,
+        2210
+      ],
+      "size": [
+        620,
+        80
+      ],
+      "flags": {},
+      "order": 42,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            35,
+            55
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "minimax_h3_video_vae_fp16.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_video_vae_fp16.safetensors"
+      ],
+      "title": "VAE - video"
+    },
+    {
+      "id": 43,
+      "type": "VAELoader",
+      "pos": [
+        0,
+        2330
+      ],
+      "size": [
+        620,
+        80
+      ],
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            36,
+            57
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "minimax_h3_audio_vae_fp32.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_audio_vae_fp32.safetensors"
+      ],
+      "title": "VAE - audio"
+    },
+    {
+      "id": 44,
+      "type": "ResolutionSelector",
+      "pos": [
+        0,
+        2450
+      ],
+      "size": [
+        290,
+        180
+      ],
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            42
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            43
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ResolutionSelector"
+      },
+      "widgets_values": [
+        "16:9 (Widescreen)",
+        0.4,
+        32
+      ],
+      "title": "Resolution  (0.4 MP -> 864x480; use 0.9 for 1280x736)",
+      "color": "#322",
+      "bgcolor": "#533",
+      "showAdvanced": false
+    },
+    {
+      "id": 45,
+      "type": "PrimitiveFloat",
+      "pos": [
+        0,
+        2660
+      ],
+      "size": [
+        290,
+        80
+      ],
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [
+            44
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveFloat"
+      },
+      "widgets_values": [
+        10.0
+      ],
+      "title": "Duration (seconds)",
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 46,
+      "type": "ComfyMathExpression",
+      "pos": [
+        0,
+        2770
+      ],
+      "size": [
+        290,
+        80
+      ],
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "label": "a",
+          "link": 44
+        },
+        {
+          "name": "values.b",
+          "type": "FLOAT,INT,BOOLEAN",
+          "label": "b",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            45
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": [],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": [
+        "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17"
+      ],
+      "title": "seconds -> frames (17k+5 grid @ 24fps)"
+    },
+    {
+      "id": 47,
+      "type": "MiniMaxH3ReferenceToVideo",
+      "pos": [
+        680,
+        1900
+      ],
+      "size": [
+        430,
+        620
+      ],
+      "flags": {},
+      "order": 47,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 34
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 35
+        },
+        {
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 36
+        },
+        {
+          "name": "ref_images.ref_image_0",
+          "type": "IMAGE",
+          "link": 37,
+          "label": "ref_image_0",
+          "shape": 7
+        },
+        {
+          "name": "ref_images.ref_image_1",
+          "type": "IMAGE",
+          "link": 38,
+          "label": "ref_image_1",
+          "shape": 7
+        },
+        {
+          "name": "ref_images.ref_image_2",
+          "type": "IMAGE",
+          "link": 39,
+          "label": "ref_image_2",
+          "shape": 7
+        },
+        {
+          "name": "ref_images.ref_image_3",
+          "type": "IMAGE",
+          "link": 40,
+          "label": "ref_image_3",
+          "shape": 7
+        },
+        {
+          "name": "ref_images.ref_image_4",
+          "type": "IMAGE",
+          "link": null,
+          "label": "ref_image_4",
+          "shape": 7
+        },
+        {
+          "name": "ref_videos.ref_video_0",
+          "type": "IMAGE",
+          "link": null,
+          "label": "ref_video_0",
+          "shape": 7
+        },
+        {
+          "name": "ref_video_audios.ref_video_audio_0",
+          "type": "AUDIO",
+          "link": null,
+          "label": "ref_video_audio_0",
+          "shape": 7
+        },
+        {
+          "name": "ref_audios.ref_audio_0",
+          "type": "AUDIO",
+          "link": null,
+          "label": "ref_audio_0",
+          "shape": 7
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 41
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 42
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 43
+        },
+        {
+          "name": "length",
+          "type": "INT",
+          "widget": {
+            "name": "length"
+          },
+          "link": 45
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            48
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            53
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+      },
+      "widgets_values": [
+        "",
+        864,
+        480,
+        243,
+        "match"
+      ],
+      "title": "MiniMax H3 - Reference to Video (open weights)",
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 48,
+      "type": "RandomNoise",
+      "pos": [
+        1160,
+        1900
+      ],
+      "size": [
+        360,
+        100
+      ],
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            49
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        42,
+        "fixed"
+      ]
+    },
+    {
+      "id": 50,
+      "type": "KSamplerSelect",
+      "pos": [
+        1160,
+        2040
+      ],
+      "size": [
+        360,
+        80
+      ],
+      "flags": {},
+      "order": 49,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            51
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "res_multistep"
+      ]
+    },
+    {
+      "id": 51,
+      "type": "BasicScheduler",
+      "pos": [
+        1160,
+        2160
+      ],
+      "size": [
+        360,
+        140
+      ],
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 46
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            52
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicScheduler"
+      },
+      "widgets_values": [
+        "beta",
+        20,
+        1
+      ]
+    },
+    {
+      "id": 49,
+      "type": "BasicGuider",
+      "pos": [
+        1160,
+        2340
+      ],
+      "size": [
+        360,
+        80
+      ],
+      "flags": {},
+      "order": 51,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 47
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 48
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            50
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicGuider"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 52,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        1570,
+        1900
+      ],
+      "size": [
+        260,
+        160
+      ],
+      "flags": {},
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 49
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 50
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 51
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 52
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 53
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            54,
+            56
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustomAdvanced"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 53,
+      "type": "VAEDecode",
+      "pos": [
+        1880,
+        1900
+      ],
+      "size": [
+        250,
+        70
+      ],
+      "flags": {},
+      "order": 53,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 54
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 55
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            58
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 54,
+      "type": "VAEDecodeAudio",
+      "pos": [
+        1880,
+        2020
+      ],
+      "size": [
+        250,
+        70
+      ],
+      "flags": {},
+      "order": 54,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 56
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 57
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            59
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecodeAudio"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 55,
+      "type": "CreateVideo",
+      "pos": [
+        2180,
+        1900
+      ],
+      "size": [
+        280,
+        120
+      ],
+      "flags": {},
+      "order": 55,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 58
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 59,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            60
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        24,
+        8
+      ]
+    },
+    {
+      "id": 56,
+      "type": "SaveVideo",
+      "pos": [
+        2510,
+        1900
+      ],
+      "size": [
+        420,
+        480
+      ],
+      "flags": {},
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 60
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/minimax_h3_oss_",
+        "auto",
+        "auto"
+      ],
+      "title": "SAVE - MiniMax H3"
+    },
+    {
+      "id": 57,
+      "type": "MarkdownNote",
+      "pos": [
+        0,
+        2890
+      ],
+      "size": [
+        620,
+        620
+      ],
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "MarkdownNote"
+      },
+      "widgets_values": [
+        "## MiniMax H3 - open weights\n\nThe `MiniMaxH3ReferenceToVideo` node is the open-source path. Models\nauto-download from [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3)\non first run:\n\n```\nComfyUI/models/\n  diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors\n  text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors\n  vae/minimax_h3_video_vae_fp16.safetensors\n  vae/minimax_h3_audio_vae_fp32.safetensors\n```\n\n**Reference tags.** In the prompt, images are `<Picture 1>`..`<Picture 4>` in\nconnection order - the OSS node's own convention. This is NOT the `Image 1`\nsyntax the MiniMax *API* node uses. The rewriter system prompt already knows.\n\n**Length.** `length` is frames at 24 fps and must land on the model's `17k + 5`\ngrid. The Math Expression node does that for you:\n`max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17`.\n10 s -> 243 frames. Trained range is roughly 124-362 frames.\n\n**Scheduler.** `beta` (or `normal`) beats `simple` on reference-heavy prompts.\n\n**ref_image_size.** `match` scales references down to the generation resolution\nand is much faster. `max` keeps a 2048px short edge for stronger identity\nfidelity - reference tokens ride through every sampling step, so it can be\nseveral times slower.\n"
+      ],
+      "title": "Note: MiniMax H3 open weights",
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      1,
+      60,
+      0,
+      61,
+      6,
+      "STRING"
+    ],
+    [
+      2,
+      10,
+      0,
+      61,
+      5,
+      "STRING"
+    ],
+    [
+      3,
+      20,
+      0,
+      61,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      21,
+      0,
+      61,
+      1,
+      "IMAGE"
+    ],
+    [
+      5,
+      22,
+      0,
+      61,
+      2,
+      "IMAGE"
+    ],
+    [
+      6,
+      23,
+      0,
+      61,
+      3,
+      "IMAGE"
+    ],
+    [
+      7,
+      61,
+      0,
+      62,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      70,
+      0,
+      71,
+      6,
+      "STRING"
+    ],
+    [
+      9,
+      10,
+      0,
+      71,
+      5,
+      "STRING"
+    ],
+    [
+      10,
+      20,
+      0,
+      71,
+      0,
+      "IMAGE"
+    ],
+    [
+      11,
+      21,
+      0,
+      71,
+      1,
+      "IMAGE"
+    ],
+    [
+      12,
+      22,
+      0,
+      71,
+      2,
+      "IMAGE"
+    ],
+    [
+      13,
+      23,
+      0,
+      71,
+      3,
+      "IMAGE"
+    ],
+    [
+      14,
+      71,
+      0,
+      72,
+      0,
+      "STRING"
+    ],
+    [
+      15,
+      80,
+      0,
+      81,
+      6,
+      "STRING"
+    ],
+    [
+      16,
+      10,
+      0,
+      81,
+      5,
+      "STRING"
+    ],
+    [
+      17,
+      20,
+      0,
+      81,
+      0,
+      "IMAGE"
+    ],
+    [
+      18,
+      21,
+      0,
+      81,
+      1,
+      "IMAGE"
+    ],
+    [
+      19,
+      22,
+      0,
+      81,
+      2,
+      "IMAGE"
+    ],
+    [
+      20,
+      23,
+      0,
+      81,
+      3,
+      "IMAGE"
+    ],
+    [
+      21,
+      81,
+      0,
+      82,
+      0,
+      "STRING"
+    ],
+    [
+      22,
+      61,
+      0,
+      30,
+      8,
+      "STRING"
+    ],
+    [
+      23,
+      20,
+      0,
+      30,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      21,
+      0,
+      30,
+      1,
+      "IMAGE"
+    ],
+    [
+      25,
+      22,
+      0,
+      30,
+      2,
+      "IMAGE"
+    ],
+    [
+      26,
+      23,
+      0,
+      30,
+      3,
+      "IMAGE"
+    ],
+    [
+      27,
+      30,
+      0,
+      31,
+      0,
+      "VIDEO"
+    ],
+    [
+      28,
+      71,
+      0,
+      90,
+      5,
+      "STRING"
+    ],
+    [
+      29,
+      20,
+      0,
+      90,
+      0,
+      "IMAGE"
+    ],
+    [
+      30,
+      21,
+      0,
+      90,
+      1,
+      "IMAGE"
+    ],
+    [
+      31,
+      22,
+      0,
+      90,
+      2,
+      "IMAGE"
+    ],
+    [
+      32,
+      23,
+      0,
+      90,
+      3,
+      "IMAGE"
+    ],
+    [
+      33,
+      90,
+      0,
+      91,
+      0,
+      "VIDEO"
+    ],
+    [
+      34,
+      41,
+      0,
+      47,
+      0,
+      "CLIP"
+    ],
+    [
+      35,
+      42,
+      0,
+      47,
+      1,
+      "VAE"
+    ],
+    [
+      36,
+      43,
+      0,
+      47,
+      2,
+      "VAE"
+    ],
+    [
+      37,
+      20,
+      0,
+      47,
+      3,
+      "IMAGE"
+    ],
+    [
+      38,
+      21,
+      0,
+      47,
+      4,
+      "IMAGE"
+    ],
+    [
+      39,
+      22,
+      0,
+      47,
+      5,
+      "IMAGE"
+    ],
+    [
+      40,
+      23,
+      0,
+      47,
+      6,
+      "IMAGE"
+    ],
+    [
+      41,
+      81,
+      0,
+      47,
+      11,
+      "STRING"
+    ],
+    [
+      42,
+      44,
+      0,
+      47,
+      12,
+      "INT"
+    ],
+    [
+      43,
+      44,
+      1,
+      47,
+      13,
+      "INT"
+    ],
+    [
+      44,
+      45,
+      0,
+      46,
+      0,
+      "FLOAT"
+    ],
+    [
+      45,
+      46,
+      1,
+      47,
+      14,
+      "INT"
+    ],
+    [
+      46,
+      40,
+      0,
+      51,
+      0,
+      "MODEL"
+    ],
+    [
+      47,
+      40,
+      0,
+      49,
+      0,
+      "MODEL"
+    ],
+    [
+      48,
+      47,
+      0,
+      49,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      49,
+      48,
+      0,
+      52,
+      0,
+      "NOISE"
+    ],
+    [
+      50,
+      49,
+      0,
+      52,
+      1,
+      "GUIDER"
+    ],
+    [
+      51,
+      50,
+      0,
+      52,
+      2,
+      "SAMPLER"
+    ],
+    [
+      52,
+      51,
+      0,
+      52,
+      3,
+      "SIGMAS"
+    ],
+    [
+      53,
+      47,
+      1,
+      52,
+      4,
+      "LATENT"
+    ],
+    [
+      54,
+      52,
+      0,
+      53,
+      0,
+      "LATENT"
+    ],
+    [
+      55,
+      42,
+      0,
+      53,
+      1,
+      "VAE"
+    ],
+    [
+      56,
+      52,
+      0,
+      54,
+      0,
+      "LATENT"
+    ],
+    [
+      57,
+      43,
+      0,
+      54,
+      1,
+      "VAE"
+    ],
+    [
+      58,
+      53,
+      0,
+      55,
+      0,
+      "IMAGE"
+    ],
+    [
+      59,
+      54,
+      0,
+      55,
+      1,
+      "AUDIO"
+    ],
+    [
+      60,
+      55,
+      0,
+      56,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "SHARED INPUTS",
+      "bounding": [
+        -60,
+        -80,
+        600,
+        1010
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "SEEDANCE 2.0  (Ctrl+B to bypass)",
+      "bounding": [
+        600,
+        -60,
+        2310,
+        640
+      ],
+      "color": "#a1309b",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "FLUX 3  (Ctrl+B to bypass)",
+      "bounding": [
+        600,
+        640,
+        2310,
+        640
+      ],
+      "color": "#88A",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "MINIMAX H3 - OPEN WEIGHTS  (Ctrl+B to bypass)",
+      "bounding": [
+        600,
+        1340,
+        2310,
+        640
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "MINIMAX H3 ENGINE",
+      "bounding": [
+        -40,
+        1840,
+        3010,
+        1800
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.47.11"
+  },
+  "version": 0.4
+}
