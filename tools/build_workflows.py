@@ -2,16 +2,15 @@
 """Migrate and keep both comparison workflows in sync.
 
 Targets a 2-way head-to-head — Seedance 2.5 (API) vs MiniMax H3 (open
-weights) — driven by 6 reference images at 15 seconds.
+weights) — driven by 6 reference images at 12 seconds.
 
 Applied to every workflow in TARGETS, idempotently:
 
   * 6 LoadImage nodes wired, in story order, to both generators and to the
     rewriters (OpenRouter images / captioned VLM batch);
   * the FLUX 3 band removed and the MiniMax H3 band pulled up into the gap;
-  * durations pinned to 15s (H3: 362 frames = 17*21+5 at 24fps, the top of
-    its trained range) and H3's resolution raised to 0.9 MP / 1280x736 to
-    match Seedance's 720p;
+  * durations pinned to 12s (H3: 294 frames = 17*17+5 at 24fps) and H3's
+    resolution raised to 0.9 MP / 1280x736 to match Seedance's 720p;
   * workflows/rough_prompt.txt and workflows/system_prompts/*.md re-inlined.
 
 Links are re-indexed by socket NAME after the graph is mutated, so inserting
@@ -54,15 +53,15 @@ IMAGE_META = [
     ("ref6_logo_card.png", "Image 6 — logo card"),
 ]
 
-DURATION_S = 15
-H3_FRAMES = 362          # max(5, 15*24) rounded onto the 17k+5 grid
+DURATION_S = 12
+H3_FRAMES = 294          # max(5, 12*24) rounded onto the 17k+5 grid
 H3_W, H3_H = 1280, 736
 H3_MEGAPIXELS = 0.9
 
 README = """# K-SAMPLER — 2-MODEL COMPARISON RIG
 
 **Seedance 2.5 (API) vs MiniMax H3 (open weights).** Same 6 references, same
-15 seconds, same seed.
+12 seconds, same seed.
 
 ## How to use
 
@@ -90,13 +89,16 @@ README = """# K-SAMPLER — 2-MODEL COMPARISON RIG
 | | Seedance 2.5 | MiniMax H3 |
 |---|---|---|
 | path | partner API | open weights, local sampling |
-| duration | 15s | 362 frames (17x21+5 @ 24fps) |
+| duration | 12s | 294 frames (17x17+5 @ 24fps) |
 | resolution | 720p | 1280x736 (0.9 MP) |
 | references | 6 | 6 |
 | seed | 42 | 42 |
 
-362 frames is the top of H3's trained range (~124-362), so 15s is its real
-ceiling. Seedance 2.5 would go to 30s; it is held at 15 for parity.
+H3's `length` must land on a `17k + 5` grid, so 12s becomes 294 frames —
+12.25s, a quarter second longer than Seedance's 12.0. Imperceptible side by
+side, but do not cut to a shared beat grid assuming they match.
+H3's trained range tops out near 362 frames (15s); Seedance 2.5 would go to
+30s. Both are held at 12 for parity and cost.
 
 The two prompts are **deliberately different** — each model gets its own
 dialect. That is the second story: same idea, two shooting scripts.
@@ -121,9 +123,9 @@ in connection order — the open-weights node's own convention, not the
 `Image 1` syntax the MiniMax *API* node uses. The rewriter knows.
 
 **Length.** `length` is frames at 24 fps and must land on the model's
-`17k + 5` grid; the Math Expression node handles it. 15 s -> 362 frames,
-which is the top of the trained range. Change the Duration node, not the
-frame count.
+`17k + 5` grid; the Math Expression node handles it. 12 s -> 294 frames,
+i.e. 12.25 s of actual output. The trained range tops out near 362 frames
+(15 s). Change the Duration node, not the frame count.
 
 **Scheduler.** `beta` (or `normal`) beats `simple` on reference-heavy
 prompts.

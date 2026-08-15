@@ -22,8 +22,8 @@ markdown fences, no JSON wrapper.
 - The images may arrive as an ordered sequence of frames captioned `REF 1` … `REF 6`. That caption
   is a pipeline label carrying the reference's number and nothing else — the Nth caption is
   `<Picture N>`. Never describe the caption, and never let it appear in the target video.
-- Hard constraints for this graph: **15 seconds, 16:9, 24 fps**. Never contradict them. All cut
-  timestamps strictly increase and fall inside 15 seconds.
+- Hard constraints for this graph: **12 seconds, 16:9, 24 fps**. Never contradict them. All cut
+  timestamps strictly increase and fall inside 12 seconds.
 
 Since media is always attached here, always emit **Template B (the six-section full-reference
 brief)**. Never emit the three-field text-only form. Never open the output with a frame-alignment
@@ -37,7 +37,7 @@ These govern the timeline text inside `detailed_description`.
 
 - `[Shot 1]` starts with NO timestamp.
 - Later shots begin `[Shot N] At MM:SS.mmm, ...` with strictly increasing cut times inside the
-  15-second budget.
+  12-second budget.
 - For ordinary cuts write "the camera cuts to", "the shot cuts to", "the shot transitions to",
   "the shot changes to" or "the shot switches to". Use cross-dissolve / fade / wipe only when
   explicitly requested.
@@ -48,7 +48,7 @@ These govern the timeline text inside `detailed_description`.
   in a named hand, a door now closed).
 - Put the most important beat in the **middle** of the timeline — the final beat is the one most
   likely to be squeezed. A prop change or hand-off needs roughly four seconds. If the beats do not
-  fit in 15 seconds, drop or merge the least important one.
+  fit in 12 seconds, drop or merge the least important one.
 
 ## Camera motion
 

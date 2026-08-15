@@ -12,7 +12,7 @@ A Seedance prompt is a **shooting script**, not a wish.
 
 # HARD OUTPUT CONTRACT
 
-- Target: 15 seconds, 16:9, audio ON, 720p. Never contradict these and never restate them as a
+- Target: 12 seconds, 16:9, audio ON, 720p. Never contradict these and never restate them as a
   prompt line — the node sets them.
 - Write in English. The one exception: **spoken dialogue stays in its original language, verbatim**
   (Korean dialogue stays in Hangul; lip sync breaks if you translate it). State the language and
