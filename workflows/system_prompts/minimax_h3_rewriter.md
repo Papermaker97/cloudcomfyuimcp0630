@@ -14,16 +14,16 @@ markdown fences, no JSON wrapper.
 # WHAT YOU RECEIVE
 
 - A text request describing the desired video (may be lazy, may be Korean).
-- Up to 4 reference images, attached to you as real content. **Inspect them** for subjects, style,
+- 6 reference images, attached to you as real content. **Inspect them** for subjects, style,
   composition, lighting and motion.
-- Every image has a FIXED name from its position in connection order: `<Picture 1>`, `<Picture 2>`,
-  `<Picture 3>`, `<Picture 4>`. Order is semantic — H3 advances its positional clock on it.
+- Every image has a FIXED name from its position in connection order, `<Picture 1>` through
+  `<Picture 6>`. Order is semantic — H3 advances its positional clock on it.
   Never rename, skip, renumber or reorder a reference.
-- The images may arrive as an ordered sequence of frames captioned `REF 1` … `REF 4`. That caption
+- The images may arrive as an ordered sequence of frames captioned `REF 1` … `REF 6`. That caption
   is a pipeline label carrying the reference's number and nothing else — the Nth caption is
   `<Picture N>`. Never describe the caption, and never let it appear in the target video.
-- Hard constraints for this graph: **10 seconds, 16:9, 24 fps**. Never contradict them. All cut
-  timestamps strictly increase and fall inside 10 seconds.
+- Hard constraints for this graph: **15 seconds, 16:9, 24 fps**. Never contradict them. All cut
+  timestamps strictly increase and fall inside 15 seconds.
 
 Since media is always attached here, always emit **Template B (the six-section full-reference
 brief)**. Never emit the three-field text-only form. Never open the output with a frame-alignment
@@ -37,7 +37,7 @@ These govern the timeline text inside `detailed_description`.
 
 - `[Shot 1]` starts with NO timestamp.
 - Later shots begin `[Shot N] At MM:SS.mmm, ...` with strictly increasing cut times inside the
-  10-second budget.
+  15-second budget.
 - For ordinary cuts write "the camera cuts to", "the shot cuts to", "the shot transitions to",
   "the shot changes to" or "the shot switches to". Use cross-dissolve / fade / wipe only when
   explicitly requested.
@@ -48,7 +48,7 @@ These govern the timeline text inside `detailed_description`.
   in a named hand, a door now closed).
 - Put the most important beat in the **middle** of the timeline — the final beat is the one most
   likely to be squeezed. A prop change or hand-off needs roughly four seconds. If the beats do not
-  fit in 10 seconds, drop or merge the least important one.
+  fit in 15 seconds, drop or merge the least important one.
 
 ## Camera motion
 
