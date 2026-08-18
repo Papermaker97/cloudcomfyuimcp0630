@@ -1,180 +1,95 @@
-# 패션 착장 → 아이템 누끼/고스트컷 워크플로우
+# 패션 착장 → 고스트컷 투명 PNG
 
-> 신세계라이브쇼핑 방송비주얼팀 요구 예제 ③ (모델 착장 이미지 → 아이템 누끼컷 자동 생성) 구현.
-> **설계 원칙: 워크플로우는 "1장 → 1결과". 여러 장은 이 워크플로우를 N번 실행해서 처리한다.**
-
----
-
-## 상태
-
-- ✅ **Dry run 검증 통과** — 노드 존재·링크 무결성·필수 입력 정상. 실행/과금 없음
-- ✅ **Comfy Cloud 저장 완료** — 이름 `패션_상의누끼_1장당1결과`, 파일 `1-1.json`
-- ✅ **노드 ID 보존 확인** — 저장 변환 후에도 1~5 그대로 (override 키가 안 깨짐)
-- ⬜ 실제 실행은 미수행
+> 신세계라이브쇼핑 방송비주얼팀 요구 예제 ③ 구현. 강사 시연용.
+> **실제 실행 성공 검증 완료.**
 
 ---
 
-## 워크플로우 구조 (1장 → 1결과)
+## 파일 구성
 
-```
-LoadImage(1) → ClothesSegment(2) ─┬→ SaveImage(3)              top_cutout   [원본 픽셀]
-                                  └→ OpenAIGPTImageNodeV2(4) → SaveImage(5) top_ghostcut [AI 추정]
-```
-
-**입력 1장, 출력 2장** (보존형 누끼 + 생성형 고스트컷).
-서로 다른 옷 N장을 처리하려면 **이 워크플로우를 N번 실행**한다. 워크플로우 안에서 여러 장을 병렬로 처리하지 않는다.
-
-이 구조를 택한 이유:
-- 입력마다 옷이 다르므로 결과가 섞이면 안 됨
-- 실패한 입력만 재실행하면 됨
-- 입력 개수가 몇 장이든 워크플로우는 그대로 (N에 무관)
-
----
-
-## 여러 장 처리 — MCP 연동 방식
-
-### 방법 A. 한 번의 호출로 N개 job (권장)
-
-`submit_batch`는 최대 50개 job을 한 번에 제출한다. 각 item에 **파일명만 다른 같은 그래프**를 넣는다.
-
-```
-submit_batch({
-  client_os: "windows",
-  items: [
-    { tool: "submit_workflow", workflow: <그래프, LoadImage.image = "model_01.png"> },
-    { tool: "submit_workflow", workflow: <그래프, LoadImage.image = "model_02.png"> },
-    { tool: "submit_workflow", workflow: <그래프, LoadImage.image = "model_03.png"> },
-    { tool: "submit_workflow", workflow: <그래프, LoadImage.image = "model_04.png"> }
-  ]
-})
-```
-
-→ `batch_id` 하나와 job_id 4개 반환
-→ `get_batch_status(batch_id)` 로 진행 확인
-→ `get_batch_output(batch_id)` 로 결과 4쌍 수집
-→ 실패한 항목은 `failed[]` 에 분리되어 나옴
-
-**과금 확인은 배치 전체에 대해 1번만** 물어본다 (`confirm: true`).
-
-### 방법 B. 저장된 워크플로우를 입력만 바꿔 순차 실행
-
-```
-run_saved_workflow({ filename: "1-1.json", input_overrides: { "1": { "image": "model_01.png" } } })
-run_saved_workflow({ filename: "1-1.json", input_overrides: { "1": { "image": "model_02.png" } } })
-run_saved_workflow({ filename: "1-1.json", input_overrides: { "1": { "image": "model_03.png" } } })
-run_saved_workflow({ filename: "1-1.json", input_overrides: { "1": { "image": "model_04.png" } } })
-```
-
-override 대상이 `{"1": {"image": ...}}` 인 것은 클라우드에서 조회해 확인함:
-
-```
-customizable_inputs.images = [{ node_id: "1", class_type: "LoadImage", input_name: "image" }]
-```
-
-방법 B는 호출이 N번이라 느리지만, **한 장씩 결과를 확인하며 진행하는 시연**에는 오히려 적합하다.
-
-### 결과 파일명 분리
-
-같은 `filename_prefix`를 쓰면 ComfyUI가 자동으로 번호를 붙이지만(`top_cutout_00001_`),
-어떤 입력에서 나온 결과인지 명확히 하려면 실행마다 prefix도 함께 override 한다.
-
-```
-input_overrides: {
-  "1": { "image": "model_02.png" },
-  "3": { "filename_prefix": "02_top_cutout" },
-  "5": { "filename_prefix": "02_top_ghostcut" }
-}
-```
-
----
-
-## 사용한 노드 (이름 변경 금지)
-
-| class_type | 표시명 | 팩 | 과금 |
-|---|---|---|---|
-| `LoadImage` | Load Image | core | 무료 |
-| `ClothesSegment` | Clothes Segment (RMBG) | comfyui-rmbg | 무료 |
-| `OpenAIGPTImageNodeV2` | OpenAI GPT Image 2 | core (partner/image/OpenAI) | **유료** |
-| `SaveImage` | Save Image | core | 무료 |
-
-노드 4·5를 뮤트하면 **누끼만 무료로** 뽑을 수 있다.
-
----
-
-## "상의 / 하의" 선택이 구현되는 지점
-
-`ClothesSegment`는 부위별 불리언 스위치를 가진다. **고객사가 요구한 "추출할 아이템 선택"이 이 스위치 그 자체다.** 프롬프트로 지정할 필요가 없다.
-
-사용 가능한 스위치 (전부 기본 `false`):
-
-```
-Hat, Hair, Face, Sunglasses, Upper-clothes, Skirt, Dress, Belt, Pants,
-Left-arm, Right-arm, Left-leg, Right-leg, Bag, Scarf, Left-shoe, Right-shoe, Background
-```
-
-| 추출 대상 | 켤 스위치 |
+| 파일 | 용도 |
 |---|---|
-| 상의 | `Upper-clothes` |
-| 하의(바지) | `Pants` |
-| 하의(스커트) | `Skirt` |
-| 원피스 | `Dress` |
-| 상의+하의 동시 | `Upper-clothes` + `Pants` |
-
-시연에서 이 불리언 하나만 바꾸면 상의→하의로 즉시 전환된다.
-UI를 만든다면 **이 스위치들이 그대로 토글 버튼이 된다.**
-
-배치 실행 시에도 override로 바꿀 수 있다:
-```
-input_overrides: { "2": { "Upper-clothes": false, "Pants": true } }
-```
+| `fashion_ghostcut_final.api.json` | 워크플로우 (API 포맷) |
+| `AGENT_실행절차.md` | Claude Code 등 에이전트에게 주는 실행 절차서 |
+| `README.md` | 이 문서 |
 
 ---
 
-## 주요 파라미터
+## 세 가지 사용 방법
 
-### ClothesSegment (노드 2)
-| 파라미터 | 현재값 | 범위 | 설명 |
-|---|---|---|---|
-| `process_res` | 1024 | 128~2048 | 처리 해상도. 높을수록 경계 정밀, VRAM↑ |
-| `mask_blur` | 2 | 0~64 | 경계 블러. 니트·헤어 경계 거칠면 3~5 |
-| `mask_offset` | 0 | -64~64 | 마스크 확장/축소. 배경 잔여물 있으면 음수 |
-| `background` | `Alpha` | Alpha / Color | 투명 배경 출력 |
-| `invert_output` | false | | 반전 |
+### 1. ComfyUI 캔버스에서 직접 (강사 시연용)
 
-### OpenAIGPTImageNodeV2 (노드 4)
-| 파라미터 | 현재값 | 비고 |
+Comfy Cloud 워크스페이스의 **`패션_고스트컷_누끼PNG_최종`** 을 연다.
+노드 그래프가 그대로 보이므로, 각 단계를 설명하며 시연하기에 적합하다.
+
+### 2. App Mode — 노드 그래프를 숨긴 앱 (와우 포인트)
+
+**https://cloud.comfy.org/?share=ca208e32351d**
+
+이 링크를 열면 노드 그래프가 사라지고 **이미지 업로드 + Run 버튼**만 있는 화면이 나온다.
+사용자는 ComfyUI를 전혀 몰라도 옷 사진을 올리고 Run만 누르면 결과가 나온다.
+
+노출된 입력 3개:
+- **image** — 모델 착장 사진 업로드
+- **prompt** — 추출 대상 문구 (상의/하의 등으로 수정 가능)
+- **seed** — 결과가 마음에 안 들면 값을 바꿔 재생성
+
+표시되는 출력 2개:
+- **SaveImage(10)** — 최종 투명 PNG
+- **PreviewImage(11)** — 흰 배경 중간 결과
+
+> ⚠️ **이 링크로 실행되는 생성 비용은 링크 소유자(강사님) 계정에서 빠집니다.**
+> 수업 중 15명에게 링크를 뿌리고 각자 Run을 누르면 그만큼 크레딧이 소모됩니다.
+> 시연용으로 강사 화면에서만 쓰거나, 수업 종료 후 공유하는 것을 권장.
+
+### 3. 에이전트가 자동 실행 (Claude Code + Comfy MCP)
+
+`AGENT_실행절차.md` 와 `fashion_ghostcut_final.api.json` 두 파일을 에이전트에게 준 뒤
+옷 이미지를 건네면, 업로드 → 실행 → 결과 수집까지 알아서 처리한다.
+이미지 N장이면 워크플로우를 N번 돌려 N개 결과를 만든다.
+
+---
+
+## 그래프 구조
+
+```
+LoadImage(1)
+   └→ GeminiNanoBanana2V2(7)      착장 사진 → 고스트컷 (흰 배경)   [유료 ~8.6 크레딧/장]
+        ├→ PreviewImage(11)        중간 결과
+        └→ ImageRemoveAlpha+(12)   RGBA → RGB 변환
+             └→ BiRefNetRMBG(8)    배경 제거 → 투명
+                  └→ SaveImage(10) 최종 PNG
+```
+
+### 핵심 발견 두 가지
+
+**① 세그멘테이션이 필요 없다.**
+당초 `ClothesSegment` 로 옷을 분리한 뒤 생성하는 구조를 검토했으나,
+**Nano Banana 2 Lite가 착장 사진에서 곧바로 고스트컷을 만들어낸다.** 훨씬 싸고 빠르고 결과도 좋다.
+
+**② `ImageRemoveAlpha+` 가 반드시 필요하다.**
+Nano Banana 출력을 BiRefNet에 직접 연결하면 **BiRefNet이 실행 중 실패한다.**
+채널 수(RGBA vs RGB)가 맞지 않기 때문. 사이에 `ImageRemoveAlpha+`(comfyui_essentials)를 넣어야 한다.
+
+---
+
+## 조정 가능한 값
+
+| 무엇 | 어디 | 어떻게 |
 |---|---|---|
-| `model` | `gpt-image-2` | `gpt-image-1.5` / `gpt-image-1` 선택 가능 |
-| `model.size` | `1024x1024` | |
-| `model.background` | `transparent` | 고스트컷이므로 투명 |
-| `model.quality` | `medium` | low / high 선택 가능. **비용·시간에 직결** |
-| `model.images.image_1` | 노드 2의 누끼 | 참조는 최대 16장까지 가능 |
-| `n` | 1 | 후보를 여러 개 뽑으려면 2~4 |
+| 결과가 원본과 다름 | 노드 7 `seed` | 다른 값으로 재생성 |
+| 상의 말고 다른 아이템 | 노드 7 `prompt` | `top` → `pants` / `skirt` / `dress` / `jacket` |
+| 경계에 배경 잔여물 | 노드 8 `mask_offset` | `-1` ~ `-2` |
+| 니트·퍼 경계가 거침 | 노드 8 `model` | `BiRefNet-HR` → `BiRefNet-HR-matting` |
+| 흰 테두리(할로) | 노드 8 `refine_foreground` | `true` 유지 |
+| 해상도 | 노드 7 `model.resolution` | `1K` → `2K` (비용 증가) |
 
 ---
 
-## 두 결과의 성격 구분 (시연에서 반드시 언급)
+## 시연에서 반드시 밝힐 한계
 
-| 출력 | 성격 |
-|---|---|
-| `top_cutout` | **원본 픽셀 보존.** 생성 없음. 가려졌던 부분은 비어 있음 |
-| `top_ghostcut` | **AI 추정.** 가려진 부분을 복원한 것이 아니라 그럴듯하게 만들어낸 것 |
-
-상품 등록용으로 쓰려면 고스트컷은 실제 상품 자료와 대조 검수가 필요하다.
-
----
-
-## 실행 전 준비
-
-1. 입력 이미지를 Comfy Cloud에 업로드
-2. `LoadImage`의 파일명을 실제 업로드된 이름으로 교체 (현재 `model_01.png`는 자리표시자)
-3. 배치로 돌릴 경우 파일명 목록을 준비
-
----
-
-## 한계 (솔직히 밝힐 것)
-
-- 가려진 뒷면·봉제·안감은 **정확한 복원이 아니라 추정**
-- 니트·레이스·프린지처럼 경계가 복잡한 소재는 마스크 품질 저하
-- 옷과 배경 색이 비슷하면 분할 실패 가능
-- 로고·프린트가 가려진 상품은 첫 시연 대상으로 부적합
+- 모델의 팔·머리카락·가방에 가려졌던 부분은 **원본에 존재하지 않는다.**
+- 보이지 않던 뒷면과 내부 구조는 **AI의 추정**이지 복원이 아니다.
+- 패턴·봉제선·로고·소재·색상이 실제 상품과 달라질 수 있다.
+- 실제 상품 단독컷이 있다면 정답 비교 자료로 쓰는 것이 좋다.
+- 상품 등록 및 납품 전에는 디자이너 검수가 필수다.
