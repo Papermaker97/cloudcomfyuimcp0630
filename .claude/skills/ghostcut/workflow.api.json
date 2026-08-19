@@ -1,0 +1,51 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "51093047632422169dffc79215b5c4cdcda71850619dcbb9fac275519abc0ebd.png" }
+  },
+
+  "7": {
+    "class_type": "GeminiNanoBanana2V2",
+    "inputs": {
+      "prompt": "commercial e-commerce product-only garment image of the SAME top shown in the reference image. Preserve the visible color, material, knit texture, seams, cuffs, hem and neckline exactly as in the reference. Reconstruct only the areas that were occluded by the model's arms, hair and body. Front-facing, centered, symmetrical and physically plausible sleeves and neckline, as if worn by an invisible body (ghost mannequin). Clean even studio lighting, no person, no skin, no hair, no hands, no mannequin, no hanger, no background props, no text, no watermark.",
+      "model": "Nano Banana 2 Lite",
+      "model.aspect_ratio": "auto",
+      "model.resolution": "1K",
+      "model.thinking_level": "MINIMAL",
+      "model.images.image_1": ["1", 0],
+      "seed": 843423400485909,
+      "response_modalities": "IMAGE",
+      "temperature": 1,
+      "top_p": 0.95
+    }
+  },
+
+  "12": {
+    "class_type": "ImageRemoveAlpha+",
+    "inputs": { "image": ["7", 0] }
+  },
+
+  "8": {
+    "class_type": "BiRefNetRMBG",
+    "inputs": {
+      "image": ["12", 0],
+      "model": "BiRefNet-HR",
+      "mask_blur": 0,
+      "mask_offset": 0,
+      "invert_output": false,
+      "refine_foreground": true,
+      "background": "Alpha",
+      "background_color": "#222222"
+    }
+  },
+
+  "10": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["8", 0], "filename_prefix": "ghostcut_alpha" }
+  },
+
+  "11": {
+    "class_type": "PreviewImage",
+    "inputs": { "images": ["7", 0] }
+  }
+}
