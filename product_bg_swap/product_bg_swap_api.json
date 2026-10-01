@@ -1,0 +1,657 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "product.png"
+    }
+  },
+  "2": {
+    "class_type": "LoadImageMask",
+    "inputs": {
+      "image": "product.png",
+      "channel": "red"
+    }
+  },
+  "3": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": false
+    }
+  },
+  "4": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": false
+    }
+  },
+  "5": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.6
+    }
+  },
+  "6": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.5
+    }
+  },
+  "7": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.62
+    }
+  },
+  "8": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 0
+    }
+  },
+  "9": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1.0
+    }
+  },
+  "10": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 1024
+    }
+  },
+  "11": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 1024
+    }
+  },
+  "20": {
+    "class_type": "BiRefNetRMBG",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "model": "BiRefNet-HR-matting",
+      "mask_blur": 0,
+      "mask_offset": 0,
+      "invert_output": false,
+      "refine_foreground": false,
+      "background": "Alpha",
+      "background_color": "#222222"
+    }
+  },
+  "21": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "3",
+        0
+      ],
+      "on_false": [
+        "20",
+        1
+      ],
+      "on_true": [
+        "2",
+        0
+      ]
+    }
+  },
+  "22": {
+    "class_type": "GrowMaskWithBlur",
+    "inputs": {
+      "mask": [
+        "21",
+        0
+      ],
+      "expand": [
+        "8",
+        0
+      ],
+      "incremental_expandrate": 0.0,
+      "tapered_corners": true,
+      "flip_input": false,
+      "blur_radius": [
+        "9",
+        0
+      ],
+      "lerp_alpha": 1.0,
+      "decay_factor": 1.0,
+      "fill_holes": true
+    }
+  },
+  "23": {
+    "class_type": "InvertMask",
+    "inputs": {
+      "mask": [
+        "22",
+        0
+      ]
+    }
+  },
+  "24": {
+    "class_type": "JoinImageWithAlpha",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "alpha": [
+        "23",
+        0
+      ]
+    }
+  },
+  "25": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "22",
+        0
+      ]
+    }
+  },
+  "26": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "24",
+        0
+      ],
+      "filename_prefix": "bg_swap/product_cutout"
+    }
+  },
+  "27": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "25",
+        0
+      ],
+      "filename_prefix": "bg_swap/product_mask"
+    }
+  },
+  "30": {
+    "class_type": "MaskBoundingBox+",
+    "inputs": {
+      "mask": [
+        "22",
+        0
+      ],
+      "padding": 0,
+      "blur": 0,
+      "image_optional": [
+        "1",
+        0
+      ]
+    }
+  },
+  "31": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "10",
+        0
+      ],
+      "b": [
+        "5",
+        0
+      ],
+      "value": "a*b"
+    }
+  },
+  "32": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "11",
+        0
+      ],
+      "b": [
+        "5",
+        0
+      ],
+      "value": "a*b"
+    }
+  },
+  "33": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "31",
+        1
+      ],
+      "b": [
+        "30",
+        4
+      ],
+      "value": "a/b"
+    }
+  },
+  "34": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "32",
+        1
+      ],
+      "b": [
+        "30",
+        5
+      ],
+      "value": "a/b"
+    }
+  },
+  "35": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "33",
+        1
+      ],
+      "b": [
+        "34",
+        1
+      ],
+      "value": "min(a,b)"
+    }
+  },
+  "36": {
+    "class_type": "ImageScaleBy",
+    "inputs": {
+      "image": [
+        "30",
+        1
+      ],
+      "upscale_method": "lanczos",
+      "scale_by": [
+        "35",
+        1
+      ]
+    }
+  },
+  "37": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "30",
+        0
+      ]
+    }
+  },
+  "38": {
+    "class_type": "ImageScaleBy",
+    "inputs": {
+      "image": [
+        "37",
+        0
+      ],
+      "upscale_method": "bilinear",
+      "scale_by": [
+        "35",
+        1
+      ]
+    }
+  },
+  "39": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": [
+        "38",
+        0
+      ],
+      "channel": "red"
+    }
+  },
+  "40": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "36",
+        0
+      ]
+    }
+  },
+  "41": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "10",
+        0
+      ],
+      "b": [
+        "40",
+        0
+      ],
+      "value": "a-b"
+    }
+  },
+  "42": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "41",
+        0
+      ],
+      "b": [
+        "6",
+        0
+      ],
+      "value": "max(0, a*b)"
+    }
+  },
+  "43": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "11",
+        0
+      ],
+      "b": [
+        "40",
+        1
+      ],
+      "value": "a-b"
+    }
+  },
+  "44": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "43",
+        0
+      ],
+      "b": [
+        "7",
+        0
+      ],
+      "value": "max(0, a*b)"
+    }
+  },
+  "45": {
+    "class_type": "EmptyImage",
+    "inputs": {
+      "width": [
+        "10",
+        0
+      ],
+      "height": [
+        "11",
+        0
+      ],
+      "batch_size": 1,
+      "color": 8421504
+    }
+  },
+  "46": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": [
+        "45",
+        0
+      ],
+      "source": [
+        "36",
+        0
+      ],
+      "x": [
+        "42",
+        0
+      ],
+      "y": [
+        "44",
+        0
+      ],
+      "resize_source": false,
+      "mask": [
+        "39",
+        0
+      ]
+    }
+  },
+  "47": {
+    "class_type": "SolidMask",
+    "inputs": {
+      "value": 0.0,
+      "width": [
+        "10",
+        0
+      ],
+      "height": [
+        "11",
+        0
+      ]
+    }
+  },
+  "48": {
+    "class_type": "MaskComposite",
+    "inputs": {
+      "destination": [
+        "47",
+        0
+      ],
+      "source": [
+        "39",
+        0
+      ],
+      "x": [
+        "42",
+        0
+      ],
+      "y": [
+        "44",
+        0
+      ],
+      "operation": "add"
+    }
+  },
+  "50": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux.1-fill-dev-OneReward-transformer_fp8.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "51": {
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp16.safetensors",
+      "type": "flux",
+      "device": "default"
+    }
+  },
+  "52": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
+  "53": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "clean bright professional studio product photography backdrop, seamless white to very light gray paper sweep, soft diffused even lighting from large softboxes, the object stands on the smooth floor of the sweep with a soft subtle contact shadow, minimal, no props, no text, no logo, photorealistic, high detail"
+    }
+  },
+  "54": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "calm lifestyle product photo, the object rests on a light natural oak wooden tabletop, softly blurred cozy minimal interior in the background with neutral beige and warm white tones and a small green plant, gentle natural window light from the side, shallow depth of field, soft contact shadow, no text, no logo, photorealistic"
+    }
+  },
+  "55": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "4",
+        0
+      ],
+      "on_false": [
+        "53",
+        0
+      ],
+      "on_true": [
+        "54",
+        0
+      ]
+    }
+  },
+  "56": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "55",
+        0
+      ],
+      "clip": [
+        "51",
+        0
+      ]
+    }
+  },
+  "57": {
+    "class_type": "FluxGuidance",
+    "inputs": {
+      "guidance": 30.0,
+      "conditioning": [
+        "56",
+        0
+      ]
+    }
+  },
+  "58": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "56",
+        0
+      ]
+    }
+  },
+  "59": {
+    "class_type": "ThresholdMask",
+    "inputs": {
+      "mask": [
+        "48",
+        0
+      ],
+      "value": 0.5
+    }
+  },
+  "60": {
+    "class_type": "InvertMask",
+    "inputs": {
+      "mask": [
+        "59",
+        0
+      ]
+    }
+  },
+  "61": {
+    "class_type": "InpaintModelConditioning",
+    "inputs": {
+      "positive": [
+        "57",
+        0
+      ],
+      "negative": [
+        "58",
+        0
+      ],
+      "vae": [
+        "52",
+        0
+      ],
+      "pixels": [
+        "46",
+        0
+      ],
+      "mask": [
+        "60",
+        0
+      ],
+      "noise_mask": true
+    }
+  },
+  "62": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "50",
+        0
+      ],
+      "positive": [
+        "61",
+        0
+      ],
+      "negative": [
+        "61",
+        1
+      ],
+      "latent_image": [
+        "61",
+        2
+      ],
+      "seed": 20261001,
+      "steps": 24,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0
+    }
+  },
+  "63": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "62",
+        0
+      ],
+      "vae": [
+        "52",
+        0
+      ]
+    }
+  },
+  "64": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "63",
+        0
+      ]
+    }
+  },
+  "70": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": [
+        "63",
+        0
+      ],
+      "source": [
+        "46",
+        0
+      ],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": [
+        "48",
+        0
+      ]
+    }
+  },
+  "71": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "70",
+        0
+      ],
+      "filename_prefix": "bg_swap/result"
+    }
+  }
+}
