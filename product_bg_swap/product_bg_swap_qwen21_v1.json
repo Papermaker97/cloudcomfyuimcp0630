@@ -1,0 +1,890 @@
+{
+ "config": {},
+ "extra": {
+  "comfy_mcp": {
+   "description": "비교용: Qwen Image 2.1 편집으로 제품 사진 배경 교체 (제품까지 재생성됨, 원본 재합성 없음). 외부 유료 API 노드 없음.",
+   "name": "product-bg-swap-qwen21-v1"
+  },
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    120
+   ]
+  }
+ },
+ "groups": [
+  {
+   "title": "0. 사용자 입력·설정 — 입력 이미지 / 배경 스타일",
+   "bounding": [
+    -20,
+    -60,
+    720,
+    760
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "1. 배경 교체 지시문 — 스타일별 편집 프롬프트 (제품 유지 문구 포함)",
+   "bounding": [
+    760,
+    -60,
+    820,
+    760
+   ],
+   "color": "#8A8",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "2. Qwen Image 2.1 편집 생성 — 공식 템플릿(image_qwen_image_2_1_image_edit) 기본값 재현",
+   "bounding": [
+    1640,
+    -60,
+    1160,
+    760
+   ],
+   "color": "#a1309b",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "3. 결과 저장 — output/bg_swap_qwen21/result",
+   "bounding": [
+    2860,
+    -60,
+    760,
+    500
+   ],
+   "color": "#444",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
+ "id": "d10497ef-d8a9-4b34-ab40-c5d51fb0d18a",
+ "last_link_id": 15,
+ "last_node_id": 107,
+ "links": [
+  [
+   1,
+   4,
+   0,
+   55,
+   0,
+   "BOOLEAN"
+  ],
+  [
+   2,
+   53,
+   0,
+   55,
+   1,
+   "STRING"
+  ],
+  [
+   3,
+   54,
+   0,
+   55,
+   2,
+   "STRING"
+  ],
+  [
+   4,
+   51,
+   0,
+   56,
+   0,
+   "CLIP"
+  ],
+  [
+   5,
+   55,
+   0,
+   56,
+   1,
+   "COMFY_MATCHTYPE_V3"
+  ],
+  [
+   6,
+   52,
+   0,
+   56,
+   3,
+   "VAE"
+  ],
+  [
+   7,
+   1,
+   0,
+   56,
+   4,
+   "IMAGE"
+  ],
+  [
+   8,
+   50,
+   0,
+   57,
+   0,
+   "MODEL"
+  ],
+  [
+   9,
+   57,
+   0,
+   62,
+   0,
+   "MODEL"
+  ],
+  [
+   10,
+   56,
+   0,
+   62,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   11,
+   56,
+   1,
+   62,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   12,
+   56,
+   2,
+   62,
+   3,
+   "LATENT"
+  ],
+  [
+   13,
+   62,
+   0,
+   63,
+   0,
+   "LATENT"
+  ],
+  [
+   14,
+   52,
+   0,
+   63,
+   1,
+   "VAE"
+  ],
+  [
+   15,
+   63,
+   0,
+   71,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "nodes": [
+  {
+   "flags": {},
+   "id": 1,
+   "inputs": [],
+   "mode": 0,
+   "order": 0,
+   "outputs": [
+    {
+     "links": [
+      7
+     ],
+     "name": "IMAGE",
+     "slot_index": 0,
+     "type": "IMAGE"
+    },
+    {
+     "links": null,
+     "name": "MASK",
+     "slot_index": 1,
+     "type": "MASK"
+    }
+   ],
+   "pos": [
+    0,
+    190
+   ],
+   "properties": {},
+   "size": [
+    320,
+    320
+   ],
+   "type": "LoadImage",
+   "widgets_values": [
+    "product.png"
+   ]
+  },
+  {
+   "flags": {},
+   "id": 4,
+   "inputs": [],
+   "mode": 0,
+   "order": 1,
+   "outputs": [
+    {
+     "links": [
+      1
+     ],
+     "name": "BOOLEAN",
+     "slot_index": 0,
+     "type": "BOOLEAN"
+    }
+   ],
+   "pos": [
+    0,
+    530
+   ],
+   "properties": {},
+   "size": [
+    320,
+    90
+   ],
+   "type": "PrimitiveBoolean",
+   "widgets_values": [
+    false
+   ]
+  },
+  {
+   "flags": {},
+   "id": 50,
+   "inputs": [],
+   "mode": 0,
+   "order": 2,
+   "outputs": [
+    {
+     "links": [
+      8
+     ],
+     "name": "MODEL",
+     "slot_index": 0,
+     "type": "MODEL"
+    }
+   ],
+   "pos": [
+    1660,
+    0
+   ],
+   "properties": {},
+   "size": [
+    340,
+    90
+   ],
+   "type": "UNETLoader",
+   "widgets_values": [
+    "qwen_image_2.1_int8_convrot.safetensors",
+    "default"
+   ]
+  },
+  {
+   "flags": {},
+   "id": 51,
+   "inputs": [],
+   "mode": 0,
+   "order": 3,
+   "outputs": [
+    {
+     "links": [
+      4
+     ],
+     "name": "CLIP",
+     "slot_index": 0,
+     "type": "CLIP"
+    }
+   ],
+   "pos": [
+    1660,
+    240
+   ],
+   "properties": {},
+   "size": [
+    340,
+    110
+   ],
+   "type": "CLIPLoader",
+   "widgets_values": [
+    "qwen3vl_8b_int8_convrot.safetensors",
+    "qwen_image",
+    "default"
+   ]
+  },
+  {
+   "flags": {},
+   "id": 52,
+   "inputs": [],
+   "mode": 0,
+   "order": 4,
+   "outputs": [
+    {
+     "links": [
+      6,
+      14
+     ],
+     "name": "VAE",
+     "slot_index": 0,
+     "type": "VAE"
+    }
+   ],
+   "pos": [
+    1660,
+    370
+   ],
+   "properties": {},
+   "size": [
+    340,
+    70
+   ],
+   "type": "VAELoader",
+   "widgets_values": [
+    "qwen_image_2.1_vae_bf16.safetensors"
+   ]
+  },
+  {
+   "flags": {},
+   "id": 53,
+   "inputs": [],
+   "mode": 0,
+   "order": 5,
+   "outputs": [
+    {
+     "links": [
+      2
+     ],
+     "name": "STRING",
+     "slot_index": 0,
+     "type": "STRING"
+    }
+   ],
+   "pos": [
+    780,
+    0
+   ],
+   "properties": {},
+   "size": [
+    400,
+    220
+   ],
+   "type": "PrimitiveStringMultiline",
+   "widgets_values": [
+    "Replace only the background with a clean bright professional studio backdrop: seamless white to very light gray paper sweep, soft diffused even softbox lighting, a soft natural contact shadow under the product. Keep the product itself unchanged: same shape, proportions, colors, materials, logo, printed text and small details, same position and size in the frame. Photorealistic e-commerce product photo."
+   ]
+  },
+  {
+   "flags": {},
+   "id": 54,
+   "inputs": [],
+   "mode": 0,
+   "order": 6,
+   "outputs": [
+    {
+     "links": [
+      3
+     ],
+     "name": "STRING",
+     "slot_index": 0,
+     "type": "STRING"
+    }
+   ],
+   "pos": [
+    780,
+    240
+   ],
+   "properties": {},
+   "size": [
+    400,
+    220
+   ],
+   "type": "PrimitiveStringMultiline",
+   "widgets_values": [
+    "Replace only the background with a calm lifestyle scene: the product rests on a light natural oak wooden tabletop, softly blurred cozy minimal interior with neutral beige and warm white tones and a small green plant, gentle natural window light from the side, shallow depth of field, soft contact shadow. Keep the product itself unchanged: same shape, proportions, colors, materials, logo, printed text and small details, same position and size in the frame. Photorealistic e-commerce product photo."
+   ]
+  },
+  {
+   "flags": {},
+   "id": 55,
+   "inputs": [
+    {
+     "link": 1,
+     "name": "switch",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "switch"
+     }
+    },
+    {
+     "link": 2,
+     "name": "on_false",
+     "type": "COMFY_MATCHTYPE_V3"
+    },
+    {
+     "link": 3,
+     "name": "on_true",
+     "type": "COMFY_MATCHTYPE_V3"
+    }
+   ],
+   "mode": 0,
+   "order": 7,
+   "outputs": [
+    {
+     "links": [
+      5
+     ],
+     "name": "output",
+     "slot_index": 0,
+     "type": "COMFY_MATCHTYPE_V3"
+    }
+   ],
+   "pos": [
+    1220,
+    0
+   ],
+   "properties": {},
+   "size": [
+    300,
+    110
+   ],
+   "type": "ComfySwitchNode",
+   "widgets_values": [
+    false
+   ]
+  },
+  {
+   "flags": {},
+   "id": 56,
+   "inputs": [
+    {
+     "link": 4,
+     "name": "clip",
+     "type": "CLIP"
+    },
+    {
+     "link": 5,
+     "name": "prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "prompt"
+     }
+    },
+    {
+     "link": null,
+     "name": "images",
+     "type": "COMFY_AUTOGROW_V3"
+    },
+    {
+     "link": 6,
+     "name": "vae",
+     "type": "VAE"
+    },
+    {
+     "link": 7,
+     "name": "images.image_1",
+     "type": "*"
+    }
+   ],
+   "mode": 0,
+   "order": 8,
+   "outputs": [
+    {
+     "links": [
+      10
+     ],
+     "name": "positive",
+     "slot_index": 0,
+     "type": "CONDITIONING"
+    },
+    {
+     "links": [
+      11
+     ],
+     "name": "negative",
+     "slot_index": 1,
+     "type": "CONDITIONING"
+    },
+    {
+     "links": [
+      12
+     ],
+     "name": "latent",
+     "slot_index": 2,
+     "type": "LATENT"
+    }
+   ],
+   "pos": [
+    2040,
+    0
+   ],
+   "properties": {},
+   "size": [
+    340,
+    200
+   ],
+   "type": "TextEncodeQwenImage21",
+   "widgets_values": [
+    "",
+    "",
+    1024
+   ]
+  },
+  {
+   "flags": {},
+   "id": 57,
+   "inputs": [
+    {
+     "link": 8,
+     "name": "model",
+     "type": "MODEL"
+    }
+   ],
+   "mode": 0,
+   "order": 9,
+   "outputs": [
+    {
+     "links": [
+      9
+     ],
+     "name": "MODEL",
+     "slot_index": 0,
+     "type": "MODEL"
+    }
+   ],
+   "pos": [
+    1660,
+    110
+   ],
+   "properties": {},
+   "size": [
+    340,
+    110
+   ],
+   "type": "QwenImage21Cache",
+   "widgets_values": [
+    "auto",
+    "default"
+   ]
+  },
+  {
+   "flags": {},
+   "id": 62,
+   "inputs": [
+    {
+     "link": 9,
+     "name": "model",
+     "type": "MODEL"
+    },
+    {
+     "link": 10,
+     "name": "positive",
+     "type": "CONDITIONING"
+    },
+    {
+     "link": 11,
+     "name": "negative",
+     "type": "CONDITIONING"
+    },
+    {
+     "link": 12,
+     "name": "latent_image",
+     "type": "LATENT"
+    }
+   ],
+   "mode": 0,
+   "order": 10,
+   "outputs": [
+    {
+     "links": [
+      13
+     ],
+     "name": "LATENT",
+     "slot_index": 0,
+     "type": "LATENT"
+    }
+   ],
+   "pos": [
+    2420,
+    0
+   ],
+   "properties": {},
+   "size": [
+    340,
+    270
+   ],
+   "type": "KSampler",
+   "widgets_values": [
+    20261001,
+    "fixed",
+    25,
+    1,
+    "euler",
+    "simple",
+    1
+   ]
+  },
+  {
+   "flags": {},
+   "id": 63,
+   "inputs": [
+    {
+     "link": 13,
+     "name": "samples",
+     "type": "LATENT"
+    },
+    {
+     "link": 14,
+     "name": "vae",
+     "type": "VAE"
+    }
+   ],
+   "mode": 0,
+   "order": 11,
+   "outputs": [
+    {
+     "links": [
+      15
+     ],
+     "name": "IMAGE",
+     "slot_index": 0,
+     "type": "IMAGE"
+    }
+   ],
+   "pos": [
+    2880,
+    0
+   ],
+   "properties": {},
+   "size": [
+    300,
+    60
+   ],
+   "type": "VAEDecode"
+  },
+  {
+   "flags": {},
+   "id": 71,
+   "inputs": [
+    {
+     "link": 15,
+     "name": "images",
+     "type": "IMAGE"
+    }
+   ],
+   "mode": 0,
+   "order": 12,
+   "outputs": [
+    {
+     "links": null,
+     "name": "images",
+     "slot_index": 0,
+     "type": "IMAGE"
+    }
+   ],
+   "pos": [
+    3220,
+    0
+   ],
+   "properties": {},
+   "size": [
+    380,
+    380
+   ],
+   "type": "SaveImage",
+   "widgets_values": [
+    "bg_swap_qwen21/result"
+   ]
+  },
+  {
+   "id": 100,
+   "type": "Note",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    660,
+    170
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "【비교용 Qwen Image 2.1 버전】\n제품까지 포함해 이미지 전체를 Qwen Image 2.1 편집 모델이 다시 생성합니다 (원본 재합성 없음).\n같은 입력·같은 스타일로 product-bg-swap-preserve-v1 과 결과를 비교하세요.\n외부 유료 API 노드 없음 (Comfy Cloud GPU에서 오픈 모델 실행)."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 101,
+   "type": "Note",
+   "pos": [
+    340,
+    190
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "[입력] 제품 사진 1장. 출력은 입력 비율을 유지하며 약 1024×1024 면적(32의 배수)으로 생성됨."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 102,
+   "type": "Note",
+   "pos": [
+    340,
+    530
+   ],
+   "size": [
+    320,
+    110
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "[배경 스타일] false = 밝은 스튜디오 / true = 차분한 라이프스타일 (v1과 동일한 의미)"
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 103,
+   "type": "Note",
+   "pos": [
+    1220,
+    140
+   ],
+   "size": [
+    300,
+    200
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "If/Else Switch: false → 위(스튜디오), true → 아래(라이프스타일).\n편집 모델이라 '배경만 바꾸고 제품은 그대로'라는 지시를 문장으로 줍니다. 강제력은 없으므로 로고·글자 변형 여부는 결과로 확인해야 함."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 104,
+   "type": "Note",
+   "pos": [
+    780,
+    480
+   ],
+   "size": [
+    400,
+    80
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "프롬프트 직접 수정은 관리자용. v1(Flux Fill)과 같은 장면 묘사를 쓰도록 맞춤."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 105,
+   "type": "Note",
+   "pos": [
+    1660,
+    460
+   ],
+   "size": [
+    720,
+    140
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "모델: qwen_image_2.1_int8_convrot / 텍스트 인코더: qwen3vl_8b_int8_convrot / VAE: qwen_image_2.1_vae_bf16 (모두 Comfy Cloud 기존 보유).\nCLIPLoader type=qwen_image 는 추정값 — 실행 시 오류가 나면 이 값부터 확인."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 106,
+   "type": "Note",
+   "pos": [
+    2420,
+    290
+   ],
+   "size": [
+    340,
+    170
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "seed 고정(20261001), 25 steps, cfg 1, euler/simple — 공식 템플릿 기본값. cfg 1이라 negative 프롬프트는 효과 없음.\n공식 템플릿의 프롬프트 확장(PE) 옵션은 생략."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 107,
+   "type": "Note",
+   "pos": [
+    2880,
+    100
+   ],
+   "size": [
+    300,
+    110
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "result 하나만 저장 (제품이 재생성되므로 v1의 누끼·마스크 출력은 없음)."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  }
+ ],
+ "version": 0.4
+}

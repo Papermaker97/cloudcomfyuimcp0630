@@ -110,3 +110,47 @@ Comfy Cloud 저장본: `product-bg-swap-preserve-v1` (workflow_id `49f5da7e-0993
 | 드라이 런 횟수 | 1회 (1회 만에 통과, 재시도 0) |
 | 실제 실행 | 0회 |
 | 사용자 개입 (마스크 수정·설정 변경) | 없음 |
+
+---
+
+# 비교용: Qwen Image 2.1 버전 (`product_bg_swap_qwen21_v1.json`)
+
+> **상태: 구성 + 드라이 런 완료 / 실제 실행 전.** 제품까지 다시 생성하는 방식입니다. 사용자가 비교 목적으로 허용했습니다.
+
+| 파일 | 내용 |
+|---|---|
+| `product_bg_swap_qwen21_v1.json` | 편집 가능한 ComfyUI 워크플로우 (그룹 4개 + 노트 8개) |
+| `product_bg_swap_qwen21_api.json` | API 포맷 |
+| `build_api_qwen21.py`, `build_graph_qwen21.py`, `_server_graph_qwen21.json` | 생성 스크립트와 그 입력 |
+
+Comfy Cloud 저장본: `product-bg-swap-qwen21-v1` (workflow_id `147e9db0-2ca8-4b7a-88fc-141992510166`, v2)
+→ https://cloud.comfy.org/#147e9db0-2ca8-4b7a-88fc-141992510166
+
+**흐름:** 제품 사진 → 스타일별 편집 지시문(v1과 같은 장면 묘사 + "제품은 그대로 유지" 문구) → `TextEncodeQwenImage21` → KSampler → 저장
+
+**조절 항목:** 입력 이미지와 배경 스타일(Boolean, v1과 같은 의미)뿐입니다. 크기·위치·마스크 조절은 없습니다.
+
+**출력:** `bg_swap_qwen21/result` 하나. 입력 비율을 유지하며 약 1024² 면적으로 생성합니다.
+
+**모델** (Comfy Cloud 기존 보유, 추가 설치 없음, 유료 API 없음)
+- `qwen_image_2.1_int8_convrot.safetensors` (UNETLoader)
+- `qwen3vl_8b_int8_convrot.safetensors` (CLIPLoader)
+- `qwen_image_2.1_vae_bf16.safetensors` (VAELoader)
+
+**노드:** 모두 core입니다. LoadImage, PrimitiveBoolean, PrimitiveStringMultiline, ComfySwitchNode, UNETLoader, QwenImage21Cache, CLIPLoader, VAELoader, TextEncodeQwenImage21, KSampler, VAEDecode, SaveImage
+
+**공식 템플릿과의 차이**
+- `image_qwen_image_2_1_image_edit`의 기본값(25 steps, cfg 1, euler/simple, 같은 모델 파일)을 core 노드로 다시 구성했습니다.
+- 템플릿 원본 JSON은 이 세션의 네트워크 정책 때문에 내려받지 못했습니다.
+- 템플릿의 프롬프트 확장(PE, `qwen3.5_9b_..._pe_i2i`) 옵션은 생략했습니다.
+
+| 항목 | 결과 |
+|---|---|
+| 노드 존재 / 링크 / 필수 입력 (dry_run) | **통과** (`status: validated`) |
+| 모델 파일명 경고 3건 | 드라이 런용 번들 노드 목록이 오래돼서 생긴 경고입니다. Comfy Cloud 모델 카탈로그(`search_models`)에서는 세 파일 모두 존재를 확인했습니다 |
+| 실제 실행 / 3장×2배경 / 재현성 / 로고·글자 비교 | **미실행** |
+
+실행 전 확인이 필요한 리스크:
+- `CLIPLoader` `type=qwen_image`는 추정값입니다. 번들 목록에는 Qwen Image 2.1 전용 타입이 없습니다.
+- `ModelSamplingAuraFlow`(shift) 같은 공식 템플릿 내부 보정 노드가 있었다면 결과 품질이 템플릿과 다를 수 있습니다.
+- 편집 모델은 제품 위치·크기·로고·글자를 바꿀 수 있습니다. v1과 비교할 핵심 항목입니다.
