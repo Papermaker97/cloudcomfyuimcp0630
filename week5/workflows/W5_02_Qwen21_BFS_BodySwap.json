@@ -1,0 +1,217 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Qwen Image 2.1"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Qwen3-VL 8B"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+    },
+    "_meta": {
+      "title": "Qwen Image 2.1 VAE"
+    }
+  },
+  "4": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "lora_name": "MISSING_BFS_qwen_image_2.1_body.safetensors",
+      "strength_model": 1.0
+    },
+    "_meta": {
+      "title": "BFS Body Swap LoRA (NOT ON CLOUD - import first)"
+    }
+  },
+  "5": {
+    "class_type": "QwenImage21Cache",
+    "inputs": {
+      "model": [
+        "4",
+        0
+      ],
+      "device": "auto",
+      "dtype": "default"
+    },
+    "_meta": {
+      "title": "Qwen Image 2.1 Cache"
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "MISSING_W5_02_target_scene.png"
+    },
+    "_meta": {
+      "title": "STUDENT - image_1: target scene"
+    }
+  },
+  "11": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "MISSING_W5_02_person_ref_fullbody.png"
+    },
+    "_meta": {
+      "title": "STUDENT - image_2: person reference (full body, plain bg)"
+    }
+  },
+  "20": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "resolution": 0,
+      "prompt": "Replace the person in <image1> with the person from <image2>. Keep the pose, framing, background and lighting of <image1>.",
+      "negative_prompt": "",
+      "images.image_1": [
+        "10",
+        0
+      ],
+      "images.image_2": [
+        "11",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Edit prompt (BFS trigger text unverified)"
+    }
+  },
+  "30": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "5",
+        0
+      ],
+      "positive": [
+        "20",
+        0
+      ],
+      "negative": [
+        "20",
+        1
+      ],
+      "latent_image": [
+        "20",
+        2
+      ],
+      "seed": 42,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "31": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "30",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "40": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "31",
+        0
+      ],
+      "filename_prefix": "W5_02_BodySwap/result"
+    },
+    "_meta": {
+      "title": "Save result"
+    }
+  },
+  "41": {
+    "class_type": "ImageStitch",
+    "inputs": {
+      "image1": [
+        "10",
+        0
+      ],
+      "image2": [
+        "31",
+        0
+      ],
+      "direction": "right",
+      "match_image_size": true,
+      "spacing_width": 16,
+      "spacing_color": "white"
+    },
+    "_meta": {
+      "title": "Scene | result"
+    }
+  },
+  "42": {
+    "class_type": "ImageStitch",
+    "inputs": {
+      "image1": [
+        "41",
+        0
+      ],
+      "image2": [
+        "11",
+        0
+      ],
+      "direction": "right",
+      "match_image_size": true,
+      "spacing_width": 16,
+      "spacing_color": "white"
+    },
+    "_meta": {
+      "title": "Scene | result | reference"
+    }
+  },
+  "43": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "42",
+        0
+      ],
+      "filename_prefix": "W5_02_BodySwap/compare"
+    },
+    "_meta": {
+      "title": "Save comparison strip"
+    }
+  }
+}

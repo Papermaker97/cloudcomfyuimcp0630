@@ -1,0 +1,192 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "z_image_turbo_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Base model (Z-Image Turbo)"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b_fp8_mixed.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Text encoder"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "_meta": {
+      "title": "VAE"
+    }
+  },
+  "10": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.0
+    },
+    "_meta": {
+      "title": "STUDENT 1/2 - LoRA strength (0 = no LoRA)"
+    }
+  },
+  "11": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "lora_name": "0824_car.safetensors",
+      "strength_model": [
+        "10",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Trained LoRA (owned candidate - confirm with instructor)"
+    }
+  },
+  "12": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "11",
+        0
+      ],
+      "shift": 3
+    },
+    "_meta": {
+      "title": "ModelSamplingAuraFlow"
+    }
+  },
+  "20": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": "A silver performance coupe parked on wet asphalt at dusk, three-quarter front view, low camera. Clean bodywork with sharp panel lines and undistorted badging. Hard rim light along the roofline, cool ambient fill. Commercial automotive photography."
+    },
+    "_meta": {
+      "title": "Test prompt (fixed for every condition)"
+    }
+  },
+  "21": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "20",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Negative (zeroed, cfg 1)"
+    }
+  },
+  "22": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 1344,
+      "height": 768,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "Size (fixed)"
+    }
+  },
+  "30": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "12",
+        0
+      ],
+      "positive": [
+        "20",
+        0
+      ],
+      "negative": [
+        "21",
+        0
+      ],
+      "latent_image": [
+        "22",
+        0
+      ],
+      "seed": 42,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "res_multistep",
+      "scheduler": "simple",
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "KSampler (seed fixed)"
+    }
+  },
+  "31": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "30",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "40": {
+    "class_type": "PrimitiveString",
+    "inputs": {
+      "value": "0824car_str0.00"
+    },
+    "_meta": {
+      "title": "STUDENT 2/2 - condition label (match strength)"
+    }
+  },
+  "41": {
+    "class_type": "StringConcatenate",
+    "inputs": {
+      "string_a": "W5_01_LoRA/",
+      "string_b": [
+        "40",
+        0
+      ],
+      "delimiter": ""
+    },
+    "_meta": {
+      "title": "Output name"
+    }
+  },
+  "42": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "31",
+        0
+      ],
+      "filename_prefix": [
+        "41",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Save (name = LoRA + strength)"
+    }
+  }
+}
