@@ -145,3 +145,13 @@ Cloud 캔버스에서 여는 주소: `https://cloud.comfy.org/#<workflow_id>`. �
 | 6 | ✅ | 해당 없음 (현재 환경 불가) | — | — | — |
 
 사전 결과를 미리 만들어 둔 시연과 라이브 실행은 아직 구분할 대상이 없습니다(실행 0회). 수업용 승인은 강사가 결과를 보고 결정합니다.
+
+## 10. 추가: W5_07 Ideogram 4.5 캐릭터 시트 (2026-10-02)
+
+- 기반: 공식 템플릿 `api_ideogram_v4_5_image_edit` (Comfy-Org/workflow_templates). bbox 프롬프트 체인을 빼고 고정 텍스트 프롬프트로 교체.
+- 구조: `LoadImage`(image_1 = 빈 캐릭터 시트 레이아웃) + `LoadImage`(image_2 = 인물) + `PrimitiveStringMultiline`(프롬프트) → `IdeogramEditApi`(ideogram-4.5, size `source`, quality medium, seed 42 고정) → `SaveImageAdvanced` + `ImageCompare`(레이아웃 vs 결과).
+- 파일: `workflows/W5_07_Ideogram45_CharacterSheet.json` (save 형식), 레이아웃 에셋 `assets/W5_charsheet_layout_blank.png` (참고 이미지 상단을 잘라 3배 확대, 2088×1188).
+- Cloud: `W5_07_Ideogram45_CharacterSheet` / `219566b5-94c9-497f-aa74-eb88a8e675cd`.
+- 검증: `IdeogramEditApi`가 MCP 번들 카탈로그에 없어 dry run 불가. 링크 정합성만 로컬 스크립트로 확인. **유료 API, 가격 확인 불가. 실행 0회.**
+- 누락: 레이아웃 PNG의 Cloud 업로드, 인물 사진(`MISSING_W5_07_person_input.png`).
+- 한계: BACK과 PROFILE은 사진 한 장에서 모델이 추정한 것이며, 라벨·눈금 글자가 흐트러질 수 있음.

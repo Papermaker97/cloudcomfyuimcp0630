@@ -1,0 +1,366 @@
+{
+  "id": "b9a4879b-6e6a-4acb-a0c0-b4f8375f608c",
+  "revision": 0,
+  "last_node_id": 11,
+  "last_link_id": 25,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "IdeogramEditApi",
+      "pos": [
+        1240,
+        630
+      ],
+      "size": [
+        400,
+        320
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "link": 22
+        },
+        {
+          "name": "model.images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 24
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": 25
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "IdeogramEditApi"
+      },
+      "widgets_values": [
+        "ideogram-4.5",
+        "",
+        "source",
+        2048,
+        2048,
+        "medium",
+        42,
+        "fixed",
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "model": "ideogram-4.5",
+        "model.prompt": "",
+        "model.size": "source",
+        "model.width": 2048,
+        "model.height": 2048,
+        "model.quality": "medium",
+        "model.seed": 42,
+        "control_after_generate#1": "fixed",
+        "control_after_generate": "fixed"
+      },
+      "color": "#432",
+      "bgcolor": "#653",
+      "title": "Ideogram 4.5 Image Edit (PAID API - run only after approval)"
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [
+        -670,
+        630
+      ],
+      "size": [
+        390,
+        720
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            22,
+            23
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "W5_charsheet_layout_blank.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "W5_charsheet_layout_blank.png",
+        "upload": "image"
+      },
+      "title": "image_1 - blank character sheet layout (fixed)"
+    },
+    {
+      "id": 7,
+      "type": "SaveImageAdvanced",
+      "pos": [
+        1680,
+        630
+      ],
+      "size": [
+        440,
+        520
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "W5_07_CharacterSheet/result",
+        "png",
+        "8-bit",
+        "sRGB"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "W5_07_CharacterSheet/result",
+        "format": "png",
+        "format.bit_depth": "8-bit",
+        "format.input_color_space": "sRGB"
+      }
+    },
+    {
+      "id": 8,
+      "type": "ImageCompare",
+      "pos": [
+        2170,
+        630
+      ],
+      "size": [
+        540,
+        530
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_a",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 23
+        },
+        {
+          "name": "image_b",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 8
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ImageCompare"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 9,
+      "type": "LoadImage",
+      "pos": [
+        -670,
+        1420
+      ],
+      "size": [
+        390,
+        520
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            24
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "MISSING_W5_07_person_input.png",
+        "image"
+      ],
+      "title": "STUDENT - image_2: person (full body, front, plain background)",
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 10,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        -190,
+        630
+      ],
+      "size": [
+        700,
+        600
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Image 1 is a blank character turnaround sheet. Image 2 is a photo of a real person. Fill every grey silhouette in image 1 with that exact person from image 2, as a photographic studio character sheet.\nKeep the sheet exactly as it is: the five panels, panel borders, the header labels \"FACE CLOSE UP\", \"FRONT\", \"BACK\", \"LEFT PROFILE\", \"RIGHT PROFILE\", the height rulers and the NAME / AGE / HEIGHT / WEIGHT / GENDER fields. Do not add any other text.\nPanel 1 FACE CLOSE UP: head and shoulders, facing camera, neutral expression.\nPanel 2 FRONT: full body facing camera, standing straight, arms relaxed at the sides.\nPanel 3 BACK: full body seen from directly behind.\nPanel 4 LEFT PROFILE: full body, 90 degree side view facing left.\nPanel 5 RIGHT PROFILE: full body, 90 degree side view facing right.\nSame face, hairstyle, skin tone, body proportions, outfit and shoes in every panel, copied from image 2. Head to feet fully visible, same scale in panels 2 to 5, aligned to the height rulers. Even soft studio lighting, plain light grey panel background."
+      ],
+      "title": "Character sheet prompt (fixed)"
+    },
+    {
+      "id": 11,
+      "type": "MarkdownNote",
+      "pos": [
+        -1140,
+        960
+      ],
+      "size": [
+        420,
+        420
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## W5_07 Character sheet\n\n- **image_1** = blank turnaround layout. It is the canvas Ideogram edits, so the output keeps its size and panel layout (`size: source`).\n- **image_2** = the person. Use a full-body, front-facing photo on a plain background.\n- Students change only image_2.\n\nLimits: BACK and PROFILE views are invented by the model from one photo. Small faces, labels and ruler numbers can drift. Check every panel.\n\nPaid API node: one run per approval."
+      ],
+      "title": "READ ME",
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      8,
+      7,
+      0,
+      8,
+      1,
+      "IMAGE"
+    ],
+    [
+      23,
+      2,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      22,
+      2,
+      0,
+      1,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      1,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      9,
+      0,
+      1,
+      1,
+      "IMAGE"
+    ],
+    [
+      25,
+      10,
+      0,
+      1,
+      2,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.40362477370860816,
+      "offset": [
+        1592.986677203126,
+        169.3807937103608
+      ]
+    },
+    "frontendVersion": "1.56.0",
+    "comfy_mcp": {
+      "name": "W5_07_Ideogram45_CharacterSheet",
+      "description": "Person photo -> 5-panel turnaround character sheet with Ideogram 4.5 Image Edit."
+    }
+  },
+  "version": 0.4
+}
