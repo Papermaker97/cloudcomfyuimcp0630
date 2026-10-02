@@ -1,8 +1,8 @@
 {
   "id": "b9a4879b-6e6a-4acb-a0c0-b4f8375f608c",
   "revision": 0,
-  "last_node_id": 11,
-  "last_link_id": 25,
+  "last_node_id": 10,
+  "last_link_id": 24,
   "nodes": [
     {
       "id": 1,
@@ -28,7 +28,7 @@
           "name": "model.images.image_2",
           "shape": 7,
           "type": "IMAGE",
-          "link": 24
+          "link": null
         },
         {
           "name": "model.prompt",
@@ -36,7 +36,7 @@
           "widget": {
             "name": "model.prompt"
           },
-          "link": 25
+          "link": 24
         }
       ],
       "outputs": [
@@ -54,7 +54,7 @@
       "widgets_values": [
         "ideogram-4.5",
         "",
-        "source",
+        "(2K) 2560x1440 (16:9)",
         2048,
         2048,
         "medium",
@@ -65,7 +65,7 @@
       "widgets_values_named": {
         "model": "ideogram-4.5",
         "model.prompt": "",
-        "model.size": "source",
+        "model.size": "(2K) 2560x1440 (16:9)",
         "model.width": 2048,
         "model.height": 2048,
         "model.quality": "medium",
@@ -75,7 +75,7 @@
       },
       "color": "#432",
       "bgcolor": "#653",
-      "title": "Ideogram 4.5 Image Edit (PAID API - run only after approval)"
+      "title": "Ideogram 4.5 Edit (PAID API - run only after approval)"
     },
     {
       "id": 2,
@@ -111,14 +111,16 @@
         "Node name for S&R": "LoadImage"
       },
       "widgets_values": [
-        "W5_charsheet_layout_blank.png",
+        "MISSING_W5_07_person_input.png",
         "image"
       ],
       "widgets_values_named": {
-        "image": "W5_charsheet_layout_blank.png",
+        "image": "MISSING_W5_07_person_input.png",
         "upload": "image"
       },
-      "title": "image_1 - blank character sheet layout (fixed)"
+      "title": "STUDENT - image_1: person photo (only input)",
+      "color": "#322",
+      "bgcolor": "#533"
     },
     {
       "id": 7,
@@ -201,46 +203,6 @@
     },
     {
       "id": 9,
-      "type": "LoadImage",
-      "pos": [
-        -670,
-        1420
-      ],
-      "size": [
-        390,
-        520
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            24
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "MISSING_W5_07_person_input.png",
-        "image"
-      ],
-      "title": "STUDENT - image_2: person (full body, front, plain background)",
-      "color": "#322",
-      "bgcolor": "#533"
-    },
-    {
-      "id": 10,
       "type": "PrimitiveStringMultiline",
       "pos": [
         -190,
@@ -248,7 +210,7 @@
       ],
       "size": [
         700,
-        600
+        760
       ],
       "flags": {},
       "order": 0,
@@ -259,7 +221,7 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            25
+            24
           ]
         }
       ],
@@ -267,20 +229,20 @@
         "Node name for S&R": "PrimitiveStringMultiline"
       },
       "widgets_values": [
-        "Image 1 is a blank character turnaround sheet. Image 2 is a photo of a real person. Fill every grey silhouette in image 1 with that exact person from image 2, as a photographic studio character sheet.\nKeep the sheet exactly as it is: the five panels, panel borders, the header labels \"FACE CLOSE UP\", \"FRONT\", \"BACK\", \"LEFT PROFILE\", \"RIGHT PROFILE\", the height rulers and the NAME / AGE / HEIGHT / WEIGHT / GENDER fields. Do not add any other text.\nPanel 1 FACE CLOSE UP: head and shoulders, facing camera, neutral expression.\nPanel 2 FRONT: full body facing camera, standing straight, arms relaxed at the sides.\nPanel 3 BACK: full body seen from directly behind.\nPanel 4 LEFT PROFILE: full body, 90 degree side view facing left.\nPanel 5 RIGHT PROFILE: full body, 90 degree side view facing right.\nSame face, hairstyle, skin tone, body proportions, outfit and shoes in every panel, copied from image 2. Head to feet fully visible, same scale in panels 2 to 5, aligned to the height rulers. Even soft studio lighting, plain light grey panel background."
+        "Create a photographic character turnaround reference sheet of the exact person in @Image1.\nLayout: one wide landscape sheet with a dark brown rounded outer border on a warm greige background. Inside, a light grey sheet divided by thin vertical lines into five equal-height panels, left to right. Each panel has a small, thin, all-caps sans-serif header at the top: \"FACE CLOSE UP\", \"FRONT\", \"BACK\", \"LEFT PROFILE\", \"RIGHT PROFILE\".\nPanel 1 FACE CLOSE UP: a head-and-shoulders photo of the person facing the camera with a neutral expression, inside a framed box in the upper part of the panel. Below it, five left-aligned form lines with labels: \"NAME:\", \"AGE:\", \"HEIGHT:\", \"WEIGHT:\", \"GENDER:\", each followed by an empty underline.\nPanels 2 to 5: the same person full body, head to feet fully visible, standing straight with arms relaxed at the sides, all at the same scale and with feet on the same baseline. Panel 2 FRONT faces the camera. Panel 3 BACK is seen from directly behind. Panel 4 LEFT PROFILE is a 90 degree side view facing left. Panel 5 RIGHT PROFILE is a 90 degree side view facing right. Each of panels 2 to 5 has a thin vertical height ruler with small tick marks along its right edge.\nKeep the person identical to @Image1 in every panel: face, hairstyle, skin tone, body proportions, outfit, colours and shoes. Even soft studio lighting, plain light grey panel backgrounds, clean catalogue photography. No other text, logos or watermarks."
       ],
-      "title": "Character sheet prompt (fixed)"
+      "title": "Character sheet prompt (layout described in text)"
     },
     {
-      "id": 11,
+      "id": 10,
       "type": "MarkdownNote",
       "pos": [
         -1140,
-        960
+        630
       ],
       "size": [
         420,
-        420
+        460
       ],
       "flags": {},
       "order": 0,
@@ -289,7 +251,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "## W5_07 Character sheet\n\n- **image_1** = blank turnaround layout. It is the canvas Ideogram edits, so the output keeps its size and panel layout (`size: source`).\n- **image_2** = the person. Use a full-body, front-facing photo on a plain background.\n- Students change only image_2.\n\nLimits: BACK and PROFILE views are invented by the model from one photo. Small faces, labels and ruler numbers can drift. Check every panel.\n\nPaid API node: one run per approval."
+        "## W5_07 Character sheet\n\n- Only input: **one person photo** (image_1). Full body, front-facing, plain background works best.\n- The sheet layout (5 panels, headers, form lines, rulers) comes from the prompt; no layout image is used.\n- Output size: 2560x1440 (16:9).\n- Students change only the photo.\n\nLimits: BACK and PROFILE views are invented by the model from one photo. Panel count, header text and ruler marks can come out wrong. Check every panel.\n\nPaid API node: one run per approval."
       ],
       "title": "READ ME",
       "color": "#222",
@@ -334,14 +296,6 @@
       9,
       0,
       1,
-      1,
-      "IMAGE"
-    ],
-    [
-      25,
-      10,
-      0,
-      1,
       2,
       "STRING"
     ]
@@ -359,7 +313,7 @@
     "frontendVersion": "1.56.0",
     "comfy_mcp": {
       "name": "W5_07_Ideogram45_CharacterSheet",
-      "description": "Person photo -> 5-panel turnaround character sheet with Ideogram 4.5 Image Edit."
+      "description": "One person photo + prompt -> 5-panel turnaround character sheet (Ideogram 4.5 Edit)."
     }
   },
   "version": 0.4
