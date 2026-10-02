@@ -1,0 +1,78 @@
+{
+  "id": "051518d2-c8fd-4858-b7ec-cf0b2e75abd2",
+  "revision": 0,
+  "last_node_id": 11,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "BriaVideoReplaceBackground",
+      "pos": [900, 3560],
+      "size": [400, 220],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        { "name": "video", "type": "VIDEO", "link": 1 },
+        { "name": "background_image", "shape": 7, "type": "IMAGE", "link": 5 },
+        { "name": "background_video", "shape": 7, "type": "VIDEO", "link": null }
+      ],
+      "outputs": [{ "name": "VIDEO", "type": "VIDEO", "links": [3] }],
+      "properties": { "cnr_id": "comfy-core", "ver": "0.24.0", "Node name for S&R": "BriaVideoReplaceBackground" },
+      "widgets_values": [1664417559, "randomize"],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 4,
+      "type": "LoadVideo",
+      "pos": [540, 3550],
+      "size": [280, 380],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{ "name": "VIDEO", "type": "VIDEO", "links": [1] }],
+      "properties": { "cnr_id": "comfy-core", "ver": "0.24.0", "Node name for S&R": "LoadVideo" },
+      "widgets_values": ["stained_window_vintage_woman.mp4", "image"]
+    },
+    {
+      "id": 6,
+      "type": "SaveVideo",
+      "pos": [1340, 3540],
+      "size": [500, 530],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [{ "name": "video", "type": "VIDEO", "link": 3 }],
+      "outputs": [],
+      "properties": { "cnr_id": "comfy-core", "ver": "0.24.0", "Node name for S&R": "SaveVideo" },
+      "widgets_values": ["video/ComfyUI", "auto", "auto"]
+    },
+    {
+      "id": 8,
+      "type": "LoadImage",
+      "pos": [530, 3990],
+      "size": [290, 370],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [5] },
+        { "name": "MASK", "type": "MASK", "links": null }
+      ],
+      "properties": { "cnr_id": "comfy-core", "ver": "0.24.0", "Node name for S&R": "LoadImage" },
+      "widgets_values": ["gothic_hall_light_rays.png", "image"]
+    }
+  ],
+  "links": [
+    [1, 4, 0, 3, 0, "VIDEO"],
+    [3, 3, 0, 6, 0, "VIDEO"],
+    [5, 8, 0, 3, 1, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": { "ds": { "scale": 0.64, "offset": [945.72, -2940.86] } },
+  "version": 0.4
+}
