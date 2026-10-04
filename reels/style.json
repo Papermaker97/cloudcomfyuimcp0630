@@ -3,6 +3,13 @@
   "height": 1920,
   "fps": 30,
   "layout": "letterbox",
+  "source_crop": [
+    0,
+    0,
+    1920,
+    894
+  ],
+  "band_top": 655,
   "pad_before": 0.08,
   "pad_after": 0.25,
   "caption": {
@@ -15,7 +22,7 @@
     "outline": 0,
     "shadow": 0,
     "max_chars": 12,
-    "top": 1325,
+    "top": 1225,
     "bottom_margin": 520,
     "pop": false,
     "scale_y": 92

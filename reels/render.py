@@ -223,13 +223,17 @@ def render(video: str, spans: list[dict], ass: Path, out: Path, st: dict, layout
     src = probe(video)
     sw, sh = int(src["width"]), int(src["height"])
     W, H = st["width"], st["height"]
+    pre = ""
+    if st.get("source_crop"):  # 원본에 이미 박힌 자막 띠 등을 먼저 잘라낸다 [x, y, w, h]
+        cx, cy, sw, sh = st["source_crop"]
+        pre = f"crop={sw}:{sh}:{cx}:{cy},"
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-stats"]
     parts = []
     for i, sp in enumerate(spans):
         d = sp["end"] - sp["start"]
         cmd += ["-ss", f"{sp['start']:.3f}", "-t", f"{d:.3f}", "-i", video]
         fo = max(d - 0.03, 0)
-        parts.append(f"[{i}:v]setpts=PTS-STARTPTS,fps={st['fps']},format=yuv420p[v{i}];"
+        parts.append(f"[{i}:v]{pre}setpts=PTS-STARTPTS,fps={st['fps']},format=yuv420p[v{i}];"
                      f"[{i}:a]asetpts=PTS-STARTPTS,aresample=48000,"
                      f"afade=t=in:d=0.02,afade=t=out:st={fo:.3f}:d=0.03[a{i}]")
     n = len(spans)
@@ -244,7 +248,8 @@ def render(video: str, spans: list[dict], ass: Path, out: Path, st: dict, layout
             x = f"{(sw - crop_w) / 2:.1f}"
         fg += f";[cv]crop={crop_w}:{sh}:'{x}':0,scale={W}:{H}:flags=lanczos,setsar=1[fr]"
     elif layout == "letterbox":
-        fg += (f";[cv]scale={W}:-2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:black,setsar=1[fr]")
+        y = st.get("band_top", "(oh-ih)/2")  # 영상 띠의 위쪽 위치(px), 없으면 세로 중앙
+        fg += (f";[cv]scale={W}:-2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:{y}:black,setsar=1[fr]")
     else:  # blur: 흐린 배경 + 가운데 원본
         fg += (f";[cv]split[b][f];[b]scale={W}:{H}:force_original_aspect_ratio=increase,"
                f"crop={W}:{H},boxblur=30:3,eq=brightness=-0.15[bg];"
