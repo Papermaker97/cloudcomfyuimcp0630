@@ -1,0 +1,32 @@
+{
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "layout": "face",
+  "pad_before": 0.08,
+  "pad_after": 0.25,
+  "caption": {
+    "font": "Pretendard ExtraBold",
+    "size": 76,
+    "color": "FFFFFF",
+    "highlight": "FFD400",
+    "outline_color": "000000",
+    "outline": 6,
+    "shadow": 0,
+    "max_chars": 14,
+    "bottom_margin": 520,
+    "pop": true
+  },
+  "hook": {
+    "enabled": true,
+    "font": "Pretendard ExtraBold",
+    "size": 84,
+    "color": "FFFFFF",
+    "box_color": "000000",
+    "top_margin": 260,
+    "seconds": null
+  },
+  "audio": {
+    "loudnorm": true
+  }
+}

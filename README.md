@@ -44,3 +44,9 @@ search models/nodes/templates, run workflows) are available in the session.
 
 - [Comfy MCP announcement](https://blog.comfy.org/p/comfy-mcp-turn-your-agent-into-a)
 - [Comfy Cloud MCP docs](https://docs.comfy.org/development/cloud/mcp-server)
+
+## Reels automation
+
+[`reels/`](./reels) holds a long-form → Instagram Reels pipeline
+(faster-whisper + script alignment, Claude clip selection, ffmpeg 9:16 render
+with word-highlight captions). See [`reels/README.md`](./reels/README.md).
