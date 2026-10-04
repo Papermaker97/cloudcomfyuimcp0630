@@ -48,9 +48,12 @@ def build_spans(clip: dict, words: list[dict], sentences: list[dict], st: dict) 
     """문장ID 구간 → 패딩 포함 원본 시간 구간 + 그 안의 단어 목록."""
     by_id = {s["id"]: s for s in sentences}
     spans = []
-    for a, b in clip["segments"]:
-        a, b = min(a, b), max(a, b)
-        w0, w1 = by_id[a]["w0"], by_id[b]["w1"]
+    for seg in clip["segments"]:
+        if isinstance(seg, dict):  # {"w": [w0, w1]}: 단어 단위로 자를 때 (문장 앞 접속어 빼기 등)
+            w0, w1 = seg["w"]
+        else:  # [시작 문장ID, 끝 문장ID]
+            a, b = min(seg), max(seg)
+            w0, w1 = by_id[a]["w0"], by_id[b]["w1"]
         start = max(0.0, words[w0]["start"] - st["pad_before"])
         end = words[w1]["end"] + st["pad_after"]
         if w1 + 1 < len(words):  # 다음 단어 소리가 섞이지 않게
@@ -77,7 +80,8 @@ def caption_lines(words: list[dict], max_chars: int) -> list[list[dict]]:
     lines, cur, n = [], [], 0
     for w in words:
         gap = w["start"] - cur[-1]["end"] if cur else 0
-        ends_sentence = bool(cur) and re.search(r"[.?!…,]$", cur[-1]["text"])
+        ends_sentence = bool(cur) and re.search(r"[.?!…,]$|(니다|어요|에요|예요|아요|죠|고요|는데요|거든요)$",
+                                                cur[-1]["text"].rstrip("\"'”’"))
         if cur and (n + len(w["text"]) > max_chars or gap > 0.7 or ends_sentence):
             lines.append(cur)
             cur, n = [], 0

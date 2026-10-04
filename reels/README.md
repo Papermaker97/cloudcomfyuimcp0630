@@ -44,7 +44,7 @@ python reels/render.py work/transcript.json work/clips.json --only 2 --layout bl
 ```json
 {"clips": [{
   "title": "편집시간 줄이는 법",
-  "segments": [[12, 12], [3, 7]],      // transcript.txt의 문장ID 구간, 재생 순서대로 (점프컷)
+  "segments": [[12, 12], [3, 7], {"w": [162, 170]}],  // 문장ID 구간 또는 {"w": [단어 시작, 끝]} — 재생 순서대로 (점프컷)
   "hook_text": "편집 시간 90% 줄이는 법",
   "caption": "인스타 본문 #해시태그"
 }]}
@@ -57,8 +57,12 @@ python reels/render.py work/transcript.json work/clips.json --only 2 --layout bl
 | `layout` | `face` 얼굴추적 크롭 · `center` 중앙 크롭 · `blur` 흐린배경+원본 · `letterbox` 검은배경+원본 |
 | `caption.*` | 폰트, 크기, 색(`highlight`=현재 단어), 한 줄 글자수, 아래 여백, 팝 효과 |
 | `hook.*` | 상단 후킹 문구 (`seconds`: null이면 끝까지 표시) |
+| `source_crop` | `[x, y, w, h]` 원본에서 먼저 잘라낼 영역. 롱폼에 자막이 박혀 있으면 그 띠를 잘라낸다 |
+| `band_top` | letterbox에서 영상 띠의 위쪽 위치(px) |
+| `caption.mode` | `chunk` 한 덩어리씩(예시 릴스 방식) · `karaoke` 단어 강조 |
+| `hook.line_colors` / `line_gap` | 제목 줄별 색 / 줄 간격(px). `hook_text`는 `"1줄/2줄"` |
 | `pad_before/after` | 문장 앞뒤 여유(초) |
 
 ## 메모
-- 대본을 주면 자막은 대본 텍스트를 쓴다(받아쓰기 오타 없음). 대본에 있지만 영상에서 잘린 문장은 시간이 보간되며 `unaligned: true`로 표시된다.
+- 자막은 실제 발화 기준. 대본과 비슷한 구간은 대본 표기로 교정하고(`src: "script"`), 촬영 때 즉흥으로 바꾼 말은 받아쓰기 그대로 둔다(`src: "asr"`). 남는 오인식은 transcript.json의 `words[].text`를 직접 고치면 된다.
 - 선정 모델은 `claude-opus-5-5`, adaptive thinking, effort `high`, 거절 시 서버 측 폴백(`fallbacks: "default"`) 사용.
