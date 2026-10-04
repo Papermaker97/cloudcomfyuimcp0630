@@ -88,11 +88,29 @@ def caption_lines(words: list[dict], max_chars: int) -> list[list[dict]]:
     return lines
 
 
+def hook_events(hook: str, h: dict, end: float) -> list[str]:
+    """후킹 문구: 줄바꿈(\\n 또는 /)마다 h['line_colors'] 색을 순서대로 적용.
+    line_gap이 있으면 줄마다 따로 배치해 줄 간격을 정확히 맞춘다."""
+    lines = [s.strip() for s in re.split(r"\\n|\n|/", hook) if s.strip()]
+    colors = h.get("line_colors") or [h["color"]]
+    top = h.get("top", h.get("top_margin", 260))
+    tag = lambda i: f"{{\\c{ass_color(colors[min(i, len(colors) - 1)])}}}"
+    if h.get("line_gap"):
+        return [f"Dialogue: 1,{ass_time(0)},{ass_time(end)},Hook,,0,0,{top + i * h['line_gap']},,{tag(i)}{ass_escape(t)}"
+                for i, t in enumerate(lines)]
+    text = r"\N".join(f"{tag(i)}{ass_escape(t)}" for i, t in enumerate(lines))
+    return [f"Dialogue: 1,{ass_time(0)},{ass_time(end)},Hook,,0,0,0,,{text}"]
+
+
 def write_ass(path: Path, words: list[dict], hook: str, duration: float, st: dict) -> None:
     c, h = st["caption"], st["hook"]
     W, H = st["width"], st["height"]
     hi = ass_color(c["highlight"])
     base = ass_color(c["color"])
+    # 위치: caption.top / hook.top 이 있으면 화면 위에서부터의 절대 위치(top 정렬), 없으면 기존 margin 방식
+    cap_align, cap_mv = (8, c["top"]) if "top" in c else (2, c["bottom_margin"])
+    hook_border = 3 if h.get("box", True) else 1
+    hook_outline = 18 if hook_border == 3 else h.get("outline", 0)
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -102,18 +120,26 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Cap,{c['font']},{c['size']},{base},{base},{ass_color(c['outline_color'])},&H80000000,0,0,0,0,100,100,0,0,1,{c['outline']},{c['shadow']},2,60,60,{c['bottom_margin']},1
-Style: Hook,{h['font']},{h['size']},{ass_color(h['color'])},{ass_color(h['color'])},{ass_color(h['box_color'], '30')},{ass_color(h['box_color'], '30')},0,0,0,0,100,100,0,0,3,18,0,8,80,80,{h['top_margin']},1
+Style: Cap,{c['font']},{c['size']},{base},{base},{ass_color(c['outline_color'])},&H80000000,0,0,0,0,100,{c.get('scale_y', 100)},{c.get('spacing', 0)},0,1,{c['outline']},{c['shadow']},{cap_align},60,60,{cap_mv},1
+Style: Hook,{h['font']},{h['size']},{ass_color(h['color'])},{ass_color(h['color'])},{ass_color(h['box_color'], '30')},{ass_color(h['box_color'], '30')},0,0,0,0,100,{h.get('scale_y', 100)},{h.get('spacing', 0)},0,{hook_border},{hook_outline},0,8,60,60,{h.get('top', h.get('top_margin', 260))},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     ev = []
     if h["enabled"] and hook:
-        end = h["seconds"] or duration
-        ev.append(f"Dialogue: 1,{ass_time(0)},{ass_time(end)},Hook,,0,0,0,,{ass_escape(hook)}")
+        ev += hook_events(hook, h, h["seconds"] or duration)
 
-    for line in caption_lines(words, c["max_chars"]):
+    lines = caption_lines(words, c["max_chars"])
+    for n, line in enumerate(lines):
+        if c.get("mode") == "chunk":  # 예시 릴스 방식: 짧은 덩어리를 통째로, 강조 없이
+            t1 = line[-1]["end"] + 0.15
+            if n + 1 < len(lines):  # 짧은 쉼이면 다음 자막까지 유지해 깜빡임 방지
+                nxt = lines[n + 1][0]["start"]
+                t1 = nxt if nxt - line[-1]["end"] < 0.7 else min(t1, nxt)
+            ev.append(f"Dialogue: 0,{ass_time(line[0]['start'])},{ass_time(t1)},Cap,,0,0,0,,"
+                      + " ".join(ass_escape(x["text"]) for x in line))
+            continue
         for i, w in enumerate(line):
             t0 = line[0]["start"] if i == 0 else w["start"]
             t1 = line[i + 1]["start"] if i + 1 < len(line) else w["end"] + 0.15

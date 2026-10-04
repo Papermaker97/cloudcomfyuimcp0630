@@ -2,29 +2,39 @@
   "width": 1080,
   "height": 1920,
   "fps": 30,
-  "layout": "face",
+  "layout": "letterbox",
   "pad_before": 0.08,
   "pad_after": 0.25,
   "caption": {
+    "mode": "chunk",
     "font": "Pretendard ExtraBold",
-    "size": 76,
+    "size": 123,
     "color": "FFFFFF",
     "highlight": "FFD400",
     "outline_color": "000000",
-    "outline": 6,
+    "outline": 0,
     "shadow": 0,
-    "max_chars": 14,
+    "max_chars": 12,
+    "top": 1325,
     "bottom_margin": 520,
-    "pop": true
+    "pop": false,
+    "scale_y": 92
   },
   "hook": {
     "enabled": true,
-    "font": "Pretendard ExtraBold",
-    "size": 84,
+    "font": "Pretendard Black",
+    "size": 145,
     "color": "FFFFFF",
+    "line_colors": [
+      "FFFFFF",
+      "FF0000"
+    ],
+    "box": false,
     "box_color": "000000",
-    "top_margin": 260,
-    "seconds": null
+    "top": 350,
+    "seconds": null,
+    "scale_y": 87,
+    "line_gap": 140
   },
   "audio": {
     "loudnorm": true
