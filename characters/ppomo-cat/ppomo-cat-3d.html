@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ppomo Cat 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
+<style>
+  /* Layout: full-bleed stage, character centered; one quiet control strip at the bottom. */
+  :root {
+    --bg-top: #F3F4F7;
+    --bg-bottom: #E1E4EA;
+    --fg: #3A3A3E;
+    --muted: #7C808A;
+    --chip: rgba(255, 255, 255, 0.72);
+    --chip-line: rgba(58, 58, 62, 0.10);
+    --chip-on: #3A3A3E;
+    --chip-on-fg: #F7F5F0;
+    --font-display: "Gowun Dodum", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    --font-ui: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg-top: #2A2D34; --bg-bottom: #1B1D22; --fg: #ECEDF0; --muted: #9A9EA8;
+      --chip: rgba(40, 42, 49, 0.72); --chip-line: rgba(236, 237, 240, 0.12);
+      --chip-on: #ECEDF0; --chip-on-fg: #24262C; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg-top: #2A2D34; --bg-bottom: #1B1D22; --fg: #ECEDF0; --muted: #9A9EA8;
+    --chip: rgba(40, 42, 49, 0.72); --chip-line: rgba(236, 237, 240, 0.12);
+    --chip-on: #ECEDF0; --chip-on-fg: #24262C; color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; color: var(--fg); font-family: var(--font-ui);
+    background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  #stage canvas:active { cursor: grabbing; }
+  header {
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); left: 16px; right: 16px;
+    display: flex; align-items: baseline; gap: 10px; pointer-events: none;
+  }
+  header h1 { margin: 0; font: 400 1.35rem/1.2 var(--font-display); letter-spacing: 0.01em; }
+  header span { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; }
+  .controls {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px;
+    max-width: calc(100% - 32px); padding: 6px; border-radius: 999px;
+    background: var(--chip); border: 1px solid var(--chip-line);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .controls button {
+    font: 500 0.8rem/1 var(--font-ui); color: var(--fg); background: transparent;
+    border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .controls button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-fg); }
+  .controls button:focus-visible { outline: 2px solid var(--muted); outline-offset: 2px; }
+  .swatch { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--chip-line); }
+  .sep { width: 1px; height: 18px; background: var(--chip-line); }
+  #sheet-labels { position: fixed; inset: 0; pointer-events: none; display: none; }
+  #sheet-labels div { position: absolute; font: 600 13px/1 var(--font-ui); color: var(--muted); letter-spacing: 0.06em; }
+</style>
+
+<div id="stage"></div>
+<header>
+  <h1>뽀모 · 고양이</h1>
+  <span>드래그해서 돌려보기 · 휠로 확대</span>
+</header>
+<div class="controls" role="toolbar" aria-label="보기 설정">
+  <button id="btn-rotate" type="button" aria-pressed="true">자동 회전</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="color-gray" type="button" data-color="#B9BDC7" aria-pressed="true"><span class="swatch" style="background:#B9BDC7"></span>그레이</button>
+  <button id="color-cream" type="button" data-color="#E4DACB" aria-pressed="false"><span class="swatch" style="background:#E4DACB"></span>크림</button>
+  <button id="color-charcoal" type="button" data-color="#80869A" aria-pressed="false"><span class="swatch" style="background:#80869A"></span>차콜</button>
+</div>
+<div id="sheet-labels"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ---------- sphere table (instruction 1 §1.5, body radius = 1, y up, z = forward) ----------
+const SPHERES = {
+  C1:  { x: 0,     y: 0.15,  z: 0,     r: 0.95 },              // 몸통 상부
+  C2:  { x: 0,     y: -0.30, z: -0.15, r: 0.85, sy: 0.85 },    // 몸통 하부 (로프형: 넓고 납작, 뒤로)
+  C3:  { x: -0.68, y: -0.05, z: 0.45,  r: 0.32 },              // 볼주머니 L
+  C4:  { x: 0.68,  y: -0.05, z: 0.45,  r: 0.32 },
+  C5:  { x: -0.51, y: 1.00,  z: 0,     r: 0.22 },              // 귀 L
+  C6:  { x: 0.51,  y: 1.00,  z: 0,     r: 0.22 },
+  C7:  { x: -0.18, y: 0.18,             r: 0.06 },             // 눈 (z = 표면)
+  C8:  { x: 0.18,  y: 0.18,             r: 0.06 },
+  C9:  { x: -0.90, y: -0.10, z: 0.30,  r: 0.13 },              // 팔
+  C10: { x: 0.90,  y: -0.10, z: 0.30,  r: 0.13 },
+  C11: { x: -0.33, y: -0.92, z: 0.30,  r: 0.16 },              // 발
+  C12: { x: 0.33,  y: -0.92, z: 0.30,  r: 0.16 },
+  C13: { x: 0,     y: -0.45,            r: 0.45, sy: 0.85 },   // 배 패치 (z = 표면)
+  C14: { x: 0,     y: -0.70, z: -0.88, r: 0.10 },              // 꼬리 nub
+  C15: { r: 0.12 }, C16: { r: 0.12 },                          // 안쪽 귀 (귀 앞면)
+  C17: { r: 0.10 }, C18: { r: 0.10 },                          // 볼터치 (볼주머니 앞면)
+  C19: { x: -0.20, y: -0.55, z: -0.78, r: 0.25 },              // 엉덩이
+  C20: { x: 0.20,  y: -0.55, z: -0.78, r: 0.25 },
+};
+const PAL = { body: '#B9BDC7', belly: '#F7F5F0', blush: '#F2A3B3', earInner: '#F6C6CF', ink: '#3A3A3E' };
+const GROUND_Y = -1.08;
+
+// ---------- body = smooth union of C1 + C2 (메타볼처럼 부드럽게) ----------
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+function sdEllipsoid(p, c, r, sy = 1) {
+  const qx = (p.x - c.x) / r, qy = (p.y - c.y) / (r * sy), qz = (p.z - c.z) / r;
+  return (Math.hypot(qx, qy, qz) - 1) * r * Math.min(1, sy);
+}
+const bodySDF = (p) => smin(sdEllipsoid(p, SPHERES.C1, SPHERES.C1.r), sdEllipsoid(p, SPHERES.C2, SPHERES.C2.r, SPHERES.C2.sy), 0.22);
+
+function buildBodyGeometry() {
+  const geo = new THREE.SphereGeometry(1, 160, 120);
+  const pos = geo.attributes.position;
+  const o = new THREE.Vector3(0, -0.1, -0.05), d = new THREE.Vector3(), p = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    d.fromBufferAttribute(pos, i).normalize();
+    let t = 2.2;
+    while (t > 0 && bodySDF(p.copy(d).multiplyScalar(t).add(o)) > 0) t -= 0.02;
+    let lo = t, hi = t + 0.02;
+    for (let k = 0; k < 24; k++) {
+      const m = (lo + hi) / 2;
+      if (bodySDF(p.copy(d).multiplyScalar(m).add(o)) > 0) hi = m; else lo = m;
+    }
+    p.copy(d).multiplyScalar(lo).add(o);
+    pos.setXYZ(i, p.x, p.y, p.z);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+// front surface z of the body at (x, y)
+function bodyFrontZ(x, y) {
+  const p = new THREE.Vector3(x, y, 2);
+  let z = 2; while (z > -2 && bodySDF(p.set(x, y, z)) > 0) z -= 0.005;
+  return z;
+}
+
+// ---------- scene ----------
+const params = new URLSearchParams(location.search);
+const SHEET = params.has('sheet');
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: SHEET });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.8;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environmentIntensity = 0.35;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb4b8c2, 0.55));
+const sun = new THREE.DirectionalLight(0xffffff, 1.25);
+sun.position.set(-1.2, 5, 2.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.radius = 14;
+sun.shadow.blurSamples = 20;
+sun.shadow.bias = -0.002;
+Object.assign(sun.shadow.camera, { left: -2.5, right: 2.5, top: 2.5, bottom: -2.5, near: 0.5, far: 12 });
+scene.add(sun);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: 0.14 }));
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = GROUND_Y;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ---------- materials (slime look) ----------
+const slime = (color, extra = {}) => new THREE.MeshPhysicalMaterial({
+  color, roughness: 0.3, clearcoat: 1.0, clearcoatRoughness: 0.3, ...extra,
+});
+const furMat = slime(PAL.body);
+const bellyMat = slime(PAL.belly, { roughness: 0.35 });
+const innerEarMat = slime(PAL.earInner, { roughness: 0.4 });
+const inkMat = slime(PAL.ink, { roughness: 0.2 });
+
+function softDiscTexture(hex) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  const col = new THREE.Color(hex), rgb = `${Math.round(col.r * 255)},${Math.round(col.g * 255)},${Math.round(col.b * 255)}`;
+  grd.addColorStop(0, `rgba(${rgb},0.78)`); grd.addColorStop(0.55, `rgba(${rgb},0.62)`); grd.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const blushMat = new THREE.MeshStandardMaterial({ map: softDiscTexture(PAL.blush), transparent: true, depthWrite: false, roughness: 0.6 });
+
+// ---------- helpers ----------
+const SPHERE_GEO = new THREE.SphereGeometry(1, 64, 48);
+function ball(mat, r, sx = 1, sy = 1, sz = 1) {
+  const m = new THREE.Mesh(SPHERE_GEO, mat);
+  m.scale.set(r * sx, r * sy, r * sz);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+// a Group placed at the part's center, so scale() grows the part around itself (빵빵폼)
+function part(name, s) { const g = new THREE.Group(); g.name = name; g.position.set(s.x, s.y, s.z); return g; }
+
+// ---------- build ----------
+const ppomo = new THREE.Group(); ppomo.name = 'ppomo';
+scene.add(ppomo);
+
+const body = new THREE.Group(); body.name = 'body';
+const bodyMesh = new THREE.Mesh(buildBodyGeometry(), furMat);
+bodyMesh.castShadow = true; bodyMesh.receiveShadow = true;
+body.add(bodyMesh);
+ppomo.add(body);
+
+// cheeks (C3/C4) with blush (C17/C18) and whiskers riding on them
+for (const [side, id] of [[-1, 'C3'], [1, 'C4']]) {
+  const s = SPHERES[id];
+  const g = part(side < 0 ? 'cheekL' : 'cheekR', s);
+  g.add(ball(furMat, s.r));
+  // blush on the cheek's front-facing surface
+  const n = new THREE.Vector3(-0.25 * side, 0.08, 1).normalize();
+  const blush = new THREE.Mesh(new THREE.CircleGeometry(SPHERES.C17.r * 1.35, 40), blushMat);
+  blush.name = side < 0 ? 'blushL' : 'blushR';
+  blush.position.copy(n).multiplyScalar(s.r + 0.004);
+  blush.lookAt(blush.position.clone().multiplyScalar(2));
+  blush.scale.set(1, 0.68, 1);
+  g.add(blush);
+  // whiskers: 3 per side, length 0.35, opacity 0.4, start at the outer cheek and fan outward
+  const wMat = new THREE.MeshBasicMaterial({ color: PAL.ink, transparent: true, opacity: 0.4 });
+  const whiskers = new THREE.Group(); whiskers.name = side < 0 ? 'whiskersL' : 'whiskersR';
+  for (const [dy, deg] of [[0.05, 14], [-0.01, 0], [-0.07, -14]]) {
+    const a = THREE.MathUtils.degToRad(deg);
+    // points along the whisker, each lifted onto the cheek surface so it hugs the curve
+    const pts = [];
+    for (let k = 0; k <= 12; k++) {
+      const t = (k / 12) * 0.35;
+      const x = -0.12 * side + side * Math.cos(a) * t, y = dy + Math.sin(a) * t;
+      const rr = s.r + 0.008, q = rr * rr - x * x - y * y;
+      pts.push(new THREE.Vector3(x, y, q > 0 ? Math.sqrt(q) : 0));
+    }
+    const w = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.0055, 6), wMat);
+    whiskers.add(w);
+  }
+  g.add(whiskers);
+  ppomo.add(g);
+}
+
+// ears (C5/C6) — round, inner ear (C15/C16) on the front face
+for (const [side, id] of [[-1, 'C5'], [1, 'C6']]) {
+  const s = SPHERES[id];
+  const g = part(side < 0 ? 'earL' : 'earR', s);
+  g.add(ball(furMat, s.r, 1, 1, 0.8));
+  const inner = ball(innerEarMat, SPHERES.C15.r, 1, 1, 0.35);
+  inner.position.set(0, -0.01, s.r * 0.8 - SPHERES.C15.r * 0.25);
+  inner.castShadow = false;
+  g.add(inner);
+  ppomo.add(g);
+}
+
+// eyes (C7/C8) on the body surface
+for (const [side, id] of [[-1, 'C7'], [1, 'C8']]) {
+  const s = SPHERES[id];
+  const z = bodyFrontZ(s.x, s.y);
+  const g = part(side < 0 ? 'eyeL' : 'eyeR', { x: s.x, y: s.y, z: z - 0.01 });
+  const e = ball(inkMat, s.r, 1, 1, 0.55); e.castShadow = false;
+  g.add(e);
+  g.lookAt(new THREE.Vector3(s.x * 3, s.y, z + 3));
+  ppomo.add(g);
+}
+
+// mouth — small ω from two half-torus arcs
+{
+  const y = -0.05;
+  const g = new THREE.Group(); g.name = 'mouth';
+  g.position.set(0, y, bodyFrontZ(0, y) + 0.004);
+  for (const side of [-1, 1]) {
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.009, 10, 32, Math.PI), inkMat);
+    arc.rotation.z = Math.PI;               // open upward → lower half arc
+    arc.position.x = side * 0.045;
+    g.add(arc);
+  }
+  ppomo.add(g);
+}
+
+// arms (C9/C10), feet (C11/C12)
+for (const [name, id, sz] of [['armL', 'C9', 1.15], ['armR', 'C10', 1.15], ['footL', 'C11', 1.2], ['footR', 'C12', 1.2]]) {
+  const s = SPHERES[id];
+  const g = part(name, s);
+  g.add(ball(furMat, s.r, 1, 0.9, sz));
+  ppomo.add(g);
+}
+
+// belly (C13) — flattened sphere on the lower front
+{
+  const s = SPHERES.C13;
+  const z = bodyFrontZ(s.x, s.y);
+  const g = part('belly', { x: s.x, y: s.y, z: z - 0.075 });
+  g.add(ball(bellyMat, s.r, 1, s.sy, 0.3));
+  g.rotation.x = 0.45;   // follow the body: surface leans forward toward the chest
+  ppomo.add(g);
+}
+
+// butt (C19 + C20) — one group, two spheres
+{
+  const g = new THREE.Group(); g.name = 'butt';
+  const cx = 0, cy = SPHERES.C19.y, cz = SPHERES.C19.z;
+  g.position.set(cx, cy, cz);
+  for (const id of ['C19', 'C20']) {
+    const s = SPHERES[id], b = ball(furMat, s.r);
+    b.position.set(s.x - cx, s.y - cy, s.z - cz);
+    g.add(b);
+  }
+  ppomo.add(g);
+}
+
+// tail nub (C14)
+{
+  const s = SPHERES.C14, g = part('tail', s);
+  g.add(ball(furMat, s.r * 1.1));
+  ppomo.add(g);
+}
+
+// ---------- camera & controls ----------
+const camera = new THREE.PerspectiveCamera(30, stage.clientWidth / stage.clientHeight, 0.1, 50);
+const TARGET = new THREE.Vector3(0, -0.02, 0);
+camera.position.set(1.7, 0.9, 5.6);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(TARGET);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 3;
+controls.maxDistance = 10;
+controls.maxPolarAngle = Math.PI * 0.62;
+controls.autoRotate = !SHEET && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+controls.autoRotateSpeed = 1.6;
+controls.update();
+
+// ---------- UI ----------
+const rotateBtn = document.getElementById('btn-rotate');
+rotateBtn.setAttribute('aria-pressed', String(controls.autoRotate));
+rotateBtn.addEventListener('click', () => {
+  controls.autoRotate = !controls.autoRotate;
+  rotateBtn.setAttribute('aria-pressed', String(controls.autoRotate));
+});
+const colorBtns = document.querySelectorAll('[data-color]');
+colorBtns.forEach((b) => b.addEventListener('click', () => {
+  furMat.color.set(b.dataset.color);
+  colorBtns.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+}));
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+// ---------- 4-view sheet (?sheet) ----------
+const VIEWS = [
+  { label: 'FRONT · 정면', pos: [0, 0, 1], up: [0, 1, 0] },
+  { label: 'SIDE · 측면', pos: [-1, 0, 0], up: [0, 1, 0] },   // 오른쪽 옆모습, 얼굴이 화면 오른쪽
+  { label: 'BACK · 후면', pos: [0, 0, -1], up: [0, 1, 0] },
+  { label: 'TOP · 윗면', pos: [0, 1, 0], up: [0, 0, -1] },    // 얼굴(앞)이 화면 아래
+];
+function renderSheet() {
+  document.querySelector('header').hidden = true;
+  document.querySelector('.controls').hidden = true;
+  const labels = document.getElementById('sheet-labels');
+  labels.style.display = 'block';
+  const W = stage.clientWidth, H = stage.clientHeight, w = W / 2, h = H / 2;
+  const cam = new THREE.OrthographicCamera(-1.45, 1.45, 1.45, -1.45, 0.1, 50);
+  renderer.setScissorTest(true);
+  VIEWS.forEach((v, i) => {
+    const x = (i % 2) * w, yTop = Math.floor(i / 2) * h;
+    renderer.setViewport(x, H - yTop - h, w, h);
+    renderer.setScissor(x, H - yTop - h, w, h);
+    cam.position.set(...v.pos).multiplyScalar(8).add(TARGET);
+    cam.up.set(...v.up);
+    cam.lookAt(TARGET);
+    ground.visible = i !== 3;   // top view: no floor shadow
+    renderer.render(scene, cam);
+    const el = document.createElement('div');
+    el.textContent = v.label; el.style.left = `${x + 18}px`; el.style.top = `${yTop + 16}px`;
+    labels.appendChild(el);
+  });
+  document.body.dataset.ready = '1';
+}
+
+if (SHEET) {
+  ground.material.opacity = 0.1;
+  renderSheet();
+} else {
+  const view = VIEWS.find((v) => v.label.toLowerCase().startsWith(params.get('view') || '~'));
+  if (view) {
+    camera.position.set(...view.pos).multiplyScalar(5.8).add(TARGET);
+    camera.up.set(...view.up);
+    controls.update();
+  }
+  renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+  document.body.dataset.ready = '1';
+}
+</script>
