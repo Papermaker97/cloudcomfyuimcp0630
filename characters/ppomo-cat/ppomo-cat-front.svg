@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <title>Ppomo Cat — front (stage 0)</title>
+  <defs>
+    <radialGradient id="slime" cx="0.35" cy="0.3" r="0.8" fx="0.35" fy="0.3">
+      <stop offset="0" stop-color="#D8DBE2"/>
+      <stop offset="0.5" stop-color="#B9BDC7"/>
+      <stop offset="1" stop-color="#9AA0AC"/>
+    </radialGradient>
+    <radialGradient id="slime-body" gradientUnits="userSpaceOnUse" cx="165.8" cy="167" fx="165.8" fy="167" r="174">
+      <stop offset="0" stop-color="#D8DBE2"/>
+      <stop offset="0.45" stop-color="#B9BDC7"/>
+      <stop offset="1" stop-color="#9AA0AC"/>
+    </radialGradient>
+    <linearGradient id="tail-grad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#9AA0AC"/>
+      <stop offset="1" stop-color="#B9BDC7"/>
+    </linearGradient>
+    <linearGradient id="belly-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7F5F0" stop-opacity="0.85"/>
+      <stop offset="0.45" stop-color="#F7F5F0" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#F7F5F0" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="cheek-grad">
+      <stop offset="0" stop-color="#E2E4EA" stop-opacity="0.9"/>
+      <stop offset="0.6" stop-color="#CDD0D8" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#B9BDC7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blush-grad">
+      <stop offset="0" stop-color="#F2A3B3" stop-opacity="0.75"/>
+      <stop offset="0.6" stop-color="#F2A3B3" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#F2A3B3" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gloss-grad">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g id="cat-front">
+    <g id="shadow">
+      <ellipse cx="200" cy="338" rx="126" ry="24" fill="#000" opacity="0.05"/>
+      <ellipse cx="200" cy="338" rx="105.6" ry="19.2" fill="#000" opacity="0.07"/>
+      <ellipse cx="200" cy="338" rx="84" ry="14.4" fill="#000" opacity="0.10"/>
+    </g>
+
+    <g id="tail">
+      <path d="M267.2,282.9 L267.2,282.9 272.5,283.4 277.4,283.7 282,283.6 286.2,283.2 290.1,282.6 293.6,281.8 296.8,280.7 299.7,279.5 302.3,278.1 304.6,276.5 306.7,274.8 308.5,272.9 310.2,270.9 311.6,268.8 312.8,266.4 313.8,264 314.6,261.3 315.2,258.5 315.6,255.6 315.7,252.5 315.6,249.3 315.2,246 314.6,242.6 313.8,239.1 A9,9 0 0 1 331,234.1 L331,234.1 332.3,238.6 333.2,243.2 333.8,247.8 334.1,252.3 334,256.9 333.6,261.3 332.8,265.7 331.6,269.9 330.1,274.1 328.1,278.1 325.8,281.9 323.1,285.5 320,288.8 316.5,291.8 312.7,294.6 308.5,297 304,299.1 299.2,300.8 294.2,302.1 288.8,303.1 283.2,303.7 277.3,303.9 271.2,303.7 264.8,303.1 Z" fill="url(#tail-grad)"/>
+    </g>
+
+    <!-- butt: 몸통 뒤 독립 원. 0단계에선 실루엣 안에 숨고, 스케일 시 아래로 빵빵하게 드러남 -->
+    <g id="butt" style="transform-box:fill-box;transform-origin:center">
+      <ellipse cx="200" cy="291.8" rx="72" ry="40.8" fill="url(#slime-body)"/>
+    </g>
+
+    <g id="ear-l" transform="translate(143 111.1) rotate(-30)">
+      <polygon points="-22.8,7.2 22.8,7.2 0,-33.6" fill="url(#slime)"/>
+      <polygon points="-12.5,2.3 12.5,2.3 0,-20.1" fill="#F6C6CF"/>
+    </g>
+    <g id="ear-r" transform="translate(257 111.1) rotate(30)">
+      <polygon points="-22.8,7.2 22.8,7.2 0,-33.6" fill="url(#slime)"/>
+      <polygon points="-12.5,2.3 12.5,2.3 0,-20.1" fill="#F6C6CF"/>
+    </g>
+
+    <g id="body">
+      <ellipse cx="200" cy="215" rx="114" ry="120" fill="url(#slime-body)"/>
+    </g>
+
+    <g id="belly" style="transform-box:fill-box;transform-origin:center">
+      <ellipse cx="200" cy="277.4" rx="60" ry="48" fill="url(#belly-grad)"/>
+    </g>
+
+    <g id="gloss">
+      <ellipse cx="164" cy="173" rx="24" ry="14.4" fill="url(#gloss-grad)" transform="rotate(-30 164 173)"/>
+    </g>
+
+    <g id="cheek-l" style="transform-box:fill-box;transform-origin:center">
+      <circle cx="156.8" cy="217.4" r="18" fill="url(#cheek-grad)"/>
+    </g>
+    <g id="cheek-r" style="transform-box:fill-box;transform-origin:center">
+      <circle cx="243.2" cy="217.4" r="18" fill="url(#cheek-grad)"/>
+    </g>
+
+    <g id="blush-l" style="transform-box:fill-box;transform-origin:center">
+      <ellipse cx="156.8" cy="217.4" rx="14.4" ry="9" fill="url(#blush-grad)"/>
+    </g>
+    <g id="blush-r" style="transform-box:fill-box;transform-origin:center">
+      <ellipse cx="243.2" cy="217.4" rx="14.4" ry="9" fill="url(#blush-grad)"/>
+    </g>
+
+    <g id="eye-l"><circle cx="178.4" cy="197" r="7.2" fill="#3A3A3E"/></g>
+    <g id="eye-r"><circle cx="221.6" cy="197" r="7.2" fill="#3A3A3E"/></g>
+
+    <!-- 입/수염은 선 요소라 예외적으로 stroke 사용 (외곽선 아님) -->
+    <g id="mouth" fill="none" stroke="#3A3A3E" stroke-width="2" stroke-linecap="round">
+      <path d="M186.8,221 a6.6,6.6 0 0 0 13.2,0 a6.6,6.6 0 0 0 13.2,0"/>
+    </g>
+
+    <g id="whiskers" stroke="#3A3A3E" stroke-opacity="0.4" stroke-width="1.5" stroke-linecap="round">
+      <line x1="140" y1="212.6" x2="99.2" y2="202.4"/>
+      <line x1="140" y1="219.8" x2="98" y2="219.8"/>
+      <line x1="140" y1="227" x2="99.2" y2="237.2"/>
+      <line x1="260" y1="212.6" x2="300.8" y2="202.4"/>
+      <line x1="260" y1="219.8" x2="302" y2="219.8"/>
+      <line x1="260" y1="227" x2="300.8" y2="237.2"/>
+    </g>
+  </g>
+</svg>
