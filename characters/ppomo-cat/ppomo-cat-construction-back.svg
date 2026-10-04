@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <title>Ppomo Cat — back construction</title>
+  <g id="view-back">
+    <rect x="0" y="0" width="400" height="400" fill="#FFFFFF"/>
+    <g stroke="#E6E8EC" stroke-width="0.8">
+      <line x1="200" y1="28" x2="200" y2="356"/>
+      <line x1="14" y1="200" x2="386" y2="200"/>
+    </g>
+    <g fill="#F1F2F5"><ellipse cx="200" cy="180.5" rx="123.5" ry="123.5"/><ellipse cx="200" cy="245.5" rx="93.6" ry="93.6"/><ellipse cx="266.3" cy="70" rx="28.6" ry="28.6"/><ellipse cx="133.7" cy="70" rx="28.6" ry="28.6"/><ellipse cx="317" cy="213" rx="16.9" ry="16.9"/><ellipse cx="83" cy="213" rx="16.9" ry="16.9"/><ellipse cx="242.9" cy="319.6" rx="20.8" ry="20.8"/><ellipse cx="157.1" cy="319.6" rx="20.8" ry="20.8"/><ellipse cx="200" cy="291" rx="13" ry="13"/><ellipse cx="226" cy="271.5" rx="32.5" ry="32.5"/><ellipse cx="174" cy="271.5" rx="32.5" ry="32.5"/></g>
+    <g>
+      <ellipse data-c="C1" cx="200" cy="180.5" rx="123.5" ry="123.5" fill="none" stroke="#6B6F78" stroke-width="1.2"/>
+      <ellipse data-c="C2" cx="200" cy="245.5" rx="93.6" ry="93.6" fill="none" stroke="#6B6F78" stroke-width="1.2"/>
+      <ellipse data-c="C5" cx="266.3" cy="70" rx="28.6" ry="28.6" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C6" cx="133.7" cy="70" rx="28.6" ry="28.6" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C9" cx="317" cy="213" rx="16.9" ry="16.9" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C10" cx="83" cy="213" rx="16.9" ry="16.9" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C11" cx="242.9" cy="319.6" rx="20.8" ry="20.8" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C12" cx="157.1" cy="319.6" rx="20.8" ry="20.8" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C14" cx="200" cy="291" rx="13" ry="13" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C19" cx="226" cy="271.5" rx="32.5" ry="32.5" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C20" cx="174" cy="271.5" rx="32.5" ry="32.5" fill="none" stroke="#8A8F99" stroke-width="1"/>
+      <ellipse data-c="C3" cx="288.4" cy="206.5" rx="41.6" ry="41.6" fill="none" stroke="#B0B4BC" stroke-width="0.9" stroke-dasharray="3 3"/>
+      <ellipse data-c="C4" cx="111.6" cy="206.5" rx="41.6" ry="41.6" fill="none" stroke="#B0B4BC" stroke-width="0.9" stroke-dasharray="3 3"/>
+    </g>
+    <g fill="#8A8F99"><circle cx="200" cy="180.5" r="1.2"/><circle cx="200" cy="245.5" r="1.2"/><circle cx="266.3" cy="70" r="1.2"/><circle cx="133.7" cy="70" r="1.2"/><circle cx="317" cy="213" r="1.2"/><circle cx="83" cy="213" r="1.2"/><circle cx="242.9" cy="319.6" r="1.2"/><circle cx="157.1" cy="319.6" r="1.2"/><circle cx="200" cy="291" r="1.2"/><circle cx="226" cy="271.5" r="1.2"/><circle cx="174" cy="271.5" r="1.2"/><circle cx="288.4" cy="206.5" r="1.2"/><circle cx="111.6" cy="206.5" r="1.2"/></g>
+    <g font-family="Helvetica, Arial, sans-serif" font-size="8.5" dominant-baseline="middle" fill="#6B6F78">
+      <text x="200.0" y="50.0" text-anchor="middle" fill="#4A4E57">C1</text>
+      <text x="200.0" y="346.1" text-anchor="middle" fill="#4A4E57">C2</text>
+      <text x="287.0" y="29.5" text-anchor="start">C5</text>
+      <text x="113.0" y="29.5" text-anchor="end">C6</text>
+      <text x="342.5" y="215.8" text-anchor="start">C9</text>
+      <text x="57.5" y="215.8" text-anchor="end">C10</text>
+      <text x="274.5" y="332.2" text-anchor="start">C11</text>
+      <text x="125.5" y="332.2" text-anchor="end">C12</text>
+      <text x="200.0" y="311.0" text-anchor="middle">C14</text>
+      <text x="270.3" y="262.6" text-anchor="start">C19</text>
+      <text x="129.7" y="262.6" text-anchor="end">C20</text>
+      <text x="334.9" y="160.0" text-anchor="start">C3</text>
+      <text x="65.1" y="160.0" text-anchor="end">C4</text>
+    </g>
+    <g font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#6B6F78">
+      <text x="16" y="18" font-weight="bold" fill="#4A4E57">BACK · 후면</text>
+      <text x="384" y="18" text-anchor="end">R = 1 = 130px</text>
+      <line x1="16" y1="369" x2="34" y2="369" stroke="#6B6F78" stroke-width="1.2"/><text x="40" y="372">합쳐지는 원 (몸통)</text>
+      <line x1="16" y1="383" x2="34" y2="383" stroke="#8A8F99" stroke-width="1"/><text x="40" y="386">독립 볼륨</text>
+      <line x1="166" y1="369" x2="184" y2="369" stroke="#B0B4BC" stroke-width="0.9"/><text x="190" y="372">표면 장식</text>
+      <line x1="166" y1="383" x2="184" y2="383" stroke="#B0B4BC" stroke-width="0.9" stroke-dasharray="3 3"/><text x="190" y="386">이 뷰에서 가려짐</text>
+    </g>
+  </g>
+</svg>
