@@ -1,3 +1,5 @@
 work/
 reels/fonts/
 __pycache__/
+uploader/upload_log.json
+uploader/tasks/
