@@ -2,7 +2,7 @@
 <html lang="ko">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ppomo Cat 3D</title>
+<title>Ppomo Hamster 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
@@ -70,7 +70,7 @@
 
 <div id="stage"></div>
 <header>
-  <h1>뽀모 · 고양이</h1>
+  <h1>뽀모 · 햄스터</h1>
   <span>드래그해서 돌려보기 · 휠로 확대</span>
 </header>
 <div class="controls" role="toolbar" aria-label="보기 설정">
@@ -97,8 +97,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 const SPHERES = {
   C1:  { x: 0,     y: 0.15,  z: 0,     r: 0.95 },              // 몸통 상부
   C2:  { x: 0,     y: -0.30, z: -0.15, r: 0.85, sy: 0.85 },    // 몸통 하부 (로프형: 넓고 납작, 뒤로)
-  C3:  { x: -0.68, y: -0.05, z: 0.45,  r: 0.32 },              // 볼주머니 L
-  C4:  { x: 0.68,  y: -0.05, z: 0.45,  r: 0.32 },
+  C3:  { x: -0.70, y: -0.05, z: 0.45,  r: 0.36 },              // 볼주머니 L (r 0.32 → 0.36)
+  C4:  { x: 0.70,  y: -0.05, z: 0.45,  r: 0.36 },
   C5:  { x: -0.51, y: 1.00,  z: 0,     r: 0.22 },              // 귀 L
   C6:  { x: 0.51,  y: 1.00,  z: 0,     r: 0.22 },
   C7:  { x: -0.18, y: 0.18,             r: 0.06 },             // 눈 (z = 표면)
@@ -108,13 +108,19 @@ const SPHERES = {
   C11: { x: -0.33, y: -0.92, z: 0.30,  r: 0.16 },              // 발
   C12: { x: 0.33,  y: -0.92, z: 0.30,  r: 0.16 },
   C13: { x: 0,     y: -0.45,            r: 0.45, sy: 0.85 },   // 배 패치 (z = 표면)
-  C14: { x: 0,     y: -0.70, z: -0.88, r: 0.10 },              // 꼬리 nub
+  C14: { x: 0,     y: -0.22, z: -0.98, r: 0.10 },              // 꼬리 nub (엉덩이 위로 이동)
   C15: { r: 0.12 }, C16: { r: 0.12 },                          // 안쪽 귀 (귀 앞면)
-  C17: { r: 0.10 }, C18: { r: 0.10 },                          // 볼터치 (볼주머니 앞면)
-  C19: { x: -0.20, y: -0.55, z: -0.78, r: 0.25 },              // 엉덩이
-  C20: { x: 0.20,  y: -0.55, z: -0.78, r: 0.25 },
+  C19: { x: -0.25, y: -0.62, z: -0.82, r: 0.32 },              // 엉덩이 L (r 0.25 → 0.32, 뒤로 돌출)
+  C20: { x: 0.25,  y: -0.62, z: -0.82, r: 0.32 },
 };
-const PAL = { body: '#B9BDC7', belly: '#F7F5F0', blush: '#F2A3B3', earInner: '#F6C6CF', ink: '#3A3A3E' };
+const PAL = {
+  body: '#B9BDC7',      // light neutral gray
+  cheek: '#F4B3C2',     // soft pink — core of the cheek-pouch bloom
+  belly: '#F6E8D2',     // warm cream (was #F7F5F0)
+  butt: '#F6B9A3',      // soft peach/coral — core of the butt bloom
+  earInner: '#F6C6CF',
+  ink: '#3A3A3E',
+};
 const GROUND_Y = -1.08;
 
 // ---------- body = smooth union of C1 + C2 (메타볼처럼 부드럽게) ----------
@@ -160,7 +166,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(stage.clientWidth, stage.clientHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.8;
+renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.VSMShadowMap;
 stage.appendChild(renderer.domElement);
@@ -170,8 +176,8 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
 scene.environmentIntensity = 0.35;
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xb4b8c2, 0.55));
-const sun = new THREE.DirectionalLight(0xffffff, 1.25);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xdfe1e7, 0.8));
+const sun = new THREE.DirectionalLight(0xfffaf5, 1.05);
 sun.position.set(-1.2, 5, 2.4);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -187,29 +193,69 @@ ground.position.y = GROUND_Y;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// ---------- materials (slime look) ----------
-const slime = (color, extra = {}) => new THREE.MeshPhysicalMaterial({
-  color, roughness: 0.3, clearcoat: 1.0, clearcoatRoughness: 0.3, ...extra,
+// ---------- materials (matte silicone squishy) ----------
+const silicone = (extra = {}) => new THREE.MeshPhysicalMaterial({
+  color: 0xffffff, roughness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.55,
+  sheen: 0.35, sheenRoughness: 0.8, sheenColor: new THREE.Color(0xffffff), ...extra,
 });
-const furMat = slime(PAL.body);
-const bellyMat = slime(PAL.belly, { roughness: 0.35 });
-const innerEarMat = slime(PAL.earInner, { roughness: 0.4 });
-const inkMat = slime(PAL.ink, { roughness: 0.2 });
+// every fur part shares one material; its colour comes from per-vertex pastel blooms (see recolor)
+const furMat = silicone({ vertexColors: true });
+const innerEarMat = silicone({ color: PAL.earInner, roughness: 0.65 });
+const inkMat = new THREE.MeshPhysicalMaterial({ color: PAL.ink, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.3 });
 
-function softDiscTexture(hex) {
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const g = c.getContext('2d'), grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  const col = new THREE.Color(hex), rgb = `${Math.round(col.r * 255)},${Math.round(col.g * 255)},${Math.round(col.b * 255)}`;
-  grd.addColorStop(0, `rgba(${rgb},0.78)`); grd.addColorStop(0.55, `rgba(${rgb},0.62)`); grd.addColorStop(1, `rgba(${rgb},0)`);
-  g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+// ---------- pastel bloom colour field ----------
+// Colour is a function of position in the model's rest pose, so a pouch and the body beside it
+// get the same colour where they meet: the bloom fades across the seam with no hard edge.
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const BLOOMS = [];
+function addBloom(color, center, outward, r, inner = 0.55, outer = 1.55, push = 0.35) {
+  const emitter = center.clone().addScaledVector(outward.clone().normalize(), r * push);
+  BLOOMS.push({ color: new THREE.Color(color), emitter, r, inner, outer });
 }
-const blushMat = new THREE.MeshStandardMaterial({ map: softDiscTexture(PAL.blush), transparent: true, depthWrite: false, roughness: 0.6 });
+const BELLY_FIELD = { color: new THREE.Color(PAL.belly) };
+function colorAt(p, base, out) {
+  out.copy(base);
+  for (const b of BLOOMS) {
+    const w = 1 - smooth(b.inner * b.r, b.outer * b.r, p.distanceTo(b.emitter));
+    if (w > 0) out.lerp(b.color, w);
+  }
+  if (BELLY_FIELD.center) {                       // elliptical patch with a soft rim
+    const f = BELLY_FIELD, dx = (p.x - f.center.x) / f.rx, dy = (p.y - f.center.y) / f.ry;
+    const front = smooth(f.zMin, f.zMin + 0.12, p.z);
+    const w = (1 - smooth(0.62, 1.08, Math.hypot(dx, dy))) * front;
+    if (w > 0) out.lerp(f.color, w);
+  }
+  return out;
+}
+const COLORED = [];   // meshes whose vertex colours follow the field
+function recolor(baseHex) {
+  const base = new THREE.Color(baseHex), c = new THREE.Color(), p = new THREE.Vector3();
+  for (const m of COLORED) {
+    const rest = m.userData.restPos, col = m.geometry.attributes.color;
+    for (let i = 0; i < col.count; i++) {
+      colorAt(p.fromArray(rest, i * 3), base, c);
+      col.setXYZ(i, c.r, c.g, c.b);
+    }
+    col.needsUpdate = true;
+  }
+}
+function bakeRestPositions() {
+  ppomo.updateMatrixWorld(true);
+  const v = new THREE.Vector3();
+  for (const m of COLORED) {
+    const pos = m.geometry.attributes.position, rest = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld).toArray(rest, i * 3);
+    m.userData.restPos = rest;
+    m.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
+  }
+}
 
 // ---------- helpers ----------
 const SPHERE_GEO = new THREE.SphereGeometry(1, 64, 48);
 function ball(mat, r, sx = 1, sy = 1, sz = 1) {
-  const m = new THREE.Mesh(SPHERE_GEO, mat);
+  const colored = mat === furMat;                  // gradient parts need their own colour buffer
+  const m = new THREE.Mesh(colored ? SPHERE_GEO.clone() : SPHERE_GEO, mat);
+  if (colored) COLORED.push(m);
   m.scale.set(r * sx, r * sy, r * sz);
   m.castShadow = true; m.receiveShadow = true;
   return m;
@@ -224,40 +270,18 @@ scene.add(ppomo);
 const body = new THREE.Group(); body.name = 'body';
 const bodyMesh = new THREE.Mesh(buildBodyGeometry(), furMat);
 bodyMesh.castShadow = true; bodyMesh.receiveShadow = true;
+COLORED.push(bodyMesh);
 body.add(bodyMesh);
 ppomo.add(body);
 
-// cheeks (C3/C4) with blush (C17/C18) and whiskers riding on them
+// cheek pouches (C3/C4) — pink bloom from the outer front of each pouch
 for (const [side, id] of [[-1, 'C3'], [1, 'C4']]) {
   const s = SPHERES[id];
   const g = part(side < 0 ? 'cheekL' : 'cheekR', s);
   g.add(ball(furMat, s.r));
-  // blush on the cheek's front-facing surface
-  const n = new THREE.Vector3(-0.25 * side, 0.08, 1).normalize();
-  const blush = new THREE.Mesh(new THREE.CircleGeometry(SPHERES.C17.r * 1.35, 40), blushMat);
-  blush.name = side < 0 ? 'blushL' : 'blushR';
-  blush.position.copy(n).multiplyScalar(s.r + 0.004);
-  blush.lookAt(blush.position.clone().multiplyScalar(2));
-  blush.scale.set(1, 0.68, 1);
-  g.add(blush);
-  // whiskers: 3 per side, length 0.35, opacity 0.4, start at the outer cheek and fan outward
-  const wMat = new THREE.MeshBasicMaterial({ color: PAL.ink, transparent: true, opacity: 0.4 });
-  const whiskers = new THREE.Group(); whiskers.name = side < 0 ? 'whiskersL' : 'whiskersR';
-  for (const [dy, deg] of [[0.05, 14], [-0.01, 0], [-0.07, -14]]) {
-    const a = THREE.MathUtils.degToRad(deg);
-    // points along the whisker, each lifted onto the cheek surface so it hugs the curve
-    const pts = [];
-    for (let k = 0; k <= 12; k++) {
-      const t = (k / 12) * 0.35;
-      const x = -0.12 * side + side * Math.cos(a) * t, y = dy + Math.sin(a) * t;
-      const rr = s.r + 0.008, q = rr * rr - x * x - y * y;
-      pts.push(new THREE.Vector3(x, y, q > 0 ? Math.sqrt(q) : 0));
-    }
-    const w = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.0055, 6), wMat);
-    whiskers.add(w);
-  }
-  g.add(whiskers);
   ppomo.add(g);
+  const c = new THREE.Vector3(s.x, s.y, s.z);
+  addBloom(PAL.cheek, c, c.clone().sub(new THREE.Vector3(0, 0.15, 0)).add(new THREE.Vector3(0, 0, 0.25)), s.r);
 }
 
 // ears (C5/C6) — round, inner ear (C15/C16) on the front face
@@ -310,7 +334,8 @@ for (const [name, id, sz] of [['armL', 'C9', 1.15], ['armR', 'C10', 1.15], ['foo
   const s = SPHERES.C13;
   const z = bodyFrontZ(s.x, s.y);
   const g = part('belly', { x: s.x, y: s.y, z: z - 0.075 });
-  g.add(ball(bellyMat, s.r, 1, s.sy, 0.3));
+  g.add(ball(furMat, s.r, 1, s.sy, 0.3));
+  Object.assign(BELLY_FIELD, { center: new THREE.Vector3(s.x, s.y, z), rx: s.r, ry: s.r * s.sy, zMin: z - 0.45 });
   g.rotation.x = 0.45;   // follow the body: surface leans forward toward the chest
   ppomo.add(g);
 }
@@ -324,6 +349,8 @@ for (const [name, id, sz] of [['armL', 'C9', 1.15], ['armR', 'C10', 1.15], ['foo
     const s = SPHERES[id], b = ball(furMat, s.r);
     b.position.set(s.x - cx, s.y - cy, s.z - cz);
     g.add(b);
+    const c = new THREE.Vector3(s.x, s.y, s.z);
+    addBloom(PAL.butt, c, new THREE.Vector3(s.x * 0.6, -0.15, -1), s.r, 0.5, 1.5, 0.4);
   }
   ppomo.add(g);
 }
@@ -334,6 +361,9 @@ for (const [name, id, sz] of [['armL', 'C9', 1.15], ['armR', 'C10', 1.15], ['foo
   g.add(ball(furMat, s.r * 1.1));
   ppomo.add(g);
 }
+
+bakeRestPositions();
+recolor(PAL.body);
 
 // ---------- camera & controls ----------
 const camera = new THREE.PerspectiveCamera(30, stage.clientWidth / stage.clientHeight, 0.1, 50);
@@ -359,7 +389,7 @@ rotateBtn.addEventListener('click', () => {
 });
 const colorBtns = document.querySelectorAll('[data-color]');
 colorBtns.forEach((b) => b.addEventListener('click', () => {
-  furMat.color.set(b.dataset.color);
+  recolor(b.dataset.color);
   colorBtns.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
 }));
 
