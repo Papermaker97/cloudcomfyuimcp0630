@@ -96,16 +96,16 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 // ---------- shape table (lying loaf cat, units ≈ head radius 0.6, y up from the floor, z = forward) ----------
 const SHAPE = {
   head:  { x: 0, y: 0.60, z: 0.68, r: 0.62, sx: 1.06, sy: 0.92 },      // 머리 (몸 앞쪽에 붙음)
-  torso: { x: 0, y: 0.64, z: -0.28, rx: 0.86, ry: 0.66, rz: 0.82 },   // 몸통 (길게 누운 로프형)
-  rump:  { x: 0, y: 0.78, z: -0.82, r: 0.72 },                        // 엉덩이 쪽 볼륨 (등이 뒤로 갈수록 높게)
+  torso: { x: 0, y: 0.64, z: -0.28, rx: 0.86, ry: 0.66, rz: 0.74 },   // 몸통 (길게 누운 로프형)
+  rump:  { x: 0, y: 0.78, z: -0.74, r: 0.72 },                        // 엉덩이 쪽 볼륨 (등이 뒤로 갈수록 높게)
   cheek: { x: 0.39, y: 0.45, z: 1.05, r: 0.31 },                      // 볼주머니 ±x
   ear:   { x: 0.36, y: 1.04, z: 0.62, r: 0.19 },                     // 귀: 구 ±x
   eye:   { x: 0.13, y: 0.68, r: 0.038 },                              // 점 눈 ±x (z = 얼굴 표면)
   mouth: { y: 0.57 },
-  belly: { x: 0, y: 0.22, z: -0.25, rx: 0.68, ry: 0.24, rz: 0.72 },  // 배: 몸통 아래쪽 납작한 구
-  paw:   { x: 0.30, y: 0.13, z0: 0.72, z1: 1.30, r: 0.14 },           // 앞발: 앞으로 뻗은 캡슐 ±x
-  foot:  { x: 0.66, y: 0.11, z: -0.92, r: 0.15 },                     // 뒷발: 옆 뒤쪽 작은 nub ±x
-  butt:  { x: 0.31, y: 0.56, z: -1.27, r: 0.41 },                     // 엉덩이 두 볼 ±x
+  belly: { x: 0, y: 0.22, z: -0.20, rx: 0.68, ry: 0.24, rz: 0.66 },  // 배: 몸통 아래쪽 납작한 구
+  paw:   { x: 0.50, y: 0.14, z: 0.66, r: 0.15 },                     // 앞발: 구 ±x (볼과 0.04 띄움)
+  foot:  { x: 0.66, y: 0.14, z: -0.84, r: 0.15 },                     // 뒷발: 구 ±x                     // 뒷발: 옆 뒤쪽 작은 nub ±x
+  butt:  { x: 0.31, y: 0.56, z: -1.19, r: 0.41 },                     // 엉덩이 두 볼 ±x
 };
 const PAL = {
   body: '#B9BDC7',      // light neutral gray
@@ -331,23 +331,14 @@ for (const side of [-1, 1]) {
   ppomo.add(g);
 }
 
-// front paws — stubby capsules stretched forward along the floor
-for (const side of [-1, 1]) {
-  const s = SHAPE.paw, len = s.z1 - s.z0;
-  const g = part(side < 0 ? 'armL' : 'armR', s.x * side, s.y, (s.z0 + s.z1) / 2);
-  const m = mesh(new THREE.CapsuleGeometry(s.r, len, 12, 32), furMat);
-  m.rotation.x = Math.PI / 2;
-  m.scale.set(1.05, 1, 0.9);
-  g.add(m);
-  ppomo.add(g);
-}
-
-// back feet — small nubs at the rear sides
-for (const side of [-1, 1]) {
-  const s = SHAPE.foot;
-  const g = part(side < 0 ? 'footL' : 'footR', s.x * side, s.y, s.z);
-  g.add(ball(furMat, s.r, 1, 0.8, 1.35));
-  ppomo.add(g);
+// legs — four spheres: front paws beside the cheeks, back feet at the rear sides
+for (const [key, nameL, nameR] of [['paw', 'armL', 'armR'], ['foot', 'footL', 'footR']]) {
+  const s = SHAPE[key];
+  for (const side of [-1, 1]) {
+    const g = part(side < 0 ? nameL : nameR, s.x * side, s.y, s.z);
+    g.add(ball(furMat, s.r));
+    ppomo.add(g);
+  }
 }
 
 // butt — two round cheeks at the back, peach bloom from each
