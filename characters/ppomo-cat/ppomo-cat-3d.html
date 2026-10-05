@@ -99,10 +99,10 @@ const SHAPE = {
   torso: { x: 0, y: 0.64, z: -0.28, rx: 0.86, ry: 0.66, rz: 0.82 },   // 몸통 (길게 누운 로프형)
   rump:  { x: 0, y: 0.78, z: -0.82, r: 0.72 },                        // 엉덩이 쪽 볼륨 (등이 뒤로 갈수록 높게)
   cheek: { x: 0.39, y: 0.45, z: 1.05, r: 0.31 },                      // 볼주머니 ±x
-  ear:   { x: 0.35, y: 1.03, z: 0.60, tilt: 20 },                     // 귀 ±x, 바깥으로 기울기(°)
+  ear:   { x: 0.36, y: 1.04, z: 0.62, r: 0.19 },                     // 귀: 구 ±x
   eye:   { x: 0.13, y: 0.68, r: 0.038 },                              // 점 눈 ±x (z = 얼굴 표면)
   mouth: { y: 0.57 },
-  belly: { x: 0, y: 0.26, rx: 0.27, ry: 0.25 },                       // 가슴 크림 패치 (z = 표면)
+  belly: { x: 0, y: 0.22, z: -0.25, rx: 0.68, ry: 0.24, rz: 0.72 },  // 배: 몸통 아래쪽 납작한 구
   paw:   { x: 0.30, y: 0.13, z0: 0.72, z1: 1.30, r: 0.14 },           // 앞발: 앞으로 뻗은 캡슐 ±x
   foot:  { x: 0.66, y: 0.11, z: -0.92, r: 0.15 },                     // 뒷발: 옆 뒤쪽 작은 nub ±x
   butt:  { x: 0.31, y: 0.56, z: -1.27, r: 0.41 },                     // 엉덩이 두 볼 ±x
@@ -112,7 +112,6 @@ const PAL = {
   cheek: '#F4B3C2',     // soft pink — core of the cheek-pouch bloom
   belly: '#F6E8D2',     // warm cream
   butt: '#F6B9A3',      // soft peach/coral — core of the butt bloom
-  earInner: '#F6C6CF',
   ink: '#3A3A3E',
 };
 const GROUND_Y = 0;
@@ -203,7 +202,6 @@ const silicone = (extra = {}) => new THREE.MeshPhysicalMaterial({
 });
 // every fur part shares one material; its colour comes from per-vertex pastel blooms (see recolor)
 const furMat = silicone({ vertexColors: true });
-const innerEarMat = silicone({ color: PAL.earInner, roughness: 0.65 });
 const inkMat = new THREE.MeshPhysicalMaterial({ color: PAL.ink, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.3 });
 
 // ---------- pastel bloom colour field ----------
@@ -222,10 +220,10 @@ function colorAt(p, base, out) {
     const w = 1 - smooth(b.inner * b.r, b.outer * b.r, p.distanceTo(b.emitter));
     if (w > 0) out.lerp(b.color, w);
   }
-  if (BELLY_FIELD.center) {                       // elliptical chest patch with a soft rim
-    const f = BELLY_FIELD, dx = (p.x - f.center.x) / f.rx, dy = (p.y - f.center.y) / f.ry;
-    const front = smooth(f.zMin, f.zMin + 0.1, p.z);
-    const w = (1 - smooth(0.62, 1.1, Math.hypot(dx, dy))) * front;
+  if (BELLY_FIELD.center) {                       // soft cream underside
+    const f = BELLY_FIELD;
+    const d = Math.hypot((p.x - f.center.x) / f.rx, (p.y - f.center.y) / f.ry, (p.z - f.center.z) / f.rz);
+    const w = 1 - smooth(0.85, 1.25, d);
     if (w > 0) out.lerp(f.color, w);
   }
   return out;
@@ -269,13 +267,6 @@ function ball(mat, r, sx = 1, sy = 1, sz = 1) {
 }
 // a Group placed at the part's centre, so scale() grows the part around itself (빵빵폼)
 function part(name, x, y, z) { const g = new THREE.Group(); g.name = name; g.position.set(x, y, z); return g; }
-// soft cat ear: a rounded triangle turned on a lathe, flattened front-to-back
-function earGeometry(scale = 1) {
-  const pts = [[0, -0.06], [0.2, -0.06], [0.215, 0.02], [0.19, 0.12], [0.13, 0.22], [0.07, 0.29], [0.03, 0.315], [0, 0.32]]
-    .map(([r, y]) => new THREE.Vector2(r * scale, y * scale));
-  return new THREE.LatheGeometry(pts, 48);
-}
-
 // ---------- build ----------
 const ppomo = new THREE.Group(); ppomo.name = 'ppomo';
 scene.add(ppomo);
@@ -299,20 +290,11 @@ for (const side of [-1, 1]) {
   addBloom(PAL.cheek, c, out, s.r);
 }
 
-// ears — soft rounded triangles on top of the head, tilted outward
+// ears — plain spheres on top of the head
 for (const side of [-1, 1]) {
   const s = SHAPE.ear;
   const g = part(side < 0 ? 'earL' : 'earR', s.x * side, s.y, s.z);
-  const outer = mesh(earGeometry(1.12), furMat);
-  outer.scale.set(1, 1, 0.72);
-  g.add(outer);
-  const inner = mesh(earGeometry(0.65), innerEarMat);
-  inner.scale.set(1, 1, 0.3);
-  inner.position.set(0, 0.03, 0.15);
-  inner.castShadow = false;
-  g.add(inner);
-  g.rotation.z = -THREE.MathUtils.degToRad(s.tilt) * side;
-  g.rotation.x = 0.12;
+  g.add(ball(furMat, s.r));
   ppomo.add(g);
 }
 
@@ -340,13 +322,12 @@ for (const side of [-1, 1]) {
   ppomo.add(g);
 }
 
-// chest patch (belly) — cream, soft rim, sits between and under the cheeks
+// belly — flattened cream sphere on the underside of the body
 {
-  const s = SHAPE.belly, z = bodyFrontZ(s.x, s.y);
-  const g = part('belly', s.x, s.y, z - 0.06);
-  g.add(ball(furMat, 1, s.rx, s.ry, 0.12));
-  g.rotation.x = -0.25;
-  Object.assign(BELLY_FIELD, { center: new THREE.Vector3(s.x, s.y, z), rx: s.rx, ry: s.ry, zMin: z - 0.35 });
+  const s = SHAPE.belly;
+  const g = part('belly', s.x, s.y, s.z);
+  g.add(ball(furMat, 1, s.rx, s.ry, s.rz));
+  Object.assign(BELLY_FIELD, { center: new THREE.Vector3(s.x, s.y, s.z), rx: s.rx, ry: s.ry, rz: s.rz });
   ppomo.add(g);
 }
 
