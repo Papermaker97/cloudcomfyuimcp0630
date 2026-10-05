@@ -2,7 +2,7 @@
 <html lang="ko">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ppomo Hamster 3D</title>
+<title>Ppomo Cat 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
@@ -70,7 +70,7 @@
 
 <div id="stage"></div>
 <header>
-  <h1>뽀모 · 햄스터</h1>
+  <h1>뽀모 · 고양이</h1>
   <span>드래그해서 돌려보기 · 휠로 확대</span>
 </header>
 <div class="controls" role="toolbar" aria-label="보기 설정">
@@ -93,51 +93,54 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-// ---------- sphere table (instruction 1 §1.5, body radius = 1, y up, z = forward) ----------
-const SPHERES = {
-  C1:  { x: 0,     y: 0.15,  z: 0,     r: 0.95 },              // 몸통 상부
-  C2:  { x: 0,     y: -0.30, z: -0.15, r: 0.85, sy: 0.85 },    // 몸통 하부 (로프형: 넓고 납작, 뒤로)
-  C3:  { x: -0.70, y: -0.05, z: 0.45,  r: 0.36 },              // 볼주머니 L (r 0.32 → 0.36)
-  C4:  { x: 0.70,  y: -0.05, z: 0.45,  r: 0.36 },
-  C5:  { x: -0.51, y: 1.00,  z: 0,     r: 0.22 },              // 귀 L
-  C6:  { x: 0.51,  y: 1.00,  z: 0,     r: 0.22 },
-  C7:  { x: -0.18, y: 0.18,             r: 0.06 },             // 눈 (z = 표면)
-  C8:  { x: 0.18,  y: 0.18,             r: 0.06 },
-  C9:  { x: -0.90, y: -0.10, z: 0.30,  r: 0.13 },              // 팔
-  C10: { x: 0.90,  y: -0.10, z: 0.30,  r: 0.13 },
-  C11: { x: -0.33, y: -0.92, z: 0.30,  r: 0.16 },              // 발
-  C12: { x: 0.33,  y: -0.92, z: 0.30,  r: 0.16 },
-  C13: { x: 0,     y: -0.45,            r: 0.45, sy: 0.85 },   // 배 패치 (z = 표면)
-  C14: { x: 0,     y: -0.22, z: -0.98, r: 0.10 },              // 꼬리 nub (엉덩이 위로 이동)
-  C15: { r: 0.12 }, C16: { r: 0.12 },                          // 안쪽 귀 (귀 앞면)
-  C19: { x: -0.25, y: -0.62, z: -0.82, r: 0.32 },              // 엉덩이 L (r 0.25 → 0.32, 뒤로 돌출)
-  C20: { x: 0.25,  y: -0.62, z: -0.82, r: 0.32 },
+// ---------- shape table (lying loaf cat, units ≈ head radius 0.6, y up from the floor, z = forward) ----------
+const SHAPE = {
+  head:  { x: 0, y: 0.60, z: 0.68, r: 0.62, sx: 1.06, sy: 0.92 },      // 머리 (몸 앞쪽에 붙음)
+  torso: { x: 0, y: 0.64, z: -0.28, rx: 0.86, ry: 0.66, rz: 0.82 },   // 몸통 (길게 누운 로프형)
+  rump:  { x: 0, y: 0.78, z: -0.82, r: 0.72 },                        // 엉덩이 쪽 볼륨 (등이 뒤로 갈수록 높게)
+  cheek: { x: 0.39, y: 0.45, z: 1.05, r: 0.31 },                      // 볼주머니 ±x
+  ear:   { x: 0.35, y: 1.03, z: 0.60, tilt: 20 },                     // 귀 ±x, 바깥으로 기울기(°)
+  eye:   { x: 0.13, y: 0.68, r: 0.038 },                              // 점 눈 ±x (z = 얼굴 표면)
+  mouth: { y: 0.57 },
+  belly: { x: 0, y: 0.26, rx: 0.27, ry: 0.25 },                       // 가슴 크림 패치 (z = 표면)
+  paw:   { x: 0.30, y: 0.13, z0: 0.72, z1: 1.30, r: 0.14 },           // 앞발: 앞으로 뻗은 캡슐 ±x
+  foot:  { x: 0.66, y: 0.11, z: -0.92, r: 0.15 },                     // 뒷발: 옆 뒤쪽 작은 nub ±x
+  butt:  { x: 0.31, y: 0.56, z: -1.27, r: 0.41 },                     // 엉덩이 두 볼 ±x
 };
 const PAL = {
   body: '#B9BDC7',      // light neutral gray
   cheek: '#F4B3C2',     // soft pink — core of the cheek-pouch bloom
-  belly: '#F6E8D2',     // warm cream (was #F7F5F0)
+  belly: '#F6E8D2',     // warm cream
   butt: '#F6B9A3',      // soft peach/coral — core of the butt bloom
   earInner: '#F6C6CF',
   ink: '#3A3A3E',
 };
-const GROUND_Y = -1.08;
+const GROUND_Y = 0;
+const CENTER = new THREE.Vector3(0, 0.6, -0.15);
 
-// ---------- body = smooth union of C1 + C2 (메타볼처럼 부드럽게) ----------
+// ---------- body = smooth union of head + torso + rump, flat bottom ----------
 const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
-function sdEllipsoid(p, c, r, sy = 1) {
-  const qx = (p.x - c.x) / r, qy = (p.y - c.y) / (r * sy), qz = (p.z - c.z) / r;
-  return (Math.hypot(qx, qy, qz) - 1) * r * Math.min(1, sy);
+const smax = (a, b, k) => -smin(-a, -b, k);
+function sdEllipsoid(p, c, rx, ry, rz) {
+  const k0 = Math.hypot((p.x - c.x) / rx, (p.y - c.y) / ry, (p.z - c.z) / rz);
+  return (k0 - 1) * Math.min(rx, ry, rz);
 }
-const bodySDF = (p) => smin(sdEllipsoid(p, SPHERES.C1, SPHERES.C1.r), sdEllipsoid(p, SPHERES.C2, SPHERES.C2.r, SPHERES.C2.sy), 0.22);
+function bodySDF(p) {
+  const H = SHAPE.head, T = SHAPE.torso, Rm = SHAPE.rump;
+  const head = sdEllipsoid(p, H, H.r * H.sx, H.r * H.sy, H.r);
+  const torso = sdEllipsoid(p, T, T.rx, T.ry, T.rz);
+  const rump = sdEllipsoid(p, Rm, Rm.r, Rm.r, Rm.r);
+  const d = smin(head, smin(torso, rump, 0.35), 0.2);
+  return smax(d, -(p.y - 0.035), 0.12);                      // 바닥은 납작하게
+}
 
 function buildBodyGeometry() {
-  const geo = new THREE.SphereGeometry(1, 160, 120);
+  const geo = new THREE.SphereGeometry(1, 200, 140);
   const pos = geo.attributes.position;
-  const o = new THREE.Vector3(0, -0.1, -0.05), d = new THREE.Vector3(), p = new THREE.Vector3();
+  const o = CENTER.clone(), d = new THREE.Vector3(), p = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
     d.fromBufferAttribute(pos, i).normalize();
-    let t = 2.2;
+    let t = 2.6;
     while (t > 0 && bodySDF(p.copy(d).multiplyScalar(t).add(o)) > 0) t -= 0.02;
     let lo = t, hi = t + 0.02;
     for (let k = 0; k < 24; k++) {
@@ -152,8 +155,8 @@ function buildBodyGeometry() {
 }
 // front surface z of the body at (x, y)
 function bodyFrontZ(x, y) {
-  const p = new THREE.Vector3(x, y, 2);
-  let z = 2; while (z > -2 && bodySDF(p.set(x, y, z)) > 0) z -= 0.005;
+  const p = new THREE.Vector3();
+  let z = 3; while (z > -3 && bodySDF(p.set(x, y, z)) > 0) z -= 0.004;
   return z;
 }
 
@@ -178,16 +181,16 @@ scene.environmentIntensity = 0.35;
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0xdfe1e7, 0.8));
 const sun = new THREE.DirectionalLight(0xfffaf5, 1.05);
-sun.position.set(-1.2, 5, 2.4);
+sun.position.set(-1.6, 5, 2.6);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.radius = 14;
 sun.shadow.blurSamples = 20;
 sun.shadow.bias = -0.002;
-Object.assign(sun.shadow.camera, { left: -2.5, right: 2.5, top: 2.5, bottom: -2.5, near: 0.5, far: 12 });
+Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 14 });
 scene.add(sun);
 
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: 0.14 }));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ opacity: 0.14 }));
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = GROUND_Y;
 ground.receiveShadow = true;
@@ -219,10 +222,10 @@ function colorAt(p, base, out) {
     const w = 1 - smooth(b.inner * b.r, b.outer * b.r, p.distanceTo(b.emitter));
     if (w > 0) out.lerp(b.color, w);
   }
-  if (BELLY_FIELD.center) {                       // elliptical patch with a soft rim
+  if (BELLY_FIELD.center) {                       // elliptical chest patch with a soft rim
     const f = BELLY_FIELD, dx = (p.x - f.center.x) / f.rx, dy = (p.y - f.center.y) / f.ry;
-    const front = smooth(f.zMin, f.zMin + 0.12, p.z);
-    const w = (1 - smooth(0.62, 1.08, Math.hypot(dx, dy))) * front;
+    const front = smooth(f.zMin, f.zMin + 0.1, p.z);
+    const w = (1 - smooth(0.62, 1.1, Math.hypot(dx, dy))) * front;
     if (w > 0) out.lerp(f.color, w);
   }
   return out;
@@ -252,16 +255,26 @@ function bakeRestPositions() {
 
 // ---------- helpers ----------
 const SPHERE_GEO = new THREE.SphereGeometry(1, 64, 48);
-function ball(mat, r, sx = 1, sy = 1, sz = 1) {
+function mesh(geo, mat) {
   const colored = mat === furMat;                  // gradient parts need their own colour buffer
-  const m = new THREE.Mesh(colored ? SPHERE_GEO.clone() : SPHERE_GEO, mat);
+  const m = new THREE.Mesh(colored ? geo.clone() : geo, mat);
   if (colored) COLORED.push(m);
-  m.scale.set(r * sx, r * sy, r * sz);
   m.castShadow = true; m.receiveShadow = true;
   return m;
 }
-// a Group placed at the part's center, so scale() grows the part around itself (빵빵폼)
-function part(name, s) { const g = new THREE.Group(); g.name = name; g.position.set(s.x, s.y, s.z); return g; }
+function ball(mat, r, sx = 1, sy = 1, sz = 1) {
+  const m = mesh(SPHERE_GEO, mat);
+  m.scale.set(r * sx, r * sy, r * sz);
+  return m;
+}
+// a Group placed at the part's centre, so scale() grows the part around itself (빵빵폼)
+function part(name, x, y, z) { const g = new THREE.Group(); g.name = name; g.position.set(x, y, z); return g; }
+// soft cat ear: a rounded triangle turned on a lathe, flattened front-to-back
+function earGeometry(scale = 1) {
+  const pts = [[0, -0.06], [0.2, -0.06], [0.215, 0.02], [0.19, 0.12], [0.13, 0.22], [0.07, 0.29], [0.03, 0.315], [0, 0.32]]
+    .map(([r, y]) => new THREE.Vector2(r * scale, y * scale));
+  return new THREE.LatheGeometry(pts, 48);
+}
 
 // ---------- build ----------
 const ppomo = new THREE.Group(); ppomo.name = 'ppomo';
@@ -274,91 +287,98 @@ COLORED.push(bodyMesh);
 body.add(bodyMesh);
 ppomo.add(body);
 
-// cheek pouches (C3/C4) — pink bloom from the outer front of each pouch
-for (const [side, id] of [[-1, 'C3'], [1, 'C4']]) {
-  const s = SPHERES[id];
-  const g = part(side < 0 ? 'cheekL' : 'cheekR', s);
+const H = SHAPE.head, headC = new THREE.Vector3(H.x, H.y, H.z);
+
+// cheek pouches — big round puffs flanking the face, pink bloom from the front of each
+for (const side of [-1, 1]) {
+  const s = SHAPE.cheek, c = new THREE.Vector3(s.x * side, s.y, s.z);
+  const g = part(side < 0 ? 'cheekL' : 'cheekR', c.x, c.y, c.z);
   g.add(ball(furMat, s.r));
   ppomo.add(g);
-  const c = new THREE.Vector3(s.x, s.y, s.z);
-  addBloom(PAL.cheek, c, c.clone().sub(new THREE.Vector3(0, 0.15, 0)).add(new THREE.Vector3(0, 0, 0.25)), s.r);
+  const out = c.clone().sub(headC).normalize().add(new THREE.Vector3(0, 0, 1.2));
+  addBloom(PAL.cheek, c, out, s.r);
 }
 
-// ears (C5/C6) — round, inner ear (C15/C16) on the front face
-for (const [side, id] of [[-1, 'C5'], [1, 'C6']]) {
-  const s = SPHERES[id];
-  const g = part(side < 0 ? 'earL' : 'earR', s);
-  g.add(ball(furMat, s.r, 1, 1, 0.8));
-  const inner = ball(innerEarMat, SPHERES.C15.r, 1, 1, 0.35);
-  inner.position.set(0, -0.01, s.r * 0.8 - SPHERES.C15.r * 0.25);
+// ears — soft rounded triangles on top of the head, tilted outward
+for (const side of [-1, 1]) {
+  const s = SHAPE.ear;
+  const g = part(side < 0 ? 'earL' : 'earR', s.x * side, s.y, s.z);
+  const outer = mesh(earGeometry(1.12), furMat);
+  outer.scale.set(1, 1, 0.72);
+  g.add(outer);
+  const inner = mesh(earGeometry(0.65), innerEarMat);
+  inner.scale.set(1, 1, 0.3);
+  inner.position.set(0, 0.03, 0.15);
   inner.castShadow = false;
   g.add(inner);
+  g.rotation.z = -THREE.MathUtils.degToRad(s.tilt) * side;
+  g.rotation.x = 0.12;
   ppomo.add(g);
 }
 
-// eyes (C7/C8) on the body surface
-for (const [side, id] of [[-1, 'C7'], [1, 'C8']]) {
-  const s = SPHERES[id];
-  const z = bodyFrontZ(s.x, s.y);
-  const g = part(side < 0 ? 'eyeL' : 'eyeR', { x: s.x, y: s.y, z: z - 0.01 });
-  const e = ball(inkMat, s.r, 1, 1, 0.55); e.castShadow = false;
+// eyes — tiny dots set high between the cheeks
+for (const side of [-1, 1]) {
+  const s = SHAPE.eye, x = s.x * side, z = bodyFrontZ(x, s.y);
+  const g = part(side < 0 ? 'eyeL' : 'eyeR', x, s.y, z - 0.008);
+  const e = ball(inkMat, s.r, 1, 1.1, 0.5); e.castShadow = false;
   g.add(e);
-  g.lookAt(new THREE.Vector3(s.x * 3, s.y, z + 3));
+  g.lookAt(new THREE.Vector3(x * 3, s.y, z + 3));
   ppomo.add(g);
 }
 
-// mouth — small ω from two half-torus arcs
+// mouth — tiny ω between the cheeks
 {
-  const y = -0.05;
+  const y = SHAPE.mouth.y;
   const g = new THREE.Group(); g.name = 'mouth';
-  g.position.set(0, y, bodyFrontZ(0, y) + 0.004);
+  g.position.set(0, y, bodyFrontZ(0, y) + 0.003);
   for (const side of [-1, 1]) {
-    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.009, 10, 32, Math.PI), inkMat);
-    arc.rotation.z = Math.PI;               // open upward → lower half arc
-    arc.position.x = side * 0.045;
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.006, 8, 24, Math.PI), inkMat);
+    arc.rotation.z = Math.PI;               // lower half arc
+    arc.position.x = side * 0.024;
     g.add(arc);
   }
   ppomo.add(g);
 }
 
-// arms (C9/C10), feet (C11/C12)
-for (const [name, id, sz] of [['armL', 'C9', 1.15], ['armR', 'C10', 1.15], ['footL', 'C11', 1.2], ['footR', 'C12', 1.2]]) {
-  const s = SPHERES[id];
-  const g = part(name, s);
-  g.add(ball(furMat, s.r, 1, 0.9, sz));
+// chest patch (belly) — cream, soft rim, sits between and under the cheeks
+{
+  const s = SHAPE.belly, z = bodyFrontZ(s.x, s.y);
+  const g = part('belly', s.x, s.y, z - 0.06);
+  g.add(ball(furMat, 1, s.rx, s.ry, 0.12));
+  g.rotation.x = -0.25;
+  Object.assign(BELLY_FIELD, { center: new THREE.Vector3(s.x, s.y, z), rx: s.rx, ry: s.ry, zMin: z - 0.35 });
   ppomo.add(g);
 }
 
-// belly (C13) — flattened sphere on the lower front
-{
-  const s = SPHERES.C13;
-  const z = bodyFrontZ(s.x, s.y);
-  const g = part('belly', { x: s.x, y: s.y, z: z - 0.075 });
-  g.add(ball(furMat, s.r, 1, s.sy, 0.3));
-  Object.assign(BELLY_FIELD, { center: new THREE.Vector3(s.x, s.y, z), rx: s.r, ry: s.r * s.sy, zMin: z - 0.45 });
-  g.rotation.x = 0.45;   // follow the body: surface leans forward toward the chest
+// front paws — stubby capsules stretched forward along the floor
+for (const side of [-1, 1]) {
+  const s = SHAPE.paw, len = s.z1 - s.z0;
+  const g = part(side < 0 ? 'armL' : 'armR', s.x * side, s.y, (s.z0 + s.z1) / 2);
+  const m = mesh(new THREE.CapsuleGeometry(s.r, len, 12, 32), furMat);
+  m.rotation.x = Math.PI / 2;
+  m.scale.set(1.05, 1, 0.9);
+  g.add(m);
   ppomo.add(g);
 }
 
-// butt (C19 + C20) — one group, two spheres
+// back feet — small nubs at the rear sides
+for (const side of [-1, 1]) {
+  const s = SHAPE.foot;
+  const g = part(side < 0 ? 'footL' : 'footR', s.x * side, s.y, s.z);
+  g.add(ball(furMat, s.r, 1, 0.8, 1.35));
+  ppomo.add(g);
+}
+
+// butt — two round cheeks at the back, peach bloom from each
 {
-  const g = new THREE.Group(); g.name = 'butt';
-  const cx = 0, cy = SPHERES.C19.y, cz = SPHERES.C19.z;
-  g.position.set(cx, cy, cz);
-  for (const id of ['C19', 'C20']) {
-    const s = SPHERES[id], b = ball(furMat, s.r);
-    b.position.set(s.x - cx, s.y - cy, s.z - cz);
+  const s = SHAPE.butt;
+  const g = part('butt', 0, s.y, s.z);
+  for (const side of [-1, 1]) {
+    const b = ball(furMat, s.r);
+    b.position.set(s.x * side, 0, 0);
     g.add(b);
-    const c = new THREE.Vector3(s.x, s.y, s.z);
-    addBloom(PAL.butt, c, new THREE.Vector3(s.x * 0.6, -0.15, -1), s.r, 0.5, 1.5, 0.4);
+    addBloom(PAL.butt, new THREE.Vector3(s.x * side, s.y, s.z), new THREE.Vector3(side * 0.5, -0.1, -1), s.r, 0.5, 1.5, 0.4);
   }
-  ppomo.add(g);
-}
-
-// tail nub (C14)
-{
-  const s = SPHERES.C14, g = part('tail', s);
-  g.add(ball(furMat, s.r * 1.1));
   ppomo.add(g);
 }
 
@@ -366,18 +386,18 @@ bakeRestPositions();
 recolor(PAL.body);
 
 // ---------- camera & controls ----------
-const camera = new THREE.PerspectiveCamera(30, stage.clientWidth / stage.clientHeight, 0.1, 50);
-const TARGET = new THREE.Vector3(0, -0.02, 0);
-camera.position.set(1.7, 0.9, 5.6);
+const camera = new THREE.PerspectiveCamera(30, stage.clientWidth / stage.clientHeight, 0.1, 60);
+const TARGET = new THREE.Vector3(0, 0.55, -0.1);
+camera.position.set(4.6, 2.3, 4.6);       // 3/4 view, face to the left like the references
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(TARGET);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 3;
-controls.maxDistance = 10;
-controls.maxPolarAngle = Math.PI * 0.62;
+controls.minDistance = 4;
+controls.maxDistance = 13;
+controls.maxPolarAngle = Math.PI * 0.55;
 controls.autoRotate = !SHEET && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-controls.autoRotateSpeed = 1.6;
+controls.autoRotateSpeed = 1.4;
 controls.update();
 
 // ---------- UI ----------
@@ -414,7 +434,7 @@ function renderSheet() {
   const labels = document.getElementById('sheet-labels');
   labels.style.display = 'block';
   const W = stage.clientWidth, H = stage.clientHeight, w = W / 2, h = H / 2;
-  const cam = new THREE.OrthographicCamera(-1.45, 1.45, 1.45, -1.45, 0.1, 50);
+  const cam = new THREE.OrthographicCamera(-1.95, 1.95, 1.95, -1.95, 0.1, 60);
   renderer.setScissorTest(true);
   VIEWS.forEach((v, i) => {
     const x = (i % 2) * w, yTop = Math.floor(i / 2) * h;
@@ -438,7 +458,7 @@ if (SHEET) {
 } else {
   const view = VIEWS.find((v) => v.label.toLowerCase().startsWith(params.get('view') || '~'));
   if (view) {
-    camera.position.set(...view.pos).multiplyScalar(5.8).add(TARGET);
+    camera.position.set(...view.pos).multiplyScalar(7.5).add(TARGET);
     camera.up.set(...view.up);
     controls.update();
   }
