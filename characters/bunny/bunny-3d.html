@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ARTIFACT-START -->
+<title>말랑 토끼 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
+<style>
+  /* 레이아웃: 화면 전체가 3D 뷰, 아래쪽에 떠 있는 조작 패널 하나 */
+  :root {
+    --sky: #fdf6f4;
+    --floor: #f3e6e8;
+    --ink: #2a2224;
+    --muted: #8a7a7e;
+    --blush: #f4a9b4;
+    --panel: rgba(255, 255, 255, 0.82);
+    --line: rgba(42, 34, 36, 0.12);
+    --font: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; font-family: var(--font); color: var(--ink);
+    background: radial-gradient(120% 90% at 50% 25%, #ffffff 0%, var(--sky) 55%, var(--floor) 100%);
+  }
+  #view { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+  .panel {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    width: min(560px, calc(100% - 32px)); box-sizing: border-box;
+    background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px;
+    display: grid; gap: 10px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button {
+    font: inherit; font-size: 14px; color: var(--ink); background: #fff;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; cursor: pointer;
+  }
+  button[aria-pressed="true"] { background: var(--blush); border-color: transparent; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .sliders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  label { display: grid; grid-template-columns: 1fr auto; gap: 2px; font-size: 13px; color: var(--muted); min-width: 0; }
+  label b { font-weight: normal; color: var(--ink); font-variant-numeric: tabular-nums; }
+  input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: #e98a99; }
+  .hint { font-size: 12px; color: var(--muted); margin-left: auto; }
+  #busy { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+    font-size: 13px; color: var(--muted); }
+  .tags { position: fixed; inset: 0; pointer-events: none; display: grid;
+    grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  .tags span { padding: 12px 16px; font-size: 14px; color: var(--muted); }
+  body.sheet .panel .sliders, body.sheet .hint { display: none; }
+  @media (max-width: 460px) { .sliders { grid-template-columns: 1fr 1fr 1fr; } .hint { display: none; } }
+</style>
+</head><body><!-- SKELETON -->
+<canvas id="view" aria-label="돌려볼 수 있는 3D 토끼"></canvas>
+<div id="busy">모양 계산 중…</div>
+<div class="tags" id="tags" hidden><span>정면</span><span>측면 (오른쪽)</span><span>후면</span><span>윗면</span></div>
+
+<div class="panel">
+  <div class="row">
+    <button id="spin" aria-pressed="true">자동 회전</button>
+    <button id="outline" aria-pressed="true">외곽선</button>
+    <button id="sheetBtn" aria-pressed="false">4뷰 보기</button>
+    <button id="reset">처음 모양</button>
+    <span class="hint">드래그로 돌리고, 휠·핀치로 확대</span>
+  </div>
+  <div class="sliders">
+    <label for="sCheek">볼 <b id="vCheek">1.00</b><input id="sCheek" type="range" min="0.6" max="1.8" step="0.05" value="1"></label>
+    <label for="sEar">귀 길이 <b id="vEar">1.00</b><input id="sEar" type="range" min="0.6" max="1.4" step="0.05" value="1"></label>
+    <label for="sBelly">배 <b id="vBelly">1.00</b><input id="sBelly" type="range" min="0.6" max="1.6" step="0.05" value="1"></label>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ============================================================
+   SHAPE: 토끼를 이루는 구(타원체) 표.  단위: 머리 높이 반지름 ≈ 0.65
+   좌표계: y = 위, z = 앞(얼굴 쪽), x = 토끼 기준 왼쪽이 −
+   r = [x, y, z] 반지름 (타원체),  rot = [x축, z축] 회전(rad),  k = 녹는 정도
+   ============================================================ */
+const SHAPE = {
+  head:   { c: [0, 1.70, 0],      r: [0.98, 0.66, 0.70], k: 0.20 },
+  body:   { c: [0, 0.62, -0.02],  r: [0.52, 0.56, 0.46], k: 0.20 },
+  belly:  { c: [0, 0.55, 0.20],   r: [0.36, 0.36, 0.28], k: 0.14 },   // 독립 부위
+  earL:   { base: [-0.42, 2.12, -0.06], r: [0.27, 0.50, 0.14], rot: [-0.18, 0.20], k: 0.08 },
+  earR:   { base: [ 0.42, 2.12, -0.06], r: [0.27, 0.50, 0.14], rot: [-0.18, -0.20], k: 0.08 },
+  cheekL: { c: [-0.56, 1.52, 0.42], r: [0.20, 0.17, 0.16], k: 0.12 }, // 독립 부위
+  cheekR: { c: [ 0.56, 1.52, 0.42], r: [0.20, 0.17, 0.16], k: 0.12 }, // 독립 부위
+  armL:   { c: [-0.56, 0.86, 0.06], r: [0.15, 0.24, 0.15], rot: [0, -0.75], k: 0.07 },
+  armR:   { c: [ 0.56, 0.86, 0.06], r: [0.15, 0.24, 0.15], rot: [0,  0.75], k: 0.07 },
+  footL:  { c: [-0.26, 0.13, 0.10], r: [0.19, 0.15, 0.25], k: 0.08 },
+  footR:  { c: [ 0.26, 0.13, 0.10], r: [0.19, 0.15, 0.25], k: 0.08 },
+  tail:   { c: [0, 0.42, -0.46],    r: [0.15, 0.15, 0.13], k: 0.06 },
+  floorY: 0.035, floorK: 0.10,
+};
+// 얼굴 장식 (정면에서 본 x, y. 표면에 자동으로 붙음)
+const FACE = {
+  eyeL: [-0.31, 1.68], eyeR: [0.31, 1.68], eyeSize: [0.062, 0.078, 0.035],
+  mouthY: 1.585, mouthW: 0.095, tongueY: 1.535,
+};
+// 색
+const PAL = {
+  body:   new THREE.Color('#fffaf7'),
+  earIn:  new THREE.Color('#f7c3c9'),
+  cheek:  new THREE.Color('#f6b9bd'),
+  belly:  new THREE.Color('#fffaf7'),
+  eye:    '#1d1718',
+  tongue: '#f08e9b',
+  line:   '#1d1718',
+};
+const DEFAULT_SCALE = { cheekL: 1, cheekR: 1, ears: 1, belly: 1, tail: 1 };
+const scale = { ...DEFAULT_SCALE };
+
+/* ---------------- SDF ---------------- */
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const smax = (a, b, k) => -smin(-a, -b, k);
+// 타원체 거리 근사 (Inigo Quilez)
+function ell(px, py, pz, rx, ry, rz) {
+  const k0 = Math.hypot(px / rx, py / ry, pz / rz);
+  const k1 = Math.hypot(px / (rx * rx), py / (ry * ry), pz / (rz * rz));
+  return k1 === 0 ? -Math.min(rx, ry, rz) : k0 * (k0 - 1) / k1;
+}
+// 회전(x축 a, z축 b)된 로컬 좌표로 변환
+function toLocal(out, x, y, z, c, rot) {
+  let px = x - c[0], py = y - c[1], pz = z - c[2];
+  if (rot) {
+    const [ax, az] = rot;
+    // 역회전: z축 먼저 되돌리고 x축
+    let cz = Math.cos(-az), sz = Math.sin(-az);
+    let qx = px * cz - py * sz, qy = px * sz + py * cz; px = qx; py = qy;
+    let cx = Math.cos(-ax), sx = Math.sin(-ax);
+    let ry = py * cx - pz * sx, rz = py * sx + pz * cx; py = ry; pz = rz;
+  }
+  out[0] = px; out[1] = py; out[2] = pz; return out;
+}
+function rotVec(v, rot) { // 로컬 → 월드 방향
+  const [ax, az] = rot; let [x, y, z] = v;
+  let y1 = y * Math.cos(ax) - z * Math.sin(ax), z1 = y * Math.sin(ax) + z * Math.cos(ax); y = y1; z = z1;
+  let x2 = x * Math.cos(az) - y * Math.sin(az), y2 = x * Math.sin(az) + y * Math.cos(az);
+  return [x2, y2, z];
+}
+
+// 크기 배율을 반영한 실제 부위 목록 (rebuild 때마다 계산)
+let P = {};
+function resolveParts() {
+  const sv = (r, s) => r.map(v => v * s);
+  P = {};
+  for (const k of ['head', 'body', 'armL', 'armR', 'footL', 'footR']) P[k] = { ...SHAPE[k] };
+  P.belly  = { ...SHAPE.belly,  r: sv(SHAPE.belly.r, scale.belly),
+               c: [0, SHAPE.belly.c[1], SHAPE.belly.c[2] + (scale.belly - 1) * 0.12] };
+  P.tail   = { ...SHAPE.tail,   r: sv(SHAPE.tail.r, scale.tail) };
+  P.cheekL = { ...SHAPE.cheekL, r: sv(SHAPE.cheekL.r, scale.cheekL) };
+  P.cheekR = { ...SHAPE.cheekR, r: sv(SHAPE.cheekR.r, scale.cheekR) };
+  for (const k of ['earL', 'earR']) {
+    const e = SHAPE[k]; const ry = e.r[1] * scale.ears;
+    const dir = rotVec([0, 1, 0], e.rot);
+    const c = [e.base[0] + dir[0] * ry * 0.85, e.base[1] + dir[1] * ry * 0.85, e.base[2] + dir[2] * ry * 0.85];
+    P[k] = { ...e, c, r: [e.r[0], ry, e.r[2]] };
+  }
+}
+
+const tmp = [0, 0, 0];
+function partD(p, x, y, z) {
+  toLocal(tmp, x, y, z, p.c, p.rot);
+  return ell(tmp[0], tmp[1], tmp[2], p.r[0], p.r[1], p.r[2]);
+}
+function modelSDF(x, y, z) {
+  let d = partD(P.head, x, y, z);
+  d = smin(d, partD(P.body, x, y, z), P.body.k);
+  d = smin(d, partD(P.belly, x, y, z), P.belly.k);
+  d = smin(d, partD(P.earL, x, y, z), P.earL.k);
+  d = smin(d, partD(P.earR, x, y, z), P.earR.k);
+  d = smin(d, partD(P.cheekL, x, y, z), P.cheekL.k);
+  d = smin(d, partD(P.cheekR, x, y, z), P.cheekR.k);
+  d = smin(d, partD(P.armL, x, y, z), P.armL.k);
+  d = smin(d, partD(P.armR, x, y, z), P.armR.k);
+  d = smin(d, partD(P.footL, x, y, z), P.footL.k);
+  d = smin(d, partD(P.footR, x, y, z), P.footR.k);
+  d = smin(d, partD(P.tail, x, y, z), P.tail.k);
+  return smax(d, -(y - SHAPE.floorY), SHAPE.floorK);   // 평평한 바닥
+}
+function gradient(x, y, z, out) {
+  const e = 0.004;
+  out[0] = modelSDF(x + e, y, z) - modelSDF(x - e, y, z);
+  out[1] = modelSDF(x, y + e, z) - modelSDF(x, y - e, z);
+  out[2] = modelSDF(x, y, z + e) - modelSDF(x, y, z - e);
+  const l = Math.hypot(out[0], out[1], out[2]) || 1;
+  out[0] /= l; out[1] /= l; out[2] /= l; return out;
+}
+
+/* ---------------- 색 = 위치의 함수 ---------------- */
+const sstep = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+const col = new THREE.Color();
+function colorAt(x, y, z) {
+  col.copy(PAL.body);
+  // 귀 안쪽: 귀 로컬 좌표의 앞면 타원 안쪽
+  for (const k of ['earL', 'earR']) {
+    const e = P[k]; toLocal(tmp, x, y, z, e.c, e.rot);
+    const u = tmp[0] / (e.r[0] * 0.58), v = (tmp[1] - e.r[1] * 0.08) / (e.r[1] * 0.70);
+    const w = (1 - sstep(0.75, 1.0, Math.hypot(u, v))) * sstep(0.0, 0.07, tmp[2]);
+    if (w > 0) col.lerp(PAL.earIn, w);
+  }
+  // 볼 터치: 볼 앞쪽 표면 근처에서 퍼짐
+  for (const k of ['cheekL', 'cheekR']) {
+    const c = P[k]; const s = scale[k];
+    const d = Math.hypot(x - c.c[0] * (1 + (s - 1) * 0.15), (y - c.c[1]) * 1.15, z - (c.c[2] + c.r[2]));
+    const w = (1 - sstep(0.06 * s, 0.24 * s, d)) * 0.92;
+    if (w > 0) col.lerp(PAL.cheek, w);
+  }
+  return col;
+}
+
+/* ---------------- 표면 추출 (surface nets) ---------------- */
+const BOUNDS = { min: [-1.35, -0.02, -0.95], max: [1.35, 3.45, 1.05] };
+const STEP = 0.024;
+function buildGeometry() {
+  resolveParts();
+  const [x0, y0, z0] = BOUNDS.min;
+  const nx = Math.ceil((BOUNDS.max[0] - x0) / STEP) + 1;
+  const ny = Math.ceil((BOUNDS.max[1] - y0) / STEP) + 1;
+  const nz = Math.ceil((BOUNDS.max[2] - z0) / STEP) + 1;
+  const N = nx * ny * nz, idx = (i, j, k) => i + nx * (j + ny * k);
+  const val = new Float32Array(N);
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++)
+    val[idx(i, j, k)] = modelSDF(x0 + i * STEP, y0 + j * STEP, z0 + k * STEP);
+
+  const cellV = new Int32Array(N).fill(-1);
+  const pos = [];
+  const corners = [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
+  const edges = [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
+  const cv = new Float32Array(8);
+  for (let k = 0; k < nz - 1; k++) for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    let neg = 0;
+    for (let c = 0; c < 8; c++) { const o = corners[c]; cv[c] = val[idx(i + o[0], j + o[1], k + o[2])]; if (cv[c] < 0) neg++; }
+    if (neg === 0 || neg === 8) continue;
+    let sx = 0, sy = 0, sz = 0, n = 0;
+    for (const [a, b] of edges) {
+      if ((cv[a] < 0) === (cv[b] < 0)) continue;
+      const t = cv[a] / (cv[a] - cv[b]), A = corners[a], B = corners[b];
+      sx += A[0] + (B[0] - A[0]) * t; sy += A[1] + (B[1] - A[1]) * t; sz += A[2] + (B[2] - A[2]) * t; n++;
+    }
+    cellV[idx(i, j, k)] = pos.length / 3;
+    pos.push(x0 + (i + sx / n) * STEP, y0 + (j + sy / n) * STEP, z0 + (k + sz / n) * STEP);
+  }
+  // 부호가 바뀌는 격자 변마다 주변 4칸의 정점으로 사각형
+  const tri = [];
+  const quad = (a, b, c, d, flip) => { if (a < 0 || b < 0 || c < 0 || d < 0) return;
+    if (flip) tri.push(a, c, b, a, d, c); else tri.push(a, b, c, a, c, d); };
+  for (let k = 1; k < nz - 1; k++) for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx - 1; i++) {
+    const v0 = val[idx(i, j, k)] < 0;
+    if (v0 !== (val[idx(i + 1, j, k)] < 0))
+      quad(cellV[idx(i, j-1, k-1)], cellV[idx(i, j, k-1)], cellV[idx(i, j, k)], cellV[idx(i, j-1, k)], !v0);
+    if (v0 !== (val[idx(i, j + 1, k)] < 0))
+      quad(cellV[idx(i-1, j, k-1)], cellV[idx(i-1, j, k)], cellV[idx(i, j, k)], cellV[idx(i, j, k-1)], !v0);
+    if (v0 !== (val[idx(i, j, k + 1)] < 0))
+      quad(cellV[idx(i-1, j-1, k)], cellV[idx(i, j-1, k)], cellV[idx(i, j, k)], cellV[idx(i-1, j, k)], !v0);
+  }
+  const nv = pos.length / 3, nor = new Float32Array(nv * 3), clr = new Float32Array(nv * 3), g = [0, 0, 0];
+  for (let v = 0; v < nv; v++) {
+    const x = pos[v*3], y = pos[v*3+1], z = pos[v*3+2];
+    gradient(x, y, z, g); nor.set(g, v * 3);
+    const c = colorAt(x, y, z); clr[v*3] = c.r; clr[v*3+1] = c.g; clr[v*3+2] = c.b;
+  }
+  // 삼각형 방향을 SDF 기울기에 맞춰 정리
+  for (let t = 0; t < tri.length; t += 3) {
+    const a = tri[t]*3, b = tri[t+1]*3, c = tri[t+2]*3;
+    const ux = pos[b]-pos[a], uy = pos[b+1]-pos[a+1], uz = pos[b+2]-pos[a+2];
+    const wx = pos[c]-pos[a], wy = pos[c+1]-pos[a+1], wz = pos[c+2]-pos[a+2];
+    const fx = uy*wz-uz*wy, fy = uz*wx-ux*wz, fz = ux*wy-uy*wx;
+    if (fx*(nor[a]+nor[b]+nor[c]) + fy*(nor[a+1]+nor[b+1]+nor[c+1]) + fz*(nor[a+2]+nor[b+2]+nor[c+2]) < 0) {
+      const s = tri[t+1]; tri[t+1] = tri[t+2]; tri[t+2] = s;
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(clr, 3));
+  geo.setIndex(tri);
+  return geo;
+}
+
+/* ---------------- 장면 ---------------- */
+const canvas = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xf2dfe2, 0.55));
+const sun = new THREE.DirectionalLight(0xfff4ea, 1.25);
+sun.position.set(2.5, 6, 4); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 6; sun.shadow.bias = -0.0005;
+Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 4, bottom: -2, near: 0.5, far: 20 });
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xfff0f2, 0.7);   // 뒤쪽이 너무 어둡지 않게
+fill.position.set(-3, 3, -5); scene.add(fill);
+
+const ground = new THREE.Mesh(new THREE.CircleGeometry(4, 64), new THREE.ShadowMaterial({ opacity: 0.12 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+const bunny = new THREE.Group(); scene.add(bunny);
+const skinMat = new THREE.MeshPhysicalMaterial({
+  vertexColors: true, roughness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.5,
+  sheen: 0.4, sheenRoughness: 0.8, sheenColor: new THREE.Color('#ffe9ec'),
+});
+// 일러스트의 굵은 검정 외곽선: 법선 방향으로 부풀린 뒷면 메쉬
+const lineMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide,
+  uniforms: { thick: { value: 0.022 }, color: { value: new THREE.Color(PAL.line) } },
+  vertexShader: `uniform float thick; void main(){ vec3 p = position + normal * thick;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
+  fragmentShader: `uniform vec3 color; void main(){ gl_FragColor = vec4(color, 1.0); }`,
+});
+const skin = new THREE.Mesh(new THREE.BufferGeometry(), skinMat);
+skin.castShadow = true; skin.receiveShadow = true;
+const hull = new THREE.Mesh(skin.geometry, lineMat);
+const face = new THREE.Group();
+bunny.add(skin, hull, face);
+
+const eyeMat = new THREE.MeshPhysicalMaterial({ color: PAL.eye, roughness: 0.25, clearcoat: 1 });
+const tongueMat = new THREE.MeshPhysicalMaterial({ color: PAL.tongue, roughness: 0.5 });
+const mouthMat = new THREE.MeshBasicMaterial({ color: PAL.line });
+
+// 정면(+z)에서 쏘아 표면 찾기
+function surfaceAt(x, y) {
+  let z = 2.2;
+  for (let i = 0; i < 160; i++) { const d = modelSDF(x, y, z); if (d < 1e-4) break; z -= Math.max(d * 0.9, 1e-4); }
+  const n = gradient(x, y, z, [0, 0, 0]);
+  return { p: new THREE.Vector3(x, y, z), n: new THREE.Vector3(...n) };
+}
+const Z = new THREE.Vector3(0, 0, 1);
+function buildFace() {
+  face.clear();
+  const sph = new THREE.SphereGeometry(1, 32, 20);
+  for (const key of ['eyeL', 'eyeR']) {
+    const [x, y] = FACE[key]; const s = surfaceAt(x, y);
+    const m = new THREE.Mesh(sph, eyeMat);
+    m.scale.set(...FACE.eyeSize);
+    m.quaternion.setFromUnitVectors(Z, s.n);
+    m.position.copy(s.p).addScaledVector(s.n, -0.006);
+    face.add(m);
+  }
+  // ω 모양 입: 곡선 점들을 표면에 붙여 튜브로
+  const w = FACE.mouthW, y0 = FACE.mouthY, pts = [];
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24, x = (t * 2 - 1) * w;
+    const y = y0 - 0.032 * Math.abs(Math.sin(t * Math.PI * 2)) + 0.012;
+    const s = surfaceAt(x, y); pts.push(s.p.addScaledVector(s.n, 0.004));
+  }
+  face.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.012, 8), mouthMat));
+  for (const end of [pts[0], pts[pts.length - 1]]) {
+    const cap = new THREE.Mesh(sph, mouthMat); cap.scale.setScalar(0.012); cap.position.copy(end); face.add(cap);
+  }
+  // 코: 입 가운데 위 작은 점
+  const ns = surfaceAt(0, y0 + 0.022);
+  const nose = new THREE.Mesh(sph, eyeMat); nose.scale.set(0.028, 0.018, 0.014);
+  nose.quaternion.setFromUnitVectors(Z, ns.n); nose.position.copy(ns.p); face.add(nose);
+  // 혀
+  const ts = surfaceAt(0, FACE.tongueY);
+  const tongue = new THREE.Mesh(sph, tongueMat); tongue.scale.set(0.048, 0.038, 0.02);
+  tongue.quaternion.setFromUnitVectors(Z, ts.n); tongue.position.copy(ts.p).addScaledVector(ts.n, -0.004);
+  face.add(tongue);
+}
+
+const busy = document.getElementById('busy');
+function rebuild() {
+  const old = skin.geometry;
+  const geo = buildGeometry();
+  skin.geometry = geo; hull.geometry = geo; old.dispose();
+  buildFace();
+  busy.hidden = true;
+}
+let pending = 0;
+function scheduleRebuild() {
+  busy.hidden = false; clearTimeout(pending);
+  pending = setTimeout(() => requestAnimationFrame(rebuild), 60);
+}
+
+/* ---------------- 카메라 / 4뷰 ---------------- */
+const persp = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+persp.position.set(2.2, 2.4, 6.6);
+const controls = new OrbitControls(persp, canvas);
+controls.target.set(0, 1.45, 0); controls.enableDamping = true;
+controls.minDistance = 3; controls.maxDistance = 14; controls.maxPolarAngle = Math.PI * 0.55;
+controls.autoRotate = true; controls.autoRotateSpeed = 1.6;
+controls.update();
+
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 50);
+const SHEET = [
+  { pos: [0, 1.6, 10],  up: [0, 1, 0],  look: [0, 1.6, 0] },  // 정면
+  { pos: [10, 1.6, 0],  up: [0, 1, 0],  look: [0, 1.6, 0] },  // 측면
+  { pos: [0, 1.6, -10], up: [0, 1, 0],  look: [0, 1.6, 0] },  // 후면
+  { pos: [0, 10, 0],    up: [0, 0, -1], look: [0, 0, 0] },    // 윗면
+];
+let sheet = /[?&]sheet\b/.test(location.search) || location.hash === '#sheet';
+
+function size() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  persp.aspect = w / h;
+  // 좁은 화면에서도 토끼 전체가 보이게
+  persp.fov = w / h < 0.8 ? 48 : 32;
+  persp.updateProjectionMatrix();
+}
+addEventListener('resize', size);
+
+function render() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!sheet) {
+    renderer.setScissorTest(false); renderer.setViewport(0, 0, w, h);
+    controls.update(); renderer.render(scene, persp); return;
+  }
+  renderer.setScissorTest(true);
+  const hw = w / 2, hh = h / 2, half = 1.95, asp = hw / hh;
+  SHEET.forEach((v, i) => {
+    const x = (i % 2) * hw, y = (i < 2 ? hh : 0);
+    renderer.setViewport(x, y, hw, hh); renderer.setScissor(x, y, hw, hh);
+    const sx = asp >= 1 ? half * asp : half, sy = asp >= 1 ? half : half / asp;
+    Object.assign(ortho, { left: -sx, right: sx, top: sy, bottom: -sy });
+    ortho.position.set(...v.pos); ortho.up.set(...v.up); ortho.lookAt(...v.look);
+    ortho.updateProjectionMatrix();
+    ground.visible = i !== 3;        // 윗면에서는 그림자 끄기
+    renderer.render(scene, ortho);
+  });
+  ground.visible = true;
+}
+renderer.setAnimationLoop(render);
+
+/* ---------------- UI ---------------- */
+const $ = id => document.getElementById(id);
+const toggle = (btn, on) => btn.setAttribute('aria-pressed', String(on));
+$('spin').onclick = () => { controls.autoRotate = !controls.autoRotate; toggle($('spin'), controls.autoRotate); };
+$('outline').onclick = () => { hull.visible = !hull.visible; toggle($('outline'), hull.visible); };
+function setSheet(on) {
+  sheet = on; toggle($('sheetBtn'), on); $('tags').hidden = !on;
+  document.body.classList.toggle('sheet', on);
+}
+$('sheetBtn').onclick = () => setSheet(!sheet);
+
+const sliders = [
+  ['sCheek', 'vCheek', v => { scale.cheekL = v; scale.cheekR = v; }],
+  ['sEar', 'vEar', v => { scale.ears = v; }],
+  ['sBelly', 'vBelly', v => { scale.belly = v; }],
+];
+for (const [s, o, apply] of sliders) {
+  $(s).addEventListener('input', () => { const v = +$(s).value; $(o).textContent = v.toFixed(2); apply(v); scheduleRebuild(); });
+}
+$('reset').onclick = () => {
+  Object.assign(scale, DEFAULT_SCALE);
+  for (const [s, o] of sliders) { $(s).value = 1; $(o).textContent = '1.00'; }
+  scheduleRebuild();
+};
+
+// 콘솔용: Bunny.setScale('cheekL', 1.4), Bunny.shape() 로 형태표 JSON
+window.Bunny = {
+  SHAPE, PAL, FACE, scale,
+  setScale(part, v) { if (!(part in scale)) throw new Error('부위: ' + Object.keys(scale).join(', ')); scale[part] = v; rebuild(); },
+  rebuild,
+  shape() { resolveParts(); return JSON.stringify(P, null, 2); },
+};
+
+size();
+setSheet(sheet);
+rebuild();
+</script>
+<!-- ARTIFACT-END -->
+</body>
+</html>
