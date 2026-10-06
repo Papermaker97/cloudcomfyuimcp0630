@@ -104,7 +104,7 @@ const SHAPE = {
   mouth: { y: 0.57 },
   belly: { x: 0, y: 0.22, z: -0.20, rx: 0.68, ry: 0.24, rz: 0.66 },  // 배: 몸통 아래쪽 납작한 구
   paw:   { x: 0.50, y: 0.14, z: 0.66, r: 0.15 },                     // 앞발: 구 ±x (볼과 0.04 띄움)
-  foot:  { x: 0.66, y: 0.14, z: -0.84, r: 0.15 },                     // 뒷발: 구 ±x                     // 뒷발: 옆 뒤쪽 작은 nub ±x
+  foot:  { x: 0.66, y: 0.14, z: -0.84, r: 0.15 },                     // 뒷발: 구 ±x
   butt:  { x: 0.31, y: 0.56, z: -1.19, r: 0.41 },                     // 엉덩이 두 볼 ±x
 };
 const PAL = {
@@ -115,47 +115,120 @@ const PAL = {
   ink: '#3A3A3E',
 };
 const GROUND_Y = 0;
-const CENTER = new THREE.Vector3(0, 0.6, -0.15);
 
-// ---------- body = smooth union of head + torso + rump, flat bottom ----------
+// ---------- metaball-style field ----------
+// Every part is its own element (like a Blender metaball element) with its own scale.
+// The surface is the smooth union of all of them, so seams melt together.
+const SCALE = { cheekL: 1, cheekR: 1, belly: 1, butt: 1 };   // 빵빵폼: change these, then rebuild()
+const BLEND = { body: 0.2, rump: 0.35, cheek: 0.1, ear: 0.07, leg: 0.08, belly: 0.12, butt: 0.12, floor: 0.12 };
 const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
 const smax = (a, b, k) => -smin(-a, -b, k);
-function sdEllipsoid(p, c, rx, ry, rz) {
-  const k0 = Math.hypot((p.x - c.x) / rx, (p.y - c.y) / ry, (p.z - c.z) / rz);
-  return (k0 - 1) * Math.min(rx, ry, rz);
-}
-function bodySDF(p) {
-  const H = SHAPE.head, T = SHAPE.torso, Rm = SHAPE.rump;
-  const head = sdEllipsoid(p, H, H.r * H.sx, H.r * H.sy, H.r);
-  const torso = sdEllipsoid(p, T, T.rx, T.ry, T.rz);
-  const rump = sdEllipsoid(p, Rm, Rm.r, Rm.r, Rm.r);
-  const d = smin(head, smin(torso, rump, 0.35), 0.2);
-  return smax(d, -(p.y - 0.035), 0.12);                      // 바닥은 납작하게
+const ell = (x, y, z, cx, cy, cz, rx, ry, rz) =>
+  (Math.hypot((x - cx) / rx, (y - cy) / ry, (z - cz) / rz) - 1) * Math.min(rx, ry, rz);
+const sph = (x, y, z, cx, cy, cz, r) => Math.hypot(x - cx, y - cy, z - cz) - r;
+
+function modelSDF(x, y, z) {
+  const H = SHAPE.head, T = SHAPE.torso, Rm = SHAPE.rump, C = SHAPE.cheek, E = SHAPE.ear;
+  const P = SHAPE.paw, F = SHAPE.foot, B = SHAPE.butt, Be = SHAPE.belly;
+  let d = smin(
+    ell(x, y, z, H.x, H.y, H.z, H.r * H.sx, H.r * H.sy, H.r),
+    smin(ell(x, y, z, T.x, T.y, T.z, T.rx, T.ry, T.rz), sph(x, y, z, Rm.x, Rm.y, Rm.z, Rm.r), BLEND.rump),
+    BLEND.body);
+  const bs = SCALE.belly;
+  d = smin(d, ell(x, y, z, Be.x, Be.y, Be.z, Be.rx * bs, Be.ry * bs, Be.rz * bs), BLEND.belly);
+  d = smin(d, sph(x, y, z, -C.x, C.y, C.z, C.r * SCALE.cheekL), BLEND.cheek);
+  d = smin(d, sph(x, y, z, C.x, C.y, C.z, C.r * SCALE.cheekR), BLEND.cheek);
+  for (const sx of [-1, 1]) {
+    d = smin(d, sph(x, y, z, E.x * sx, E.y, E.z, E.r), BLEND.ear);
+    d = smin(d, sph(x, y, z, P.x * sx, P.y, P.z, P.r), BLEND.leg);
+    d = smin(d, sph(x, y, z, F.x * sx, F.y, F.z, F.r), BLEND.leg);
+    d = smin(d, sph(x, y, z, B.x * sx, B.y, B.z, B.r * SCALE.butt), BLEND.butt);
+  }
+  return smax(d, -(y - 0.035), BLEND.floor);                 // 바닥은 납작하게
 }
 
-function buildBodyGeometry() {
-  const geo = new THREE.SphereGeometry(1, 200, 140);
-  const pos = geo.attributes.position;
-  const o = CENTER.clone(), d = new THREE.Vector3(), p = new THREE.Vector3();
-  for (let i = 0; i < pos.count; i++) {
-    d.fromBufferAttribute(pos, i).normalize();
-    let t = 2.6;
-    while (t > 0 && bodySDF(p.copy(d).multiplyScalar(t).add(o)) > 0) t -= 0.02;
-    let lo = t, hi = t + 0.02;
-    for (let k = 0; k < 24; k++) {
-      const m = (lo + hi) / 2;
-      if (bodySDF(p.copy(d).multiplyScalar(m).add(o)) > 0) hi = m; else lo = m;
+// ---------- surface extraction (naive surface nets + projection onto the field) ----------
+function meshField(f, min, max, h) {
+  const nx = Math.ceil((max[0] - min[0]) / h), ny = Math.ceil((max[1] - min[1]) / h), nz = Math.ceil((max[2] - min[2]) / h);
+  const sx = nx + 1, sxy = (nx + 1) * (ny + 1);
+  const val = new Float32Array(sxy * (nz + 1));
+  for (let k = 0; k <= nz; k++) for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++)
+    val[i + sx * j + sxy * k] = f(min[0] + i * h, min[1] + j * h, min[2] + k * h);
+
+  const cellV = new Int32Array(nx * ny * nz).fill(-1);
+  const cellIdx = (i, j, k) => i + nx * (j + ny * k);
+  const pos = [];
+  const EDGES = [];
+  for (let a = 0; a < 8; a++) for (const bit of [1, 2, 4]) if (!(a & bit)) EDGES.push([a, a | bit]);
+  const cv = new Float32Array(8);
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    let mask = 0;
+    for (let c = 0; c < 8; c++) {
+      const v = val[(i + (c & 1)) + sx * (j + ((c >> 1) & 1)) + sxy * (k + ((c >> 2) & 1))];
+      cv[c] = v; if (v < 0) mask |= 1 << c;
     }
-    p.copy(d).multiplyScalar(lo).add(o);
-    pos.setXYZ(i, p.x, p.y, p.z);
+    if (mask === 0 || mask === 255) continue;
+    let px = 0, py = 0, pz = 0, n = 0;
+    for (const [a, b] of EDGES) {
+      if ((cv[a] < 0) === (cv[b] < 0)) continue;
+      const t = cv[a] / (cv[a] - cv[b]);
+      px += (a & 1) + t * ((b & 1) - (a & 1));
+      py += ((a >> 1) & 1) + t * (((b >> 1) & 1) - ((a >> 1) & 1));
+      pz += ((a >> 2) & 1) + t * (((b >> 2) & 1) - ((a >> 2) & 1));
+      n++;
+    }
+    cellV[cellIdx(i, j, k)] = pos.length / 3;
+    pos.push(min[0] + (i + px / n) * h, min[1] + (j + py / n) * h, min[2] + (k + pz / n) * h);
   }
-  geo.computeVertexNormals();
+
+  const idx = [];
+  const dims = [nx, ny, nz];
+  for (let k = 0; k <= nz; k++) for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) {
+    const g = [i, j, k], v0 = val[i + sx * j + sxy * k];
+    for (let ax = 0; ax < 3; ax++) {
+      const u = (ax + 1) % 3, w = (ax + 2) % 3;
+      if (g[ax] >= dims[ax] || g[u] < 1 || g[w] < 1 || g[u] >= dims[u] || g[w] >= dims[w]) continue;
+      const g2 = g.slice(); g2[ax]++;
+      const v1 = val[g2[0] + sx * g2[1] + sxy * g2[2]];
+      if ((v0 < 0) === (v1 < 0)) continue;
+      const cell = (du, dw) => { const c = g.slice(); c[u] -= du; c[w] -= dw; return cellV[cellIdx(c[0], c[1], c[2])]; };
+      const a = cell(1, 1), b = cell(0, 1), c = cell(0, 0), d = cell(1, 0);
+      if (a < 0 || b < 0 || c < 0 || d < 0) continue;
+      if (v0 < 0) idx.push(a, b, c, a, c, d); else idx.push(a, c, b, a, d, c);
+    }
+  }
+
+  // pull each vertex onto the true surface and take normals from the field gradient
+  const nrm = new Float32Array(pos.length), e = h * 0.25;
+  for (let q = 0; q < pos.length; q += 3) {
+    let x = pos[q], y = pos[q + 1], z = pos[q + 2], gx = 0, gy = 0, gz = 0;
+    for (let it = 0; it < 3; it++) {
+      const d = f(x, y, z);
+      gx = f(x + e, y, z) - f(x - e, y, z); gy = f(x, y + e, z) - f(x, y - e, z); gz = f(x, y, z + e) - f(x, y, z - e);
+      const gl = Math.hypot(gx, gy, gz) || 1; gx /= gl; gy /= gl; gz /= gl;
+      x -= d * gx; y -= d * gy; z -= d * gz;
+    }
+    pos[q] = x; pos[q + 1] = y; pos[q + 2] = z;
+    nrm[q] = gx; nrm[q + 1] = gy; nrm[q + 2] = gz;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  geo.setIndex(idx);
+  // make winding agree with the outward normals
+  const ia = idx[0] * 3, ib = idx[1] * 3, ic = idx[2] * 3;
+  const A = new THREE.Vector3(pos[ia], pos[ia + 1], pos[ia + 2]), Bv = new THREE.Vector3(pos[ib], pos[ib + 1], pos[ib + 2]), Cv = new THREE.Vector3(pos[ic], pos[ic + 1], pos[ic + 2]);
+  const fn = Bv.sub(A).cross(Cv.sub(A));
+  if (fn.dot(new THREE.Vector3(nrm[ia], nrm[ia + 1], nrm[ia + 2])) < 0) {
+    for (let t = 0; t < idx.length; t += 3) { const tmp = idx[t + 1]; idx[t + 1] = idx[t + 2]; idx[t + 2] = tmp; }
+    geo.setIndex(idx);
+  }
   return geo;
 }
-// front surface z of the body at (x, y)
+const BOUNDS = { min: [-1.1, -0.02, -1.85], max: [1.1, 1.66, 1.6] };   // room for ×1.3 cheeks, ×1.25 belly/butt
+// front surface z of the model at (x, y)
 function bodyFrontZ(x, y) {
-  const p = new THREE.Vector3();
-  let z = 3; while (z > -3 && bodySDF(p.set(x, y, z)) > 0) z -= 0.004;
+  let z = 3; while (z > -3 && modelSDF(x, y, z) > 0) z -= 0.004;
   return z;
 }
 
@@ -228,134 +301,89 @@ function colorAt(p, base, out) {
   }
   return out;
 }
-const COLORED = [];   // meshes whose vertex colours follow the field
-function recolor(baseHex) {
+function colorizeGeometry(geo, baseHex) {
   const base = new THREE.Color(baseHex), c = new THREE.Color(), p = new THREE.Vector3();
-  for (const m of COLORED) {
-    const rest = m.userData.restPos, col = m.geometry.attributes.color;
-    for (let i = 0; i < col.count; i++) {
-      colorAt(p.fromArray(rest, i * 3), base, c);
-      col.setXYZ(i, c.r, c.g, c.b);
-    }
-    col.needsUpdate = true;
+  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    colorAt(p.fromBufferAttribute(pos, i), base, c);
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
   }
-}
-function bakeRestPositions() {
-  ppomo.updateMatrixWorld(true);
-  const v = new THREE.Vector3();
-  for (const m of COLORED) {
-    const pos = m.geometry.attributes.position, rest = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld).toArray(rest, i * 3);
-    m.userData.restPos = rest;
-    m.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
-  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 }
 
 // ---------- helpers ----------
-const SPHERE_GEO = new THREE.SphereGeometry(1, 64, 48);
-function mesh(geo, mat) {
-  const colored = mat === furMat;                  // gradient parts need their own colour buffer
-  const m = new THREE.Mesh(colored ? geo.clone() : geo, mat);
-  if (colored) COLORED.push(m);
-  m.castShadow = true; m.receiveShadow = true;
-  return m;
-}
+const SPHERE_GEO = new THREE.SphereGeometry(1, 48, 32);
 function ball(mat, r, sx = 1, sy = 1, sz = 1) {
-  const m = mesh(SPHERE_GEO, mat);
+  const m = new THREE.Mesh(SPHERE_GEO, mat);
   m.scale.set(r * sx, r * sy, r * sz);
   return m;
 }
-// a Group placed at the part's centre, so scale() grows the part around itself (빵빵폼)
 function part(name, x, y, z) { const g = new THREE.Group(); g.name = name; g.position.set(x, y, z); return g; }
 // ---------- build ----------
 const ppomo = new THREE.Group(); ppomo.name = 'ppomo';
 scene.add(ppomo);
 
+// colour blooms follow the current part scales
+function setupBlooms() {
+  BLOOMS.length = 0;
+  const H = SHAPE.head, headC = new THREE.Vector3(H.x, H.y, H.z), C = SHAPE.cheek, B = SHAPE.butt, Be = SHAPE.belly;
+  for (const [side, key] of [[-1, 'cheekL'], [1, 'cheekR']]) {
+    const c = new THREE.Vector3(C.x * side, C.y, C.z);
+    addBloom(PAL.cheek, c, c.clone().sub(headC).normalize().add(new THREE.Vector3(0, 0, 1.2)), C.r * SCALE[key]);
+  }
+  for (const side of [-1, 1])
+    addBloom(PAL.butt, new THREE.Vector3(B.x * side, B.y, B.z), new THREE.Vector3(side * 0.5, -0.1, -1), B.r * SCALE.butt, 0.5, 1.5, 0.4);
+  const bs = SCALE.belly;
+  Object.assign(BELLY_FIELD, { center: new THREE.Vector3(Be.x, Be.y, Be.z), rx: Be.rx * bs, ry: Be.ry * bs, rz: Be.rz * bs });
+}
+
 const body = new THREE.Group(); body.name = 'body';
-const bodyMesh = new THREE.Mesh(buildBodyGeometry(), furMat);
+const bodyMesh = new THREE.Mesh(new THREE.BufferGeometry(), furMat);
 bodyMesh.castShadow = true; bodyMesh.receiveShadow = true;
-COLORED.push(bodyMesh);
 body.add(bodyMesh);
 ppomo.add(body);
-
-const H = SHAPE.head, headC = new THREE.Vector3(H.x, H.y, H.z);
-
-// cheek pouches — big round puffs flanking the face, pink bloom from the front of each
-for (const side of [-1, 1]) {
-  const s = SHAPE.cheek, c = new THREE.Vector3(s.x * side, s.y, s.z);
-  const g = part(side < 0 ? 'cheekL' : 'cheekR', c.x, c.y, c.z);
-  g.add(ball(furMat, s.r));
-  ppomo.add(g);
-  const out = c.clone().sub(headC).normalize().add(new THREE.Vector3(0, 0, 1.2));
-  addBloom(PAL.cheek, c, out, s.r);
+let baseColor = PAL.body;
+function rebuild() {
+  setupBlooms();
+  const geo = meshField(modelSDF, BOUNDS.min, BOUNDS.max, 0.02);
+  colorizeGeometry(geo, baseColor);
+  bodyMesh.geometry.dispose();
+  bodyMesh.geometry = geo;
 }
+function recolor(hex) { baseColor = hex; colorizeGeometry(bodyMesh.geometry, hex); }
 
-// ears — plain spheres on top of the head
+// eyes (tiny dots set high between the cheeks) and mouth (tiny ω) sit on the face surface,
+// so they are re-placed whenever the field changes
+const face = [];
 for (const side of [-1, 1]) {
-  const s = SHAPE.ear;
-  const g = part(side < 0 ? 'earL' : 'earR', s.x * side, s.y, s.z);
-  g.add(ball(furMat, s.r));
+  const g = new THREE.Group(); g.name = side < 0 ? 'eyeL' : 'eyeR';
+  g.add(ball(inkMat, SHAPE.eye.r, 1, 1.1, 0.5));
   ppomo.add(g);
+  face.push(() => {
+    const x = SHAPE.eye.x * side, y = SHAPE.eye.y, z = bodyFrontZ(x, y);
+    g.position.set(x, y, z - 0.008);
+    g.lookAt(new THREE.Vector3(x * 3, y, z + 3));
+  });
 }
-
-// eyes — tiny dots set high between the cheeks
-for (const side of [-1, 1]) {
-  const s = SHAPE.eye, x = s.x * side, z = bodyFrontZ(x, s.y);
-  const g = part(side < 0 ? 'eyeL' : 'eyeR', x, s.y, z - 0.008);
-  const e = ball(inkMat, s.r, 1, 1.1, 0.5); e.castShadow = false;
-  g.add(e);
-  g.lookAt(new THREE.Vector3(x * 3, s.y, z + 3));
-  ppomo.add(g);
-}
-
-// mouth — tiny ω between the cheeks
 {
-  const y = SHAPE.mouth.y;
   const g = new THREE.Group(); g.name = 'mouth';
-  g.position.set(0, y, bodyFrontZ(0, y) + 0.003);
   for (const side of [-1, 1]) {
     const arc = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.006, 8, 24, Math.PI), inkMat);
-    arc.rotation.z = Math.PI;               // lower half arc
+    arc.rotation.z = Math.PI;
     arc.position.x = side * 0.024;
     g.add(arc);
   }
   ppomo.add(g);
+  face.push(() => { const y = SHAPE.mouth.y; g.position.set(0, y, bodyFrontZ(0, y) + 0.003); });
 }
+const placeFace = () => face.forEach((f) => f());
+placeFace();
 
-// belly — flattened cream sphere on the underside of the body
-{
-  const s = SHAPE.belly;
-  const g = part('belly', s.x, s.y, s.z);
-  g.add(ball(furMat, 1, s.rx, s.ry, s.rz));
-  Object.assign(BELLY_FIELD, { center: new THREE.Vector3(s.x, s.y, s.z), rx: s.rx, ry: s.ry, rz: s.rz });
-  ppomo.add(g);
-}
-
-// legs — four spheres: front paws beside the cheeks, back feet at the rear sides
-for (const [key, nameL, nameR] of [['paw', 'armL', 'armR'], ['foot', 'footL', 'footR']]) {
-  const s = SHAPE[key];
-  for (const side of [-1, 1]) {
-    const g = part(side < 0 ? nameL : nameR, s.x * side, s.y, s.z);
-    g.add(ball(furMat, s.r));
-    ppomo.add(g);
-  }
-}
-
-// butt — two round cheeks at the back, peach bloom from each
-{
-  const s = SHAPE.butt;
-  const g = part('butt', 0, s.y, s.z);
-  for (const side of [-1, 1]) {
-    const b = ball(furMat, s.r);
-    b.position.set(s.x * side, 0, 0);
-    g.add(b);
-    addBloom(PAL.butt, new THREE.Vector3(s.x * side, s.y, s.z), new THREE.Vector3(side * 0.5, -0.1, -1), s.r, 0.5, 1.5, 0.4);
-  }
-  ppomo.add(g);
-}
-
-bakeRestPositions();
-recolor(PAL.body);
+// per-part scale (빵빵폼): e.g. ppomo.setScale('cheekL', 1.3) — the field is re-meshed so seams stay smooth
+window.ppomo = {
+  setScale(name, s) { if (!(name in SCALE)) throw new Error(`unknown part ${name}`); SCALE[name] = s; rebuild(); placeFace(); },
+  scales: SCALE,
+};
 
 // ---------- camera & controls ----------
 const camera = new THREE.PerspectiveCamera(30, stage.clientWidth / stage.clientHeight, 0.1, 60);
