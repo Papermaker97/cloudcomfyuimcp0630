@@ -351,6 +351,7 @@ function rebuild() {
   bodyMesh.geometry = geo;
 }
 function recolor(hex) { baseColor = hex; colorizeGeometry(bodyMesh.geometry, hex); }
+rebuild();
 
 // eyes (tiny dots set high between the cheeks) and mouth (tiny ω) sit on the face surface,
 // so they are re-placed whenever the field changes
