@@ -456,6 +456,19 @@
       const open = s => { wOpen = ss(0, 0.75, s); return openR(s); };
       commit({ title: '날개를 펼쳐 완성', desc: '날개를 수평으로 펼치면 종이학이 완성됩니다. 드래그해서 돌려 보세요.' }, open, { flat: false, mode: '3d' });
       steps[steps.length - 1].wings = { fw, bw };
+      // flapping: extra rotation of each wing about its hinge, positive alpha = wing tips up
+      const fin = steps[steps.length - 1], Topen = fin.Tend;
+      const upSign = ids => {
+        let best = null, far = -1;
+        fin.facets.forEach((f, i) => { if (!ids.has(f.id)) return; f.poly.forEach(p => { const w = apply(Topen[i], [p[0], p[1], 0]); const r = Math.hypot(w[1] - P[1], w[2] - P[2]); if (r > far) { far = r; best = w; } }); });
+        return apply(rotAxis(P, d, 0.1), best)[1] > best[1] ? 1 : -1;
+      };
+      const uF = upSign(fw), uB = upSign(bw);
+      fin.flap = alpha => fin.facets.map((f, i) => {
+        if (fw.has(f.id)) return compose(rotAxis(P, d, uF * alpha), Topen[i]);
+        if (bw.has(f.id)) return compose(rotAxis(P, d, uB * alpha), Topen[i]);
+        return Topen[i];
+      });
     }
     return steps;
   }

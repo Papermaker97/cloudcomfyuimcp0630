@@ -29,6 +29,7 @@
   --card: #1b232e; --accent: #e0545c; --accent-ink: #160b0c; color-scheme: dark;
 }
 html, body { height: 100%; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); margin: 0; overflow: hidden; }
 .app { height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
 header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 14px 6px; padding-inline: max(16px, 3vw); flex-wrap: wrap; }
@@ -52,24 +53,51 @@ button svg { width: 16px; height: 16px; fill: currentColor; }
 .ticks { position: absolute; left: 0; right: 0; top: 4px; height: 6px; pointer-events: none; }
 .ticks i { position: absolute; width: 1px; height: 6px; background: var(--line); }
 select { padding-right: 6px; }
+.tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; padding: 2px; gap: 2px; }
+.tabs button { border: 0; height: 32px; border-radius: 7px; padding: 0 14px; font-size: 0.88rem; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.head-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.cta { height: 32px; font-size: 0.85rem; border-color: var(--accent); color: var(--accent); }
+.fly { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 18px; align-items: start; }
+.fly-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fly-top .label { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; margin-right: 2px; }
+.preset { height: 32px; font-size: 0.85rem; }
+.preset[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px 18px; min-width: 0; }
+.sl { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 0.82rem; min-width: 0; }
+.sl label { color: var(--muted); }
+.sl output { font-variant-numeric: tabular-nums; font-weight: 600; }
+.sl input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--accent); }
+.curve { display: grid; gap: 4px; font-size: 0.75rem; color: var(--muted); }
+.curve canvas { width: 230px; height: 96px; display: block; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+@media (max-width: 720px) { .fly { grid-template-columns: minmax(0, 1fr); } .curve canvas { width: 100%; } }
 @media (max-width: 520px) {
   h1 { font-size: 1.2rem; }
   .hint { display: none; }
   .step-desc { font-size: 0.85rem; }
   #speed { display: none; }
+  .curve canvas { height: 64px; }
+  .fly-top .label { display: none; }
 }
 </style>
 
 <div class="app">
   <header>
     <h1>종이학 접기</h1>
-    <span class="hint">드래그로 회전 · 휠로 확대 · ←/→ 단계 이동 · Space 재생</span>
+    <div class="head-right">
+      <span class="hint" id="hint">드래그로 회전 · 휠로 확대 · ←/→ 단계 이동 · Space 재생</span>
+      <div class="tabs" role="tablist" aria-label="보기 모드">
+        <button role="tab" id="tabFold" aria-selected="true">접기 과정</button>
+        <button role="tab" id="tabFly" aria-selected="false">날갯짓</button>
+      </div>
+    </div>
   </header>
   <div class="stage" id="stage"></div>
-  <section class="panel" aria-live="polite">
+  <section class="panel" id="foldPanel" aria-live="polite">
     <div class="step-head">
       <span class="step-no" id="stepNo">01 / 22</span>
       <h2 class="step-title" id="stepTitle"></h2>
+      <button class="cta" id="toFly" hidden>날갯짓 보기 →</button>
     </div>
     <p class="step-desc" id="stepDesc"></p>
     <div class="transport">
@@ -78,6 +106,27 @@ select { padding-right: 6px; }
       <button id="next" aria-label="다음 단계"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2v12l8-6z"/></svg></button>
       <div class="track"><div class="ticks" id="ticks"></div><input id="scrub" type="range" min="0" max="1000" step="1" value="0" aria-label="접기 진행"></div>
       <select id="speed" aria-label="재생 속도"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+    </div>
+  </section>
+  <section class="panel" id="flyPanel" hidden>
+    <div class="fly">
+      <div class="fly-top">
+        <button id="flyPlay" class="play" aria-label="일시정지"><svg viewBox="0 0 16 16" id="flyIcon"><path d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/></svg></button>
+        <span class="label">프리셋</span>
+        <button class="preset" data-p="calm">느긋하게</button>
+        <button class="preset" data-p="base" aria-pressed="true">기본</button>
+        <button class="preset" data-p="strong">힘차게</button>
+        <button class="preset" data-p="hover">정지 비행</button>
+      </div>
+      <div class="sliders">
+        <div class="sl"><label for="pFreq">날갯짓 빈도</label><output id="oFreq"></output><input id="pFreq" type="range" min="0.2" max="4" step="0.05"></div>
+        <div class="sl"><label for="pUp">올림 각도</label><output id="oUp"></output><input id="pUp" type="range" min="0" max="85" step="1"></div>
+        <div class="sl"><label for="pDown">내림 각도</label><output id="oDown"></output><input id="pDown" type="range" min="0" max="75" step="1"></div>
+        <div class="sl"><label for="pRatio">내려치기 비율</label><output id="oRatio"></output><input id="pRatio" type="range" min="0.25" max="0.75" step="0.01"></div>
+        <div class="sl"><label for="pBob">몸 오르내림</label><output id="oBob"></output><input id="pBob" type="range" min="0" max="0.3" step="0.005"></div>
+        <div class="sl"><label for="pPitch">몸 기울기</label><output id="oPitch"></output><input id="pPitch" type="range" min="0" max="20" step="0.5"></div>
+      </div>
+      <div class="curve"><span>한 주기 날개 각도 (위 + / 아래 −)</span><canvas id="curve" width="460" height="192"></canvas></div>
     </div>
   </section>
 </div>
@@ -543,6 +592,19 @@ select { padding-right: 6px; }
       const open = s => { wOpen = ss(0, 0.75, s); return openR(s); };
       commit({ title: '날개를 펼쳐 완성', desc: '날개를 수평으로 펼치면 종이학이 완성됩니다. 드래그해서 돌려 보세요.' }, open, { flat: false, mode: '3d' });
       steps[steps.length - 1].wings = { fw, bw };
+      // flapping: extra rotation of each wing about its hinge, positive alpha = wing tips up
+      const fin = steps[steps.length - 1], Topen = fin.Tend;
+      const upSign = ids => {
+        let best = null, far = -1;
+        fin.facets.forEach((f, i) => { if (!ids.has(f.id)) return; f.poly.forEach(p => { const w = apply(Topen[i], [p[0], p[1], 0]); const r = Math.hypot(w[1] - P[1], w[2] - P[2]); if (r > far) { far = r; best = w; } }); });
+        return apply(rotAxis(P, d, 0.1), best)[1] > best[1] ? 1 : -1;
+      };
+      const uF = upSign(fw), uB = upSign(bw);
+      fin.flap = alpha => fin.facets.map((f, i) => {
+        if (fw.has(f.id)) return compose(rotAxis(P, d, uF * alpha), Topen[i]);
+        if (bw.has(f.id)) return compose(rotAxis(P, d, uB * alpha), Topen[i]);
+        return Topen[i];
+      });
     }
     return steps;
   }
@@ -630,9 +692,9 @@ select { padding-right: 6px; }
   const centre = (s, Ts) => { const b = [1e9, 1e9, -1e9, -1e9]; s.facets.forEach((f, i) => f.poly.forEach(p => { const w = E.apply(Ts[i], [p[0], p[1], 0]); b[0] = Math.min(b[0], w[0]); b[1] = Math.min(b[1], w[1]); b[2] = Math.max(b[2], w[0]); b[3] = Math.max(b[3], w[1]); })); return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]; };
   steps.forEach(s => { s.c0 = centre(s, s.facets.map(f => f.T0)); s.c1 = centre(s, s.Tend); });
 
-  function pose(k, t) {
+  function pose(k, t, override) {
     buildGeo(k);
-    const s = steps[k], e = ease(t), Ts = s.motion(e);
+    const s = steps[k], e = ease(t), Ts = override || s.motion(e);
     const pos = geo.attributes.position.array, lp = lgeo.attributes.position.array;
     let o = 0, lo = 0;
     const cx = s.c0[0] + (s.c1[0] - s.c0[0]) * e, cy = s.c0[1] + (s.c1[1] - s.c0[1]) * e;
@@ -672,6 +734,7 @@ select { padding-right: 6px; }
       $('stepNo').textContent = String(k + 1).padStart(2, '0') + ' / ' + steps.length;
       $('stepTitle').textContent = s.title; $('stepDesc').textContent = s.desc;
     }
+    $('toFly').hidden = time < TOTAL - 1e-3;
     scrub.value = Math.round(time / TOTAL * 1000);
     controls.autoRotate = time >= TOTAL - 1e-6; controls.autoRotateSpeed = 0.8;
   }
@@ -689,6 +752,7 @@ select { padding-right: 6px; }
   scrub.oninput = () => { time = scrub.value / 1000 * TOTAL; setPlaying(false); };
   window.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (mode === 'fly') { if (e.key === ' ') { setFlying(!flying); e.preventDefault(); } return; }
     if (e.key === 'ArrowRight') { next(); e.preventDefault(); }
     else if (e.key === 'ArrowLeft') { prev(); e.preventDefault(); }
     else if (e.key === ' ') { $('play').click(); e.preventDefault(); }
@@ -702,11 +766,81 @@ select { padding-right: 6px; }
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (window.__crane && window.__crane.__stop) { requestAnimationFrame(loop); return; }
-    if (playing) { time += dt * speed; if (time >= TOTAL) { time = TOTAL; setPlaying(false); } }
-    render(); controls.update(); renderer.render(scene, camera);
+    if (mode === 'fly') { if (flying) flyT += dt; renderFly(); controls.autoRotate = false; }
+    else { if (playing) { time += dt * speed; if (time >= TOTAL) { time = TOTAL; setPlaying(false); } } render(); }
+    controls.update(); renderer.render(scene, camera);
     requestAnimationFrame(loop);
   }
-  window.__crane = { steps, seek: tt => { time = tt; render(); renderer.render(scene, camera); }, start, dur, HOLD, TOTAL, camera, controls };
+  // ----- flight mode -----
+  const FIN = steps.length - 1, fin = steps[FIN];
+  const PRESETS = {
+    calm: { freq: 0.7, up: 40, down: 22, ratio: 0.5, bob: 0.05, pitch: 3 },
+    base: { freq: 1.3, up: 52, down: 34, ratio: 0.42, bob: 0.11, pitch: 5 },
+    strong: { freq: 2.3, up: 68, down: 48, ratio: 0.36, bob: 0.19, pitch: 8 },
+    hover: { freq: 3.4, up: 60, down: 55, ratio: 0.5, bob: 0.03, pitch: 12 }
+  };
+  const fp = Object.assign({}, PRESETS.base);
+  const SL = { freq: ['pFreq', 'oFreq', v => v.toFixed(2) + ' Hz'], up: ['pUp', 'oUp', v => v + '°'], down: ['pDown', 'oDown', v => '−' + v + '°'],
+    ratio: ['pRatio', 'oRatio', v => Math.round(v * 100) + '%'], bob: ['pBob', 'oBob', v => (v * 100).toFixed(0)], pitch: ['pPitch', 'oPitch', v => v + '°'] };
+  function syncSliders() { for (const k in SL) { $(SL[k][0]).value = fp[k]; $(SL[k][1]).textContent = SL[k][2](fp[k]); } }
+  for (const k in SL) $(SL[k][0]).addEventListener('input', e => {
+    fp[k] = +e.target.value; $(SL[k][1]).textContent = SL[k][2](fp[k]);
+    document.querySelectorAll('.preset').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  });
+  document.querySelectorAll('.preset').forEach(b => b.onclick = () => {
+    Object.assign(fp, PRESETS[b.dataset.p]); syncSliders();
+    document.querySelectorAll('.preset').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  syncSliders();
+  // one wingbeat: fast downstroke (top -> bottom) over `ratio` of the cycle, slower upstroke back
+  const stroke = ph => ph < fp.ratio ? 0.5 * ph / fp.ratio : 0.5 + 0.5 * (ph - fp.ratio) / (1 - fp.ratio);
+  const wingDeg = ph => { const u = stroke(ph); return -fp.down + (fp.up + fp.down) * (1 + Math.cos(2 * Math.PI * u)) / 2; };
+
+  // soft ground shadow so the body's rise and fall reads clearly
+  const shTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(0,0,0,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.3), new THREE.MeshBasicMaterial({ map: shTex, transparent: true, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = -1.05; shadow.visible = false; scene.add(shadow);
+
+  let mode = 'fold', flyT = 0, flying = true;
+  function renderFly() {
+    const ph = (flyT * fp.freq) % 1, u = stroke(ph);
+    pose(FIN, 1, fin.flap(wingDeg(ph) * Math.PI / 180));
+    const lift = -Math.cos(2 * Math.PI * u); // lowest at the top of the stroke, highest after the downstroke
+    model.position.y = -0.15 + fp.bob * lift;
+    model.rotation.set(0.32, -0.75, fp.pitch * Math.PI / 180 * Math.sin(2 * Math.PI * u));
+    const k = 1 - 0.6 * fp.bob * (lift + 1);
+    shadow.scale.set(k, k, 1); shadow.material.opacity = 0.55 + 0.45 * k;
+    drawCurve(ph);
+  }
+  const curve = $('curve'), cg = curve.getContext('2d');
+  function drawCurve(ph) {
+    const W = curve.width, H = curve.height, pad = 14, top = 85, bot = -75;
+    const y = d => pad + (top - d) / (top - bot) * (H - 2 * pad);
+    cg.clearRect(0, 0, W, H);
+    cg.strokeStyle = css('--line'); cg.lineWidth = 2; cg.setLineDash([6, 6]);
+    cg.beginPath(); cg.moveTo(0, y(0)); cg.lineTo(W, y(0)); cg.stroke(); cg.setLineDash([]);
+    cg.fillStyle = css('--line'); cg.globalAlpha = 0.5; cg.fillRect(0, 0, W * fp.ratio, H); cg.globalAlpha = 1;
+    cg.strokeStyle = css('--accent'); cg.lineWidth = 3; cg.beginPath();
+    for (let i = 0; i <= 120; i++) { const p = i / 120, X = p * W, Y = y(wingDeg(p)); i ? cg.lineTo(X, Y) : cg.moveTo(X, Y); }
+    cg.stroke();
+    cg.fillStyle = css('--ink'); cg.beginPath(); cg.arc(ph * W, y(wingDeg(ph)), 7, 0, 7); cg.fill();
+    cg.font = '20px ' + css('--font-ui'); cg.fillStyle = css('--muted');
+    cg.fillText('내려치기', 8, 22); cg.fillText('올리기', W * fp.ratio + 8, 22);
+  }
+  function setFlying(p) { flying = p; $('flyIcon').innerHTML = p ? '<path d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/>' : '<path d="M4 2l10 6-10 6z"/>'; $('flyPlay').setAttribute('aria-label', p ? '일시정지' : '재생'); }
+  $('flyPlay').onclick = () => setFlying(!flying);
+  function setMode(m) {
+    mode = m;
+    $('tabFold').setAttribute('aria-selected', String(m === 'fold')); $('tabFly').setAttribute('aria-selected', String(m === 'fly'));
+    $('foldPanel').hidden = m !== 'fold'; $('flyPanel').hidden = m !== 'fly';
+    $('hint').textContent = m === 'fold' ? '드래그로 회전 · 휠로 확대 · ←/→ 단계 이동 · Space 재생' : '드래그로 회전 · 휠로 확대 · Space 재생/정지';
+    shadow.visible = m === 'fly'; lastStep = -1;
+    if (m === 'fly') { setPlaying(false); setFlying(!reduced); }
+    requestAnimationFrame(resize);
+  }
+  $('tabFold').onclick = () => setMode('fold'); $('tabFly').onclick = () => setMode('fly'); $('toFly').onclick = () => setMode('fly');
+
+  window.__crane = { steps, seek: tt => { time = tt; render(); renderer.render(scene, camera); }, fly: (m, t) => { setMode(m ? 'fly' : 'fold'); flyT = t; if (m) renderFly(); else render(); renderer.render(scene, camera); }, start, dur, HOLD, TOTAL, camera, controls };
   for (let k = 0; k < steps.length; k++) { pose(k, 0); renderer.render(scene, camera); }
   if (!reduced) setPlaying(true);
   requestAnimationFrame(loop);
