@@ -1,0 +1,249 @@
+<title>종이학 접기 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen workbench. A full-bleed 3D stage, with a step card and transport bar docked at the bottom. */
+:root {
+  --bg: #e9ecef;
+  --stage: #dde2e7;
+  --ink: #1d2733;
+  --muted: #5b6672;
+  --line: #c3cad2;
+  --card: #f6f7f8;
+  --accent: #b8323b;
+  --accent-ink: #ffffff;
+  --paper-front: #c4313b;
+  --paper-back: #f2eee6;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", "AppleMyungjo", serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171f; --stage: #171e28; --ink: #e6e9ee; --muted: #98a3b1; --line: #2c3644;
+    --card: #1b232e; --accent: #e0545c; --accent-ink: #160b0c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171f; --stage: #171e28; --ink: #e6e9ee; --muted: #98a3b1; --line: #2c3644;
+  --card: #1b232e; --accent: #e0545c; --accent-ink: #160b0c; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); margin: 0; overflow: hidden; }
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 14px 6px; padding-inline: max(16px, 3vw); flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.hint { color: var(--muted); font-size: 0.8rem; }
+.stage { position: relative; min-height: 0; background: radial-gradient(ellipse at 50% 40%, var(--stage), var(--bg) 75%); }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.panel { padding-block: 10px 14px; padding-inline: max(16px, 3vw); display: grid; gap: 10px; border-top: 1px solid var(--line); background: var(--card); }
+.step-head { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.step-no { font-variant-numeric: tabular-nums; font-size: 0.78rem; letter-spacing: 0.06em; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.step-title { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; margin: 0; min-width: 0; }
+.step-desc { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.55; max-width: 68ch; min-height: 2.8em; }
+.transport { display: flex; align-items: center; gap: 10px; }
+button, select { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 8px; height: 38px; min-width: 38px; padding: 0 10px; cursor: pointer; display: inline-grid; place-items: center; }
+button:hover, select:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.play { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-width: 46px; }
+button svg { width: 16px; height: 16px; fill: currentColor; }
+.track { flex: 1; min-width: 0; position: relative; height: 38px; display: flex; align-items: center; }
+.track input { width: 100%; accent-color: var(--accent); margin: 0; }
+.ticks { position: absolute; left: 0; right: 0; top: 4px; height: 6px; pointer-events: none; }
+.ticks i { position: absolute; width: 1px; height: 6px; background: var(--line); }
+select { padding-right: 6px; }
+@media (max-width: 520px) {
+  h1 { font-size: 1.2rem; }
+  .hint { display: none; }
+  .step-desc { font-size: 0.85rem; }
+  #speed { display: none; }
+}
+</style>
+
+<div class="app">
+  <header>
+    <h1>종이학 접기</h1>
+    <span class="hint">드래그로 회전 · 휠로 확대 · ←/→ 단계 이동 · Space 재생</span>
+  </header>
+  <div class="stage" id="stage"></div>
+  <section class="panel" aria-live="polite">
+    <div class="step-head">
+      <span class="step-no" id="stepNo">01 / 22</span>
+      <h2 class="step-title" id="stepTitle"></h2>
+    </div>
+    <p class="step-desc" id="stepDesc"></p>
+    <div class="transport">
+      <button id="prev" aria-label="이전 단계"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg></button>
+      <button id="play" class="play" aria-label="재생"><svg viewBox="0 0 16 16" id="playIcon"><path d="M4 2l10 6-10 6z"/></svg></button>
+      <button id="next" aria-label="다음 단계"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2v12l8-6z"/></svg></button>
+      <div class="track"><div class="ticks" id="ticks"></div><input id="scrub" type="range" min="0" max="1000" step="1" value="0" aria-label="접기 진행"></div>
+      <select id="speed" aria-label="재생 속도"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/*ENGINE*/
+</script>
+<script>
+(function () {
+  const E = CraneEngine, steps = E.build();
+  const EPS = 0.0022;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  // ----- timing -----
+  const durOf = s => s.dur || (s.title.includes('뒤집기') && !s.title.includes('안으로') ? 1.7 : s.title.includes('접었다') ? 2.8 : s.title.includes('기본형 만들기') ? 4.2 : s.title.includes('꽃잎') ? 3.4 : s.mode === '3d' ? 3.2 : 2.4);
+  const HOLD = 0.45;
+  const dur = steps.map(s => durOf(s) + HOLD), start = [];
+  let acc = 0; dur.forEach(d => { start.push(acc); acc += d; });
+  const TOTAL = acc;
+  const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+
+  // ----- three.js scene -----
+  const stage = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 100);
+  camera.position.set(0, 0.35, 5.4);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 2; controls.maxDistance = 12;
+  controls.enablePan = false;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.75));
+  const key = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(2.5, 3.5, 4); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(-3, -1, -3); scene.add(rim);
+
+  // washi texture: soft fibres on a flat tone
+  function washi(hex) {
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 512, 512);
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 900; i++) {
+      const x = rnd() * 512, y = rnd() * 512, l = 6 + rnd() * 26, a = rnd() * Math.PI;
+      g.strokeStyle = `rgba(255,255,255,${0.04 + rnd() * 0.08})`; g.lineWidth = 0.6 + rnd();
+      g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * l * 0.5 + (rnd() - 0.5) * 6, y + Math.sin(a) * l * 0.5, x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+    }
+    for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(0,0,0,${rnd() * 0.035})`; g.fillRect(rnd() * 512, rnd() * 512, 1.5, 1.5); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
+  }
+  const front = new THREE.MeshStandardMaterial({ map: washi(css('--paper-front')), roughness: 0.85, metalness: 0, side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const back = new THREE.MeshStandardMaterial({ map: washi(css('--paper-back')), roughness: 0.9, metalness: 0, side: THREE.BackSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x3a2a2a, transparent: true, opacity: 0.28 });
+
+  const model = new THREE.Group(); scene.add(model);
+  let built = -1, geo, lgeo, meshF, meshB, lines;
+
+  const cache = [];
+  function buildGeo(k) {
+    if (built === k) return;
+    if (built >= 0) cache[built].forEach(o => o.visible = false);
+    if (!cache[k]) {
+      const s = steps[k];
+      let nt = 0, ne = 0; s.facets.forEach(f => { nt += f.poly.length - 2; ne += f.poly.length; });
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nt * 9), 3));
+      const uv = new Float32Array(nt * 6); let o = 0;
+      s.facets.forEach(f => { for (let j = 1; j < f.poly.length - 1; j++) [0, j, j + 1].forEach(v => { uv[o++] = (f.poly[v][0] + 1) / 2; uv[o++] = (f.poly[v][1] + 1) / 2; }); });
+      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(nt * 9), 3));
+      const lg = new THREE.BufferGeometry();
+      lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ne * 6), 3));
+      const mf = new THREE.Mesh(g, front), mb = new THREE.Mesh(g, back), ln = new THREE.LineSegments(lg, lineMat);
+      [mf, mb, ln].forEach(m => { m.frustumCulled = false; model.add(m); });
+      cache[k] = [mf, mb, ln];
+    }
+    cache[k].forEach(o => o.visible = true);
+    [meshF, meshB, lines] = cache[k]; geo = meshF.geometry; lgeo = lines.geometry;
+    built = k;
+  }
+
+  // bounding-box centres for keeping the model framed
+  const centre = (s, Ts) => { const b = [1e9, 1e9, -1e9, -1e9]; s.facets.forEach((f, i) => f.poly.forEach(p => { const w = E.apply(Ts[i], [p[0], p[1], 0]); b[0] = Math.min(b[0], w[0]); b[1] = Math.min(b[1], w[1]); b[2] = Math.max(b[2], w[0]); b[3] = Math.max(b[3], w[1]); })); return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]; };
+  steps.forEach(s => { s.c0 = centre(s, s.facets.map(f => f.T0)); s.c1 = centre(s, s.Tend); });
+
+  function pose(k, t) {
+    buildGeo(k);
+    const s = steps[k], e = ease(t), Ts = s.motion(e);
+    const pos = geo.attributes.position.array, lp = lgeo.attributes.position.array;
+    let o = 0, lo = 0;
+    const cx = s.c0[0] + (s.c1[0] - s.c0[0]) * e, cy = s.c0[1] + (s.c1[1] - s.c0[1]) * e;
+    s.facets.forEach((f, i) => {
+      let P;
+      if (s.mode === '3d') {
+        const D = E.compose(Ts[i], invT(f.T0)), dz = f.h0 * EPS;
+        P = f.poly.map(p => { const w = E.apply(f.T0, [p[0], p[1], 0]); w[2] += dz; return E.apply(D, w); });
+      } else {
+        const dz = (f.h0 + (s.h1[i] - f.h0) * e) * EPS;
+        P = f.poly.map(p => { const w = E.apply(Ts[i], [p[0], p[1], 0]); w[2] += dz; return w; });
+      }
+      P.forEach(w => { w[0] -= cx; w[1] -= cy; });
+      for (let j = 1; j < P.length - 1; j++) [0, j, j + 1].forEach(v => { pos[o++] = P[v][0]; pos[o++] = P[v][1]; pos[o++] = P[v][2]; });
+      for (let j = 0; j < P.length; j++) { const a = P[j], b = P[(j + 1) % P.length]; lp[lo++] = a[0]; lp[lo++] = a[1]; lp[lo++] = a[2]; lp[lo++] = b[0]; lp[lo++] = b[1]; lp[lo++] = b[2]; }
+    });
+    geo.attributes.position.needsUpdate = true; lgeo.attributes.position.needsUpdate = true;
+    geo.computeVertexNormals(); geo.computeBoundingSphere(); lgeo.computeBoundingSphere();
+    // final presentation: turn the finished crane to a three-quarter view
+    const pres = s.mode === '3d' ? e : 0;
+    model.rotation.set(0.32 * pres, -0.75 * pres, 0);
+    model.position.y = -0.15 * pres;
+  }
+  const invT = T => { const R = T.R, Rt = [R[0], R[3], R[6], R[1], R[4], R[7], R[2], R[5], R[8]]; const t = T.t; return { R: Rt, t: [-(Rt[0] * t[0] + Rt[1] * t[1] + Rt[2] * t[2]), -(Rt[3] * t[0] + Rt[4] * t[1] + Rt[5] * t[2]), -(Rt[6] * t[0] + Rt[7] * t[1] + Rt[8] * t[2])] }; };
+
+  // ----- UI state -----
+  const $ = id => document.getElementById(id);
+  const scrub = $('scrub'), ticks = $('ticks');
+  start.forEach((s0, k) => { if (!k) return; const i = document.createElement('i'); i.style.left = (s0 / TOTAL * 100) + '%'; ticks.appendChild(i); });
+  let time = 0, playing = false, speed = 1, lastStep = -1;
+  const stepAt = tt => { let k = 0; while (k < steps.length - 1 && tt >= start[k + 1]) k++; return k; };
+  function render() {
+    const k = stepAt(time), local = Math.max(0, Math.min(1, (time - start[k]) / (dur[k] - HOLD)));
+    pose(k, local);
+    if (k !== lastStep) {
+      lastStep = k; const s = steps[k];
+      $('stepNo').textContent = String(k + 1).padStart(2, '0') + ' / ' + steps.length;
+      $('stepTitle').textContent = s.title; $('stepDesc').textContent = s.desc;
+    }
+    scrub.value = Math.round(time / TOTAL * 1000);
+    controls.autoRotate = time >= TOTAL - 1e-6; controls.autoRotateSpeed = 0.8;
+  }
+  function setPlaying(p) {
+    playing = p;
+    $('playIcon').innerHTML = p ? '<path d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/>' : '<path d="M4 2l10 6-10 6z"/>';
+    $('play').setAttribute('aria-label', p ? '일시정지' : '재생');
+  }
+  const endOf = k => start[k] + dur[k] - HOLD;
+  function next() { const k = stepAt(time); time = time < endOf(k) - 1e-3 ? endOf(k) : endOf(Math.min(steps.length - 1, k + 1)); setPlaying(false); }
+  function prev() { const k = stepAt(time); time = time > start[k] + 1e-3 ? start[k] : start[Math.max(0, k - 1)]; setPlaying(false); }
+  $('play').onclick = () => { if (time >= TOTAL - 1e-3) time = 0; setPlaying(!playing); };
+  $('next').onclick = next; $('prev').onclick = prev;
+  $('speed').onchange = e => speed = +e.target.value;
+  scrub.oninput = () => { time = scrub.value / 1000 * TOTAL; setPlaying(false); };
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'ArrowRight') { next(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { prev(); e.preventDefault(); }
+    else if (e.key === ' ') { $('play').click(); e.preventDefault(); }
+  });
+
+  function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w / h < 0.8 ? 46 : 32; camera.updateProjectionMatrix(); }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (window.__crane && window.__crane.__stop) { requestAnimationFrame(loop); return; }
+    if (playing) { time += dt * speed; if (time >= TOTAL) { time = TOTAL; setPlaying(false); } }
+    render(); controls.update(); renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  window.__crane = { steps, seek: tt => { time = tt; render(); renderer.render(scene, camera); }, start, dur, HOLD, TOTAL, camera, controls };
+  for (let k = 0; k < steps.length; k++) { pose(k, 0); renderer.render(scene, camera); }
+  if (!reduced) setPlaying(true);
+  requestAnimationFrame(loop);
+})();
+</script>
