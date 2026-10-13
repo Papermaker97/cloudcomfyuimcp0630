@@ -1,0 +1,1517 @@
+<title>종이학 모션 레퍼런스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: animation workbench. Motion list left, viewport centre, key inspector right, frame strip along the bottom like an exposure sheet. */
+:root {
+  --bg: #e7eaee; --panel: #f4f5f7; --stage: #d9dee4; --ink: #1c2530; --muted: #5d6874; --line: #c6ccd3;
+  --accent: #b8323b; --accent-ink: #fff; --ledge: #b9b1a6;
+  --r-start: #3d7a5a; --r-prep: #b9822b; --r-core: #b8323b; --r-end: #4a5f9c; --tween: #cfd5db;
+  --ghost-prev: #2f6fd6; --ghost-next: #e2861f; --warn: #d9772b;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161d; --panel: #171e27; --stage: #1b232d; --ink: #e5e9ee; --muted: #97a2af; --line: #2b3542;
+  --accent: #e0545c; --accent-ink: #170b0c; --ledge: #5d564e; --tween: #3a4552; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11161d; --panel: #171e27; --stage: #1b232d; --ink: #e5e9ee; --muted: #97a2af; --line: #2b3542;
+  --accent: #e0545c; --accent-ink: #170b0c; --ledge: #5d564e; --tween: #3a4552; color-scheme: dark; }
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 13px; overflow: hidden; }
+.app { height: 100%; display: grid; grid-template-columns: 236px minmax(0, 1fr) 300px; grid-template-rows: auto minmax(0, 1fr) auto; }
+header { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding-block: 10px; padding-inline: 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-size: 1.25rem; margin: 0; white-space: nowrap; }
+.cut { font-family: var(--font-mono); color: var(--muted); font-size: 12px; }
+.spacer { flex: 1; }
+.group { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+button, select, input[type=number] { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 7px; height: 30px; padding: 0 9px; cursor: pointer; }
+input[type=number] { width: 54px; padding: 0 6px; cursor: text; font-variant-numeric: tabular-nums; }
+button:hover, select:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button:disabled { opacity: .4; cursor: default; }
+button svg { width: 14px; height: 14px; fill: currentColor; vertical-align: -2px; }
+.side { background: var(--panel); overflow: auto; min-height: 0; }
+.left { border-right: 1px solid var(--line); padding-block: 12px; padding-inline: 10px; display: grid; align-content: start; gap: 4px; }
+.right { border-left: 1px solid var(--line); padding-block: 12px; padding-inline: 14px; display: grid; align-content: start; gap: 16px; }
+.label { font-size: 11px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; margin: 2px 4px 6px; }
+.preset { display: grid; gap: 1px; text-align: left; height: auto; padding: 7px 9px; border-color: transparent; border-radius: 8px; }
+.preset .pn { font-weight: 600; font-size: 12.5px; }
+.preset .pc { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.preset .pd { font-size: 11px; color: var(--muted); }
+.preset[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.stage { position: relative; overflow: hidden; min-width: 0; min-height: 0; background: radial-gradient(ellipse at 50% 35%, var(--stage), var(--bg) 80%); }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.guide { position: absolute; pointer-events: none; outline: 1px solid color-mix(in srgb, var(--ink) 55%, transparent); box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bg) 55%, transparent); }
+.guide span { position: absolute; left: 6px; top: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.tools { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100% - 24px); }
+.tools button { background: var(--panel); }
+.tools button[aria-pressed="true"] { background: var(--accent); }
+.hud { position: absolute; right: 12px; top: 12px; font-family: var(--font-mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; }
+.hint { position: absolute; left: 12px; bottom: 10px; right: 12px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.toast { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 7px 12px; border-radius: 8px; font-size: 12.5px; pointer-events: none; transition: opacity .25s; }
+.sec { display: grid; gap: 8px; }
+.sec h3 { margin: 0; font-size: 12px; letter-spacing: .05em; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+.row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.row > span { color: var(--muted); }
+.sl { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; }
+.sl label { color: var(--muted); font-size: 12px; }
+.sl output { font-family: var(--font-mono); font-size: 11.5px; }
+.sl input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--accent); }
+.rolepill { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+.subtle { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+.creases { display: grid; gap: 6px; }
+.crease { display: flex; gap: 8px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; }
+.crease.warn { border-color: var(--warn); }
+.crease small { color: var(--muted); display: block; }
+.crease.warn small { color: var(--warn); }
+textarea { width: 100%; min-height: 70px; font-family: var(--font-mono); font-size: 11px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; box-sizing: border-box; }
+footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid var(--line); padding-block: 8px 10px; padding-inline: 16px; display: grid; gap: 8px; }
+.transport { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.counter { font-family: var(--font-mono); font-size: 12px; min-width: 150px; font-variant-numeric: tabular-nums; }
+.strip { display: flex; gap: 2px; overflow-x: auto; padding-bottom: 4px; }
+.cell { flex: 0 0 auto; width: 15px; height: 30px; border-radius: 3px; background: var(--tween); position: relative; cursor: pointer; border: 0; padding: 0; }
+.cell.key { height: 30px; }
+.cell.hold { opacity: .45; }
+.cell.cur { outline: 2px solid var(--ink); outline-offset: 1px; }
+.cell.key::after { content: ""; position: absolute; left: 4px; right: 4px; bottom: 3px; height: 3px; border-radius: 2px; background: var(--accent-ink); opacity: .9; }
+.legend { display: flex; gap: 12px; color: var(--muted); font-size: 11.5px; flex-wrap: wrap; }
+@media (max-width: 1000px) {
+  body { overflow: auto; }
+  .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 56vh auto auto auto; }
+  .left { border: 0; border-bottom: 1px solid var(--line); grid-row: 4; display: flex; overflow-x: auto; }
+  .left .label { display: none; }
+  .preset { flex: 0 0 auto; }
+  .preset .pd { display: none; }
+  .right { border: 0; grid-row: 5; }
+  footer { grid-row: 3; }
+  .hint { display: none; }
+  .hud { top: auto; bottom: 10px; }
+}
+</style>
+
+<div class="app">
+  <header>
+    <h1>종이학 모션 레퍼런스</h1>
+    <span class="cut" id="cutLabel"></span>
+    <span class="spacer"></span>
+    <div class="group">
+      <button id="undo" title="실행 취소 (Ctrl+Z)">되돌리기</button>
+      <button id="redo" title="다시 실행 (Ctrl+Shift+Z)">다시</button>
+    </div>
+    <div class="group">
+      <button id="camShot" title="저장된 촬영 카메라 시점으로">촬영 카메라</button>
+      <button id="camSave" title="지금 보이는 시점을 촬영 카메라로 저장">시점 저장</button>
+      <select id="guideSel" aria-label="화면비 가이드"><option value="2.39">2.39:1</option><option value="1.778">16:9</option><option value="0">가이드 끔</option></select>
+    </div>
+  </header>
+
+  <aside class="side left" id="presetList" aria-label="모션 프리셋"><div class="label">모션 프리셋</div></aside>
+
+  <main class="stage" id="stage">
+    <div class="guide" id="guide"><span id="guideText"></span></div>
+    <div class="tools">
+      <button id="toolDrag" aria-pressed="true" title="점을 끌어 포즈 잡기">포즈 잡기</button>
+      <button id="toolCrease" aria-pressed="false" title="부위 위를 두 번 클릭해 새 접힘선 추가">접힘선 추가</button>
+      <button id="symBtn" aria-pressed="false" title="한쪽 날개를 움직이면 반대쪽도 똑같이">날개 대칭</button>
+      <button id="onionBtn" aria-pressed="true" title="앞뒤 프레임을 반투명하게 겹쳐 보기">어니언 스킨</button>
+    </div>
+    <div class="hud" id="hud"></div>
+    <div class="hint" id="hint">빨간 점(날개 끝·부리·목·꼬리)과 회색 점(몸통)을 끌어 포즈를 잡습니다. 몸통 점은 Shift를 누르고 끌면 위아래로 움직입니다. 빈 곳을 끌면 시점이 돌아갑니다.</div>
+    <div class="toast" id="toast" style="opacity:0"></div>
+  </main>
+
+  <aside class="side right" aria-label="키 편집">
+    <section class="sec">
+      <h3 id="keyTitle">키</h3>
+      <div class="row"><span>역할</span>
+        <select id="roleSel"><option value="start">시작 포즈</option><option value="prep">준비 포즈</option><option value="core">핵심 동작</option><option value="end">끝 포즈</option></select></div>
+      <div class="row"><span>정지 유지</span><span class="group"><input type="number" id="holdIn" min="0" max="96"> <small id="holdSec" class="subtle"></small></span></div>
+      <div class="group"><button id="makeKey" title="현재 중간 프레임을 키로 바꿔 직접 편집 (K)">이 프레임을 키로</button><button id="dupKey">키 복제</button><button id="delKey">키 삭제</button></div>
+      <p class="subtle" id="keyNote"></p>
+    </section>
+    <section class="sec" id="trSec">
+      <h3>다음 키까지</h3>
+      <div class="row"><span>중간 프레임</span><input type="number" id="trN" min="0" max="48"></div>
+      <div class="row"><span>속도</span>
+        <select id="trEase"><option value="linear">일정하게</option><option value="in">천천히 시작 → 빨라짐</option><option value="out">빠르게 시작 → 느려짐</option><option value="inout">부드럽게</option><option value="snap">확 튀어나감</option><option value="over">지나쳤다 돌아옴</option></select></div>
+      <div class="sl"><label for="trLag">날개가 늦게 따라옴</label><output id="oLag"></output><input type="range" id="trLag" min="0" max="0.7" step="0.05"></div>
+      <div class="row"><span>구간 중 퍼덕임</span><input type="checkbox" id="flapOn" aria-label="퍼덕임 켜기"></div>
+      <div id="flapBox" class="sec">
+        <div class="sl"><label for="fCyc">횟수</label><output id="oCyc"></output><input type="range" id="fCyc" min="0.5" max="8" step="0.5"></div>
+        <div class="sl"><label for="fAmp">세기</label><output id="oAmp"></output><input type="range" id="fAmp" min="5" max="80" step="1"></div>
+        <div class="sl"><label for="fAcc">점점 빨라짐</label><output id="oAcc"></output><input type="range" id="fAcc" min="0" max="3" step="0.1"></div>
+        <div class="sl"><label for="fLagW">뒤 날개 어긋남</label><output id="oLagW"></output><input type="range" id="fLagW" min="0" max="0.5" step="0.01"></div>
+      </div>
+    </section>
+    <section class="sec">
+      <h3>몸</h3>
+      <div class="sl"><label for="bY">높이</label><output id="obY"></output><input type="range" id="bY" min="-2" max="0.8" step="0.01"></div>
+      <div class="sl"><label for="bPitch">앞뒤 숙임</label><output id="obPitch"></output><input type="range" id="bPitch" min="-90" max="60" step="1"></div>
+      <div class="sl"><label for="bRoll">옆 기울기</label><output id="obRoll"></output><input type="range" id="bRoll" min="-90" max="90" step="1"></div>
+      <div class="sl"><label for="bYaw">방향 돌리기</label><output id="obYaw"></output><input type="range" id="bYaw" min="-180" max="180" step="1"></div>
+      <div class="sl"><label for="bX">앞뒤 위치</label><output id="obX"></output><input type="range" id="bX" min="-2" max="2" step="0.01"></div>
+      <div class="sl"><label for="bZ">카메라 쪽 위치</label><output id="obZ"></output><input type="range" id="bZ" min="-1.5" max="1.5" step="0.01"></div>
+      <button id="resetPose">서 있는 자세로 되돌리기</button>
+    </section>
+    <section class="sec">
+      <h3>접힘선</h3>
+      <div class="creases" id="creaseList"></div>
+      <p class="subtle">새 접힘선은 빨간색, 이 모션 안에서 앞뒤로 뒤집혀 접히는 선은 주황색으로 표시합니다. 같은 선을 반대로 접었다 펴면 종이가 가장 빨리 닳습니다.</p>
+    </section>
+    <section class="sec">
+      <h3>데이터</h3>
+      <div class="group"><button id="copyData">전체 복사</button><button id="pasteToggle">붙여넣기</button><button id="resetPreset">이 프리셋 초기화</button></div>
+      <div id="pasteBox" hidden class="sec"><textarea id="pasteArea" aria-label="붙여넣을 데이터"></textarea><button id="pasteApply" class="primary">불러오기</button></div>
+      <p class="subtle">작업은 이 브라우저에 자동 저장됩니다. 다른 기기로 옮길 때는 전체 복사 → 붙여넣기를 쓰세요.</p>
+    </section>
+  </aside>
+
+  <footer>
+    <div class="transport">
+      <button id="bPrevKey" title="이전 키 (Shift+←)"><svg viewBox="0 0 16 16"><path d="M2 2h2v12H2zM14 2v12L5 8z"/></svg></button>
+      <button id="bPrev" title="이전 프레임 (←)"><svg viewBox="0 0 16 16"><path d="M12 2v12L4 8z"/></svg></button>
+      <button id="bPlay" class="primary" title="재생 (Space)"><svg viewBox="0 0 16 16" id="playIcon"><path d="M4 2l10 6-10 6z"/></svg></button>
+      <button id="bNext" title="다음 프레임 (→)"><svg viewBox="0 0 16 16"><path d="M4 2v12l8-6z"/></svg></button>
+      <button id="bNextKey" title="다음 키 (Shift+→)"><svg viewBox="0 0 16 16"><path d="M12 2h2v12h-2zM2 2v12l9-6z"/></svg></button>
+      <span class="counter" id="counter"></span>
+      <select id="fpsSel" aria-label="초당 프레임"><option value="8">8 fps</option><option value="12" selected>12 fps</option><option value="24">24 fps</option></select>
+      <button id="loopBtn" aria-pressed="true">반복</button>
+      <select id="onionN" aria-label="어니언 스킨 장수"><option value="1">앞뒤 1장</option><option value="2">앞뒤 2장</option></select>
+      <span class="spacer"></span>
+      <div class="legend"><span><i class="rolepill" style="background:var(--r-start)"></i>시작</span><span><i class="rolepill" style="background:var(--r-prep)"></i>준비</span><span><i class="rolepill" style="background:var(--r-core)"></i>핵심</span><span><i class="rolepill" style="background:var(--r-end)"></i>끝</span><span><i class="rolepill" style="background:var(--tween)"></i>중간 프레임</span><span>흐린 칸 = 정지</span></div>
+    </div>
+    <div class="strip" id="strip" role="listbox" aria-label="프레임"></div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// Origami crane folding engine: rigid facets, keyframed folds, layer ordering.
+// Paper coords: square [-1,1]^2. World ("table") coords: paper lies in z=0 plane when flat, viewer at +z.
+(function (root) {
+  const PI = Math.PI, S2 = Math.SQRT2, K = S2 - 1; // K = 0.4142
+
+  // ---------- vector / transform math ----------
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const len = a => Math.hypot(a[0], a[1], a[2]);
+  const norm = a => mul(a, 1 / len(a));
+  const I = () => ({ R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, 0, 0] });
+  const applyR = (R, p) => [R[0] * p[0] + R[1] * p[1] + R[2] * p[2], R[3] * p[0] + R[4] * p[1] + R[5] * p[2], R[6] * p[0] + R[7] * p[1] + R[8] * p[2]];
+  const apply = (T, p) => add(applyR(T.R, p), T.t);
+  const matmul = (A, B) => {
+    const C = new Array(9);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) C[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j];
+    return C;
+  };
+  const transpose = R => [R[0], R[3], R[6], R[1], R[4], R[7], R[2], R[5], R[8]];
+  const compose = (A, B) => ({ R: matmul(A.R, B.R), t: add(applyR(A.R, B.t), A.t) });
+  const inverse = T => { const Rt = transpose(T.R); return { R: Rt, t: mul(applyR(Rt, T.t), -1) }; };
+  function rodrigues(d, a) {
+    const c = Math.cos(a), s = Math.sin(a), v = 1 - c, [x, y, z] = d;
+    return [c + x * x * v, x * y * v - z * s, x * z * v + y * s,
+      y * x * v + z * s, c + y * y * v, y * z * v - x * s,
+      z * x * v - y * s, z * y * v + x * s, c + z * z * v];
+  }
+  function rotAxis(P, d, a) { const R = rodrigues(d, a); return { R, t: sub(P, applyR(R, P)) }; }
+  function frameFrom(a, b, c, A, B, C) { // rigid map taking paper pts a,b,c (3D) to world A,B,C
+    const f = (p, q, r) => { const e1 = norm(sub(q, p)); let w = sub(r, p); w = norm(sub(w, mul(e1, dot(w, e1)))); return [e1, w, cross(e1, w)]; };
+    const [e1, e2, e3] = f(a, b, c), [E1, E2, E3] = f(A, B, C);
+    const M = [E1[0], E2[0], E3[0], E1[1], E2[1], E3[1], E1[2], E2[2], E3[2]];
+    const m = [e1[0], e1[1], e1[2], e2[0], e2[1], e2[2], e3[0], e3[1], e3[2]];
+    const R = matmul(M, m);
+    return { R, t: sub(A, applyR(R, a)) };
+  }
+  function matToQuat(R) {
+    const tr = R[0] + R[4] + R[8]; let w, x, y, z;
+    if (tr > 0) { const s = Math.sqrt(tr + 1) * 2; w = s / 4; x = (R[7] - R[5]) / s; y = (R[2] - R[6]) / s; z = (R[3] - R[1]) / s; }
+    else if (R[0] > R[4] && R[0] > R[8]) { const s = Math.sqrt(1 + R[0] - R[4] - R[8]) * 2; w = (R[7] - R[5]) / s; x = s / 4; y = (R[1] + R[3]) / s; z = (R[2] + R[6]) / s; }
+    else if (R[4] > R[8]) { const s = Math.sqrt(1 + R[4] - R[0] - R[8]) * 2; w = (R[2] - R[6]) / s; x = (R[1] + R[3]) / s; y = s / 4; z = (R[5] + R[7]) / s; }
+    else { const s = Math.sqrt(1 + R[8] - R[0] - R[4]) * 2; w = (R[3] - R[1]) / s; x = (R[2] + R[6]) / s; y = (R[5] + R[7]) / s; z = s / 4; }
+    return [w, x, y, z];
+  }
+  function quatToMat([w, x, y, z]) {
+    return [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w),
+      2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w),
+      2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)];
+  }
+  function slerpI(T, s) { // interpolate from identity to T
+    let q = matToQuat(T.R); if (q[0] < 0) q = q.map(v => -v);
+    const ang = 2 * Math.acos(Math.min(1, q[0])), sn = Math.sin(ang / 2);
+    if (sn < 1e-9) return { R: I().R, t: mul(T.t, s) };
+    const ax = [q[1] / sn, q[2] / sn, q[3] / sn];
+    return { R: rodrigues(ax, ang * s), t: mul(T.t, s) };
+  }
+
+  // ---------- 2D polygon helpers ----------
+  const area2 = P => { let a = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
+  const centroid2 = P => { let x = 0, y = 0; P.forEach(p => { x += p[0]; y += p[1]; }); return [x / P.length, y / P.length]; };
+  function clipHalf(P, q, n) { // keep n.(p-q) >= 0
+    const out = [], s = p => n[0] * (p[0] - q[0]) + n[1] * (p[1] - q[1]);
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length], sa = s(a), sb = s(b);
+      if (sa >= 0) out.push(a);
+      if ((sa >= 0) !== (sb >= 0)) { const t = sa / (sa - sb); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+    }
+    return dedupe(out);
+  }
+  function dedupe(P) {
+    const o = [];
+    P.forEach(p => { const l = o[o.length - 1]; if (!l || Math.hypot(l[0] - p[0], l[1] - p[1]) > 1e-9) o.push(p); });
+    if (o.length > 1 && Math.hypot(o[0][0] - o[o.length - 1][0], o[0][1] - o[o.length - 1][1]) < 1e-9) o.pop();
+    return o;
+  }
+  const ccw = P => area2(P) < 0 ? P.slice().reverse() : P;
+  function intersectConvex(A, B) {
+    let P = ccw(A); const Q = ccw(B);
+    for (let i = 0; i < Q.length && P.length; i++) {
+      const a = Q[i], b = Q[(i + 1) % Q.length];
+      P = clipHalf(P, a, [-(b[1] - a[1]), b[0] - a[0]]);
+    }
+    return P;
+  }
+  function insideConvex(P, p, tol = 1e-9) {
+    const Q = ccw(P);
+    for (let i = 0; i < Q.length; i++) {
+      const a = Q[i], b = Q[(i + 1) % Q.length];
+      if ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) < -tol) return false;
+    }
+    return true;
+  }
+
+  // ---------- facets ----------
+  let nextId = 1;
+  const mkFacet = (poly, T, l) => ({ id: nextId++, poly, T, l: l || 0, h: 0 });
+  const world = (f, p) => apply(f.T, [p[0], p[1], 0]);
+  const tableProj = f => f.poly.map(p => { const w = world(f, p); return [w[0], w[1]]; });
+  const toPaper = (f, P) => { const q = apply(inverse(f.T), [P[0], P[1], 0]); return [q[0], q[1]]; };
+
+  function splitFacet(f, P, D) { // split by table line through P with dir D (2D); returns [f] or [a,b]
+    const a = toPaper(f, P), b = toPaper(f, [P[0] + D[0], P[1] + D[1]]);
+    const n = [-(b[1] - a[1]), b[0] - a[0]];
+    const A = clipHalf(f.poly, a, n), B = clipHalf(f.poly, a, [-n[0], -n[1]]);
+    if (A.length < 3 || B.length < 3 || Math.abs(area2(A)) < 1e-9 || Math.abs(area2(B)) < 1e-9) return [f];
+    return [mkFacet(A, f.T, f.l), mkFacet(B, f.T, f.l)].map(g => (g.h = f.h, g.tag = f.tag, g));
+  }
+  function facetsAt(facets, pt) { // facets containing table pt, sorted top (high h/l) first
+    return facets.filter(f => insideConvex(tableProj(f), pt, 1e-7)).sort((a, b) => (b.l - a.l));
+  }
+  // shared paper edge segments between two facets
+  function sharedEdges(f, g) {
+    const out = [];
+    for (let i = 0; i < f.poly.length; i++) {
+      const a = f.poly[i], b = f.poly[(i + 1) % f.poly.length];
+      const d = [b[0] - a[0], b[1] - a[1]], L = Math.hypot(d[0], d[1]); if (L < 1e-9) continue;
+      const u = [d[0] / L, d[1] / L];
+      for (let j = 0; j < g.poly.length; j++) {
+        const c = g.poly[j], e = g.poly[(j + 1) % g.poly.length];
+        const dc = u[0] * (c[1] - a[1]) - u[1] * (c[0] - a[0]), de = u[0] * (e[1] - a[1]) - u[1] * (e[0] - a[0]);
+        if (Math.abs(dc) > 1e-7 || Math.abs(de) > 1e-7) continue;
+        const tc = u[0] * (c[0] - a[0]) + u[1] * (c[1] - a[1]), te = u[0] * (e[0] - a[0]) + u[1] * (e[1] - a[1]);
+        const lo = Math.max(0, Math.min(tc, te)), hi = Math.min(L, Math.max(tc, te));
+        if (hi - lo > 1e-7) out.push([[a[0] + u[0] * lo, a[1] + u[1] * lo], [a[0] + u[0] * hi, a[1] + u[1] * hi]]);
+      }
+    }
+    return out;
+  }
+  // flood fill from seed through paper edges having a part strictly on the moving side
+  function flood(facets, seed, sideFn, filter) {
+    const set = new Set([seed]), q = [seed];
+    while (q.length) {
+      const f = q.pop();
+      for (const g of facets) {
+        if (set.has(g) || (filter && !filter(g))) continue;
+        const sh = sharedEdges(f, g);
+        if (sh.some(([a, b]) => {
+          const pts = [a, b, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]];
+          return Math.max(...pts.map(p => sideFn(world(f, p)))) > 1e-6;
+        })) { set.add(g); q.push(g); }
+      }
+    }
+    return set;
+  }
+  const lineSide = (P, D, M) => { // signed side fn, positive on side of M
+    const s = p => D[0] * (p[1] - P[1]) - D[1] * (p[0] - P[0]);
+    const sg = Math.sign(s(M)); return p => sg * s(p);
+  };
+  const paperCentroid = f => centroid2(f.poly);
+  const quadOf = f => { const c = paperCentroid(f); return [Math.sign(c[0]), Math.sign(c[1])]; };
+
+  // ---------- ordering & heights ----------
+  function overlapPairs(facets, Tend) {
+    const polys = facets.map((f, i) => ccw(f.poly.map(p => { const w = apply(Tend[i], [p[0], p[1], 0]); return [w[0], w[1]]; })));
+    const bb = polys.map(P => { let a = [1e9, 1e9, -1e9, -1e9]; P.forEach(p => { a[0] = Math.min(a[0], p[0]); a[1] = Math.min(a[1], p[1]); a[2] = Math.max(a[2], p[0]); a[3] = Math.max(a[3], p[1]); }); return a; });
+    const pairs = [];
+    for (let i = 0; i < polys.length; i++) for (let j = i + 1; j < polys.length; j++) {
+      const A = bb[i], B = bb[j];
+      if (A[0] > B[2] - 1e-6 || B[0] > A[2] - 1e-6 || A[1] > B[3] - 1e-6 || B[1] > A[3] - 1e-6) continue;
+      const X = intersectConvex(polys[i], polys[j]);
+      if (X.length >= 3 && Math.abs(area2(X)) > 2e-6) pairs.push([i, j, centroid2(X)]);
+    }
+    return pairs;
+  }
+  function order(facets, T0, Tend, Tprobe, rule) {
+    const n = facets.length, pairs = overlapPairs(facets, Tend), above = [];
+    const flipped = i => Math.sign(Tend[i].R[8]) !== Math.sign(T0[i].R[8]);
+    for (const [i, j, p] of pairs) {
+      let r = rule ? rule(i, j) : 0; // +1: i above j
+      if (!r) {
+        const pi = apply(inverse(Tend[i]), [p[0], p[1], 0]), pj = apply(inverse(Tend[j]), [p[0], p[1], 0]);
+        const zi = apply(Tprobe[i], pi)[2], zj = apply(Tprobe[j], pj)[2];
+        if (Math.abs(zi - zj) > 1e-7) r = zi > zj ? 1 : -1;
+        else { r = facets[i].l > facets[j].l ? 1 : -1; if (flipped(i) && flipped(j)) r = -r; }
+      }
+      above.push(r > 0 ? [j, i] : [i, j]); // [lower, upper]
+    }
+    // Kahn topological sort, stable by previous l
+    const indeg = new Array(n).fill(0), out = Array.from({ length: n }, () => []);
+    above.forEach(([lo, hi]) => { out[lo].push(hi); indeg[hi]++; });
+    const L = new Array(n), done = new Array(n).fill(false);
+    for (let k = 0; k < n; k++) {
+      let best = -1;
+      for (let i = 0; i < n; i++) if (!done[i] && indeg[i] === 0 && (best < 0 || facets[i].l < facets[best].l)) best = i;
+      if (best < 0) { // cycle: break
+        for (let i = 0; i < n; i++) if (!done[i] && (best < 0 || indeg[i] < indeg[best])) best = i;
+        order.cycles = (order.cycles || 0) + 1;
+      }
+      done[best] = true; L[best] = k; out[best].forEach(h => indeg[h]--);
+    }
+    // heights: longest chain of overlapping facets beneath
+    const H = new Array(n).fill(0), byL = [...Array(n).keys()].sort((a, b) => L[a] - L[b]);
+    const nb = Array.from({ length: n }, () => []);
+    pairs.forEach(([i, j]) => { nb[i].push(j); nb[j].push(i); });
+    byL.forEach(i => { nb[i].forEach(j => { if (L[j] < L[i]) H[i] = Math.max(H[i], H[j] + 1); }); });
+    return { L, H };
+  }
+
+  // ---------- timeline builder ----------
+  function build() {
+    nextId = 1;
+    let facets = [mkFacet([[-1, -1], [1, -1], [1, 1], [-1, 1]], I(), 0)];
+    const steps = []; api._steps = steps;
+    const cur = () => facets;
+
+    function commit(step, motion, opts = {}) {
+      const T0 = facets.map(f => f.T);
+      const Tend = motion(1);
+      let L, H;
+      if (opts.flat === false) { L = facets.map(f => f.l); H = facets.map(f => f.h); }
+      else { const r = order(facets, T0, Tend, opts.probe ? opts.probe() : motion(0.985), opts.rule); L = r.L; H = r.H; }
+      steps.push(Object.assign(step, {
+        facets: facets.map(f => ({ id: f.id, poly: f.poly, T0: f.T, h0: f.h, tag: f.tag })),
+        motion, Tend, h1: H, mode: opts.mode || 'flat'
+      }));
+      facets = facets.map((f, i) => Object.assign(mkFacet(f.poly, Tend[i], L[i]), { id: f.id, h: H[i], tag: f.tag }));
+    }
+    const rotGroups = groups => { const F = facets; return s => F.map(f => {
+      let T = f.T;
+      for (const g of groups) if (g.ids.has(f.id)) T = compose(rotAxis(g.P, g.d, g.ang(s)), T);
+      return T;
+    }); };
+
+    // simple fold through layers reached by flood
+    function makeFold(fd) {
+      const P = fd.line[0], D = [fd.line[1][0] - P[0], fd.line[1][1] - P[1]];
+      const side = lineSide(P, D, fd.move);
+      const at = facetsAt(facets, fd.seed);
+      const seed = fd.seedBottom ? at[at.length - 1] : at[0];
+      const fl = fd.all ? new Set(facets.filter(f => !fd.filter || fd.filter(f))) : flood(facets, seed, side, fd.filter);
+      const moving = new Set();
+      const next = [];
+      for (const f of facets) {
+        if (!fl.has(f)) { next.push(f); continue; }
+        for (const g of splitFacet(f, P, D)) {
+          next.push(g);
+          const c = centroid2(tableProj(g));
+          if (side(c) > 1e-7) moving.add(g.id);
+        }
+      }
+      facets = next;
+      const d3 = norm([D[0], D[1], 0]), P3 = [P[0], P[1], 0];
+      const m3 = [fd.move[0], fd.move[1], 0];
+      const sgn = apply(rotAxis(P3, d3, 0.1), m3)[2] * (fd.dir || 1) > 0 ? 1 : -1;
+      return { ids: moving, P: P3, d: d3, a: sgn * (fd.angle || PI) };
+    }
+    function fold(step, folds, unfoldAfter) {
+      const groups = folds.map(makeFold);
+      if (unfoldAfter) {
+        const bump = s => { const e = x => x * x * (3 - 2 * x), c = v => Math.max(0, Math.min(1, v)); return e(c(s / 0.42)) - e(c((s - 0.58) / 0.42)); };
+        groups.forEach(g => { const a = g.a * 0.985; g.ang = s => a * bump(s); });
+      } else groups.forEach(g => { const a = g.a; g.ang = s => a * s; });
+      commit(step, rotGroups(groups));
+      return groups;
+    }
+    function unfold(step, groups) {
+      const gs = groups.map(g => ({ ids: g.ids, P: g.P, d: g.d, ang: s => -g.a * s }));
+      commit(step, rotGroups(gs));
+    }
+    function turnOver(step) {
+      const g = { ids: new Set(facets.map(f => f.id)), P: [0, 0, 0], d: [0, 1, 0], ang: s => PI * s };
+      commit(step, rotGroups([g]));
+    }
+
+    // ---- 1. pre-creases ----
+    fold({ title: '대각선으로 접었다 펴기', desc: '색면을 위로 두고, 아래 모서리를 위 모서리에 맞춰 삼각형으로 접은 뒤 다시 폅니다.' },
+      [{ line: [[-1, 1], [1, -1]], move: [-1, -1], seed: [-0.5, -0.6], dir: 1 }], true);
+    fold({ title: '반대쪽 대각선도 접었다 펴기', desc: '나머지 대각선도 같은 방법으로 접었다 펴면 X자 접힘선이 생깁니다.' },
+      [{ line: [[-1, -1], [1, 1]], move: [1, -1], seed: [0.6, -0.5], dir: 1 }], true);
+    turnOver({ title: '뒤집기', desc: '종이를 뒤집어 흰 면이 위로 오게 합니다.' });
+    fold({ title: '가로로 반 접었다 펴기', desc: '아래 변을 위 변에 맞춰 반으로 접고 다시 폅니다.' },
+      [{ line: [[-1, 0], [1, 0]], move: [0, -1], seed: [0.3, -0.5], dir: 1 }], true);
+    fold({ title: '세로로 반 접었다 펴기', desc: '왼쪽 변을 오른쪽 변에 맞춰 접고 다시 폅니다. 이제 접힘선이 8갈래가 됩니다.' },
+      [{ line: [[0, -1], [0, 1]], move: [-1, 0], seed: [-0.5, 0.3], dir: 1 }], true);
+    turnOver({ title: '다시 뒤집기', desc: '색면이 위로 오게 뒤집습니다. 대각선은 골접기, 가로·세로선은 산접기가 됩니다.' });
+
+    // ---- 2. collapse into preliminary (square) base ----
+    {
+      const info = facets.map(f => {
+        const O = f.poly.find(p => Math.hypot(p[0], p[1]) < 1e-6);
+        const M = f.poly.find(p => Math.abs(Math.hypot(p[0], p[1]) - 1) < 1e-6);
+        const Dc = f.poly.find(p => Math.abs(Math.hypot(p[0], p[1]) - S2) < 1e-6);
+        const aM = Math.atan2(M[1], M[0]), aD = Math.atan2(Dc[1], Dc[0]);
+        const k = Math.round(((aM / (PI / 2)) % 4 + 4) % 4);
+        return { O, M, D: Dc, aM, aD, fin: k };
+      });
+      const c45 = Math.SQRT1_2;
+      const Lay = { R: [c45, c45, 0, 0, 0, 1, c45, -c45, 0], t: [0, S2, 0] };
+      const ss = (a, b, s) => { const x = Math.max(0, Math.min(1, (s - a) / (b - a))); return x * x * (3 - 2 * x); };
+      const F0 = facets;
+      const conf = (ed, psi, lay) => F0.map((f, i) => {
+        const q = info[i], cd = Math.cos(45 * PI / 180);
+        const A = cd * Math.cos(ed), B = Math.sin(ed), R = Math.hypot(A, B);
+        const em = Math.atan2(B, A) - Math.acos(Math.min(1, cd / R));
+        const mh = [Math.cos(q.aM) * Math.cos(em), Math.sin(q.aM) * Math.cos(em), -Math.sin(em)];
+        const dh = [Math.cos(q.aD) * Math.cos(ed), Math.sin(q.aD) * Math.cos(ed), -Math.sin(ed)];
+        let T = frameFrom([0, 0, 0], [q.M[0], q.M[1], 0], [q.D[0], q.D[1], 0], [0, 0, 0], mh, mul(dh, S2));
+        const sgn = (q.fin % 2 === 0) ? 1 : -1;
+        T = compose(rotAxis([0, 0, 0], [0, 0, 1], sgn * psi), T);
+        return compose(slerpI(Lay, lay), T);
+      });
+      const motion = s => conf(PI / 2 * ss(0, 0.55, s), PI / 4 * ss(0.4, 0.8, s), ss(0.55, 1, s));
+      commit({ title: '접어 모아 정사각 기본형 만들기', desc: '접힘선을 따라 네 모서리를 한 점으로 모으고 납작하게 눌러 작은 정사각형(정사각 기본형)을 만듭니다. 트인 쪽이 아래로 오게 둡니다.' },
+        motion, { probe: () => conf(PI / 2 - 0.05, PI / 4 - 0.05, 1) });
+    }
+
+    // geometry of the preliminary base: C=(0,√2) top, B=(0,0) open corners, sides at (±√2/2, √2/2)
+    const KL = [-K, 1], KR = [K, 1], H = S2 / 2;
+    const kiteFolds = () => [
+      { line: [[0, 0], KL], move: [-H, H], seed: [-0.37, 0.57], dir: 1 },
+      { line: [[0, 0], KR], move: [H, H], seed: [0.37, 0.57], dir: 1 }];
+
+    function petal(step) {
+      // split the top layer's middle along the horizontal crease y=1
+      for (const x of [-0.1, 0.1]) {
+        const f = facetsAt(facets, [x, 0.6])[0];
+        const parts = splitFacet(f, [0, 1], [1, 0]);
+        facets.splice(facets.indexOf(f), 1, ...parts);
+      }
+      const top = p => facetsAt(facets, p);
+      const sides = [-1, 1].map(sx => {
+        const Kp = [sx * K, 1, 0], Lp = [sx * H, H, 0], Bp = [0, 0, 0];
+        const central = top([sx * 0.1, 0.6])[0];
+        const st = top([sx * 0.37, 0.57]);
+        const side1 = st[0], side2 = st[1];
+        return { sx, Kp, Lp, Bp, central, side1, side2 };
+      });
+      const axC = [1, 0, 0], PC = [0, 1, 0];
+      const sC = apply(rotAxis(PC, axC, 0.1), [0, 0, 0])[2] > 0 ? 1 : -1;
+      const Bth = th => apply(rotAxis(PC, axC, sC * th), [0, 0, 0]);
+      sides.forEach(sd => {
+        sd.ax2 = norm(sub(sd.Bp, sd.Kp));
+        sd.s2 = apply(rotAxis(sd.Kp, sd.ax2, 0.1), sd.Lp)[2] > 0 ? 1 : -1;
+        sd.Lph = ph => apply(rotAxis(sd.Kp, sd.ax2, sd.s2 * ph), sd.Lp);
+        const dBL = len(sub(sd.Bp, sd.Lp));
+        const g = (th, ph) => len(sub(Bth(th), sd.Lph(ph))) - dBL;
+        // track root phi(theta) from the far end (unique there) back to 0
+        const N = 600, tab = new Array(N + 1);
+        let prev = PI;
+        for (let i = N; i >= 0; i--) {
+          const th = PI * i / N, roots = [];
+          const M = 1440;
+          let pv = g(th, -0.02), px = -0.02;
+          for (let k = 1; k <= M; k++) {
+            const x = -0.02 + (PI + 0.04) * k / M, v = g(th, x);
+            if (pv === 0) roots.push(px);
+            else if (pv * v < 0) { let a = px, b = x, fa = pv; for (let it = 0; it < 50; it++) { const m = (a + b) / 2, fm = g(th, m); if (fa * fm <= 0) b = m; else { a = m; fa = fm; } } roots.push((a + b) / 2); }
+            pv = v; px = x;
+          }
+          if (roots.length) prev = roots.reduce((a, b) => Math.abs(b - prev) < Math.abs(a - prev) ? b : a);
+          tab[i] = prev;
+        }
+        tab[0] = 0; tab[N] = PI;
+        sd.phi = th => { const x = th / PI * N, i = Math.max(0, Math.min(N - 1, Math.floor(x))), f = x - i; return tab[i] * (1 - f) + tab[i + 1] * f; };
+        const inv = inverse(sd.side1.T);
+        sd.pK = apply(inv, sd.Kp); sd.pB = apply(inv, sd.Bp); sd.pL = apply(inv, sd.Lp);
+      });
+      const FP = facets;
+      const motion = s => {
+        const th = PI * s;
+        return FP.map(f => {
+          for (const sd of sides) {
+            if (f === sd.central) return compose(rotAxis(PC, axC, sC * th), f.T);
+            if (f === sd.side2) return compose(rotAxis(sd.Kp, sd.ax2, sd.s2 * sd.phi(th)), f.T);
+            if (f === sd.side1) return frameFrom(sd.pK, sd.pB, sd.pL, sd.Kp, Bth(th), sd.Lph(sd.phi(th)));
+          }
+          return f.T;
+        });
+      };
+      commit(step, motion);
+    }
+
+    let g;
+    g = fold({ title: '양옆을 중심선에 맞춰 접기', desc: '윗장의 아래쪽 두 변을 가운데 선에 맞춰 접어 연 모양을 만듭니다.' }, kiteFolds());
+    unfold({ title: '다시 펴기', desc: '방금 접은 두 날개를 펴서 접힘선만 남깁니다.' }, g);
+    petal({ title: '꽃잎 접기', desc: '윗장의 아래 꼭짓점을 들어 올리면 양옆이 접힘선을 따라 안으로 모입니다. 길쭉한 마름모가 생깁니다.' });
+    turnOver({ title: '뒤집기', desc: '뒷면에서도 같은 과정을 반복합니다.' });
+    g = fold({ title: '양옆을 중심선에 맞춰 접기', desc: '뒷면의 윗장도 아래 두 변을 가운데 선에 맞춰 접습니다.' }, kiteFolds());
+    unfold({ title: '다시 펴기', desc: '접힘선만 남기고 폅니다.' }, g);
+    petal({ title: '꽃잎 접기 (학 기본형 완성)', desc: '아래 꼭짓점을 들어 올려 꽃잎 접기를 하면 학 기본형이 완성됩니다.' });
+
+    // ---- 3. narrow the legs ----
+    const tn = Math.tan(PI / 16);
+    const narrowFolds = () => [
+      { line: [[0, 0], [-tn, 1]], move: [-0.3, 0.5], seed: [-0.18, 0.6], dir: 1 },
+      { line: [[0, 0], [tn, 1]], move: [0.3, 0.5], seed: [0.18, 0.6], dir: 1 }];
+    fold({ title: '아래쪽 다리를 가늘게 접기', desc: '윗장의 아래쪽 두 변을 가운데 선에 맞춰 접어 다리를 가늘게 만듭니다.' }, narrowFolds());
+    turnOver({ title: '뒤집기', desc: '뒷면도 같은 방법으로 접습니다.' });
+    fold({ title: '뒷면 다리도 가늘게 접기', desc: '아래쪽 두 변을 가운데 선에 맞춰 접습니다.' }, narrowFolds());
+
+    // ---- 4. inside reverse folds ----
+    const frontCorner = () => { const f = facetsAt(facets, [0, 1.8])[0]; const c = paperCentroid(f); return [Math.sign(c[0]), Math.sign(c[1])]; };
+    function reverseFold(step, P, D, move, seedPt, tag) {
+      const fc = frontCorner();
+      const front = f => { const c = paperCentroid(f); return c[0] * fc[0] + c[1] * fc[1] > 0; };
+      const seed = facetsAt(facets, seedPt)[0];
+      const q = quadOf(seed);
+      const filter = f => { const c = quadOf(f); return c[0] === q[0] && c[1] === q[1]; };
+      const side = lineSide(P, D, move);
+      const fl = flood(facets, seed, side, filter);
+      const moving = new Set(), next = [];
+      for (const f of facets) {
+        if (!fl.has(f)) { next.push(f); continue; }
+        for (const gg of splitFacet(f, P, D)) { next.push(gg); if (side(centroid2(tableProj(gg))) > 1e-7) moving.add(gg.id); }
+      }
+      facets = next;
+      facets.forEach(f => { if (moving.has(f.id)) f.tag = tag; });
+      const d3 = norm([D[0], D[1], 0]), P3 = [P[0], P[1], 0], m3 = [move[0], move[1], 0];
+      const sg = apply(rotAxis(P3, d3, 0.1), m3)[2] > 0 ? 1 : -1;
+      const isF = facets.map(f => front(f)), isM = facets.map(f => moving.has(f.id));
+      const FR = facets;
+      const motion = s => FR.map((f, i) => {
+        if (!isM[i]) return f.T;
+        // front layers swing behind, back layers swing forward: the tip turns inside out
+        return compose(rotAxis(P3, d3, (isF[i] ? -1 : 1) * sg * PI * s), f.T);
+      });
+      const rule = (i, j) => {
+        const mi = isM[i], mj = isM[j];
+        if (!mi && !mj) return 0;
+        if (mi && mj) {
+          if (isF[i] !== isF[j]) return isF[i] ? 1 : -1;
+          return facets[i].l > facets[j].l ? -1 : 1; // order reverses inside each half
+        }
+        const o = mi ? j : i, sgn = mi ? 1 : -1; // sgn: +1 if i is the moving one
+        return (isF[o] ? -1 : 1) * sgn;
+      };
+      commit(step, motion, { rule });
+    }
+    const nA = [-0.9087, -0.4171];
+    reverseFold({ title: '목 만들기 (안으로 뒤집어 접기)', desc: '왼쪽 다리를 두 겹 사이로 뒤집어 넣으며 위로 올립니다.' }, [0, 1], nA, [-0.05, 0.3], [-0.05, 0.5], 'neck');
+    reverseFold({ title: '꼬리 만들기 (안으로 뒤집어 접기)', desc: '오른쪽 다리도 같은 방법으로 위로 올려 꼬리를 만듭니다.' }, [0, 1], [-nA[0], nA[1]], [0.05, 0.3], [0.05, 0.5], 'tail');
+    {
+      const M0 = [-0.0915, 0.958], tipP = [-0.758, 1.652];
+      const L0 = Math.hypot(tipP[0] - M0[0], tipP[1] - M0[1]);
+      const a = [(tipP[0] - M0[0]) / L0, (tipP[1] - M0[1]) / L0], b = [-0.906, -0.423];
+      const m = norm([a[0] + b[0], a[1] + b[1], 0]);
+      const at = f => [M0[0] + f * L0 * a[0], M0[1] + f * L0 * a[1]];
+      reverseFold({ title: '머리 만들기', desc: '목 끝을 조금 남기고 안으로 뒤집어 접어 부리를 만듭니다.' }, at(0.8), [m[0], m[1]], at(0.97), at(0.88), 'head');
+    }
+
+    // ---- 5. wings ----
+    {
+      const fc = frontCorner(), bc = [-fc[0], -fc[1]];
+      const inWing = (f, c) => { const p = paperCentroid(f); return Math.sign(p[0]) === c[0] && Math.sign(p[1]) === c[1] && (p[0] * c[0] + p[1] * c[1]) > 2 - S2 + 1e-6; };
+      const fw = new Set(facets.filter(f => inWing(f, fc)).map(f => f.id));
+      const bw = new Set(facets.filter(f => inWing(f, bc)).map(f => f.id));
+      const P = [0, 1, 0], d = [1, 0, 0];
+      const sF = apply(rotAxis(P, d, 0.1), [0, 1.8, 0])[2] > 0 ? 1 : -1;
+      commit({ title: '날개 내리기', desc: '앞 날개는 앞으로, 뒤 날개는 뒤로 접어 내립니다.' },
+        rotGroups([{ ids: fw, P, d, ang: s => sF * PI * s }, { ids: bw, P, d, ang: s => -sF * PI * s }]));
+      const ss = (a, b, s) => { const x = Math.max(0, Math.min(1, (s - a) / (b - a))); return x * x * (3 - 2 * x); };
+      let wOpen = 0;
+      const openR = rotGroups([{ ids: fw, P, d, ang: () => -sF * PI * 0.5 * wOpen }, { ids: bw, P, d, ang: () => sF * PI * 0.5 * wOpen }]);
+      const open = s => { wOpen = ss(0, 0.75, s); return openR(s); };
+      commit({ title: '날개를 펼쳐 완성', desc: '날개를 수평으로 펼치면 종이학이 완성됩니다. 드래그해서 돌려 보세요.' }, open, { flat: false, mode: '3d' });
+      steps[steps.length - 1].wings = { fw, bw };
+      // flapping: extra rotation of each wing about its hinge, positive alpha = wing tips up
+      const fin = steps[steps.length - 1], Topen = fin.Tend;
+      const upSign = ids => {
+        let best = null, far = -1;
+        fin.facets.forEach((f, i) => { if (!ids.has(f.id)) return; f.poly.forEach(p => { const w = apply(Topen[i], [p[0], p[1], 0]); const r = Math.hypot(w[1] - P[1], w[2] - P[2]); if (r > far) { far = r; best = w; } }); });
+        return apply(rotAxis(P, d, 0.1), best)[1] > best[1] ? 1 : -1;
+      };
+      const uF = upSign(fw), uB = upSign(bw);
+      fin.flap = alpha => fin.facets.map((f, i) => {
+        if (fw.has(f.id)) return compose(rotAxis(P, d, uF * alpha), Topen[i]);
+        if (bw.has(f.id)) return compose(rotAxis(P, d, uB * alpha), Topen[i]);
+        return Topen[i];
+      });
+    }
+    return steps;
+  }
+
+  var api = { build, apply, compose, rotAxis, I, order, inverse };
+  if (typeof module !== 'undefined') module.exports = api; else root.CraneEngine = api;
+})(this);
+
+</script>
+<script>
+// Paper-crane pose rig: chains of paper segments hinged at bend cuts and creases, IK, and motion timelines.
+(function (root) {
+  const D2R = Math.PI / 180;
+  const sub2 = (a, b) => [a[0] - b[0], a[1] - b[1]];
+  const dot2 = (a, b) => a[0] * b[0] + a[1] * b[1];
+  const nrm2 = a => { const l = Math.hypot(a[0], a[1]); return [a[0] / l, a[1] / l]; };
+  const crossZ = (a, b) => a[0] * b[1] - a[1] * b[0];
+  const clone = o => JSON.parse(JSON.stringify(o));
+
+  function clipHalf(P, q, n) {
+    const out = [], s = p => n[0] * (p[0] - q[0]) + n[1] * (p[1] - q[1]);
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length], sa = s(a), sb = s(b);
+      if (sa >= 0) out.push(a);
+      if ((sa >= 0) !== (sb >= 0)) { const t = sa / (sa - sb); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+    }
+    const o = [];
+    out.forEach(p => { const l = o[o.length - 1]; if (!l || Math.hypot(l[0] - p[0], l[1] - p[1]) > 1e-9) o.push(p); });
+    if (o.length > 1 && Math.hypot(o[0][0] - o[o.length - 1][0], o[0][1] - o[o.length - 1][1]) < 1e-9) o.pop();
+    return o;
+  }
+  const area2 = P => { let a = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
+
+  function create(E) {
+    const steps = E.build();
+    const W = steps.find(s => s.title === '날개 내리기'), fin = steps[steps.length - 1];
+    const { fw, bw } = fin.wings;
+    const base = W.facets.map((f, i) => ({ poly: f.poly, T: W.Tend[i], h: W.h1[i], tag: f.tag || null, id: f.id }));
+    const restOf = (f, p) => { const w = E.apply(f.T, [p[0], p[1], 0]); return [w[0], w[1]]; };
+    const centroidRest = f => { let x = 0, y = 0; f.poly.forEach(p => { const r = restOf(f, p); x += r[0]; y += r[1]; }); return [x / f.poly.length, y / f.poly.length]; };
+    let FLOOR = 1e9;
+    base.forEach(f => { if (!fw.has(f.id) && !bw.has(f.id)) f.poly.forEach(p => { FLOOR = Math.min(FLOOR, restOf(f, p)[1]); }); });
+    const PIVOT = [0, 1.15];
+
+    // neck / head / tail geometry (matches the folding sequence)
+    const M0 = [-0.0915, 0.958], TIP = [-0.758, 1.652];
+    const L0 = Math.hypot(TIP[0] - M0[0], TIP[1] - M0[1]);
+    const aN = nrm2(sub2(TIP, M0)), bH = [-0.906, -0.423], mH = nrm2([aN[0] + bH[0], aN[1] + bH[1]]);
+    const atN = f => [M0[0] + f * L0 * aN[0], M0[1] + f * L0 * aN[1]];
+    const aT = [-aN[0], aN[1]], M0T = [-M0[0], M0[1]];
+    const atT = f => [M0T[0] + f * L0 * aT[0], M0T[1] + f * L0 * aT[1]];
+    const perp = a => [a[1], -a[0]];
+    const fixH = (h, a) => crossZ(h, a) > 0 ? h : [-h[0], -h[1]];
+    const J = (id, p, h, a, type, dof) => ({ id, p, h: type === 'wing' ? h : fixH(nrm2(h), a), a, type, dof });
+
+    const wingJoints = k => [J(k + '0', [0, 1], [1, 0], [0, -1], 'wing', 3)].concat(
+      [0.82, 0.66, 0.5, 0.34, 0.18].map((y, i) => J(k + (i + 1), [0, y], [1, 0], [0, -1], 'wing', 1)));
+    const CHAINS = {
+      wF: { name: '앞 날개', joints: wingJoints('wF'), a: [0, -1], tip: [0, 0] },
+      wB: { name: '뒤 날개', joints: wingJoints('wB'), a: [0, -1], tip: [0, 0] },
+      neck: {
+        name: '목·머리', a: aN, tip: null,
+        joints: [J('n0', M0, [-0.9087, -0.4171], aN, 'root', 2)]
+          .concat([0.2, 0.35, 0.5, 0.65].map((f, i) => J('n' + (i + 1), atN(f), perp(aN), aN, 'bend', 2)))
+          .concat([J('h', atN(0.8), mH, aN, 'head', 3)])
+      },
+      tail: {
+        name: '꼬리', a: aT, tip: TIP.map((v, i) => i ? v : -v),
+        joints: [J('t0', M0T, [0.9087, -0.4171], aT, 'root', 2)]
+          .concat([0.25, 0.42, 0.6, 0.78].map((f, i) => J('t' + (i + 1), atT(f), perp(aT), aT, 'bend', 2)))
+      }
+    };
+    const chainOfBase = f => fw.has(f.id) ? 'wF' : bw.has(f.id) ? 'wB' : (f.tag === 'neck' || f.tag === 'head') ? 'neck' : f.tag === 'tail' ? 'tail' : 'body';
+
+    function splitByRest(f, P, D) {
+      const inv = E.inverse(f.T);
+      const a = E.apply(inv, [P[0], P[1], 0]), b = E.apply(inv, [P[0] + D[0], P[1] + D[1], 0]);
+      const n = [-(b[1] - a[1]), b[0] - a[0]];
+      const A = clipHalf(f.poly, a, n), B = clipHalf(f.poly, a, [-n[0], -n[1]]);
+      if (A.length < 3 || B.length < 3 || Math.abs(area2(A)) < 1e-9 || Math.abs(area2(B)) < 1e-9) return [f];
+      return [Object.assign({}, f, { poly: A }), Object.assign({}, f, { poly: B })];
+    }
+
+    // build the rig: base facets + built-in cuts + user creases
+    function build(creases) {
+      const chains = clone(CHAINS);
+      let facets = base.map(f => Object.assign({}, f, { chain: chainOfBase(f), depth: 0 }));
+      for (const key in chains) {
+        const ch = chains[key];
+        ch.joints.forEach((j, idx) => {
+          if (idx === 0 || j.type === 'head') return;
+          const next = [];
+          facets.forEach(f => { if (f.chain === key && f.tag !== 'head') next.push(...splitByRest(f, j.p, j.h)); else next.push(f); });
+          facets = next;
+        });
+        facets.forEach(f => {
+          if (f.chain !== key) return;
+          if (f.tag === 'head') { f.depth = ch.joints.findIndex(j => j.type === 'head'); return; }
+          const c = centroidRest(f); let d = 0;
+          ch.joints.forEach((j, idx) => { if (idx > 0 && j.type !== 'head' && dot2(sub2(c, j.p), ch.a) > 0) d = idx; });
+          f.depth = d;
+        });
+      }
+      // beak tip: farthest head vertex from the head hinge
+      let best = null, far = -1;
+      facets.forEach(f => { if (f.tag === 'head') f.poly.forEach(p => { const r = restOf(f, p), d = Math.hypot(r[0] - chains.neck.joints.at(-1).p[0], r[1] - chains.neck.joints.at(-1).p[1]); if (d > far) { far = d; best = r; } }); });
+      chains.neck.tip = best;
+      const creaseLines = [];
+      (creases || []).forEach(c => {
+        const ch = chains[c.chain]; if (!ch) return;
+        const k = ch.joints.findIndex(j => j.id === c.after); if (k < 0) return;
+        const D = nrm2(sub2(c.p2, c.p1));
+        if (!isFinite(D[0])) return;
+        const tipSide = crossZ(D, sub2(ch.tip, c.p1)) > 0 ? 1 : -1;
+        const next = [];
+        facets.forEach(f => {
+          if (f.chain !== c.chain || f.depth !== k) { next.push(f.chain === c.chain && f.depth > k ? Object.assign(f, { depth: f.depth + 1 }) : f); return; }
+          splitByRest(f, c.p1, D).forEach(g => {
+            const cc = centroidRest(g);
+            g = Object.assign({}, g, { depth: crossZ(D, sub2(cc, c.p1)) * tipSide > 0 ? k + 1 : k });
+            next.push(g);
+          });
+        });
+        facets = next;
+        const mid = [(c.p1[0] + c.p2[0]) / 2, (c.p1[1] + c.p2[1]) / 2];
+        ch.joints.splice(k + 1, 0, { id: c.id, p: mid, h: fixH(D, ch.a), a: ch.a, type: 'crease', dof: 1, user: true });
+        creaseLines.push({ id: c.id, chain: c.chain, p1: c.p1, p2: c.p2 });
+      });
+      // edges lying on user crease lines (drawn in red)
+      const creaseEdges = [];
+      creaseLines.forEach(cl => {
+        const D = nrm2(sub2(cl.p2, cl.p1));
+        facets.forEach((f, fi) => {
+          if (f.chain !== cl.chain) return;
+          for (let i = 0; i < f.poly.length; i++) {
+            const a = f.poly[i], b = f.poly[(i + 1) % f.poly.length];
+            const ra = restOf(f, a), rb = restOf(f, b);
+            if (Math.abs(crossZ(D, sub2(ra, cl.p1))) < 1e-6 && Math.abs(crossZ(D, sub2(rb, cl.p1))) < 1e-6 && Math.hypot(ra[0] - rb[0], ra[1] - rb[1]) > 1e-6)
+              creaseEdges.push({ fi, a, b, id: cl.id });
+          }
+        });
+      });
+      const jointChain = {};
+      for (const key in chains) chains[key].joints.forEach(j => { jointChain[j.id] = key; });
+      return { facets, chains, creaseEdges, jointChain, FLOOR, PIVOT, restOf };
+    }
+
+    // ---------- forward kinematics ----------
+    const jv = (pose, id) => (pose.j && pose.j[id]) || [0, 0, 0];
+    function jointT(j, v) {
+      const p = [j.p[0], j.p[1], 0];
+      let T = E.rotAxis(p, [j.h[0], j.h[1], 0], v[0] * D2R);
+      if (v[1]) T = E.compose(T, E.rotAxis(p, [0, 0, 1], v[1] * D2R));
+      if (v[2]) T = E.compose(T, E.rotAxis(p, [j.a[0], j.a[1], 0], v[2] * D2R));
+      return T;
+    }
+    function bodyT(pose) {
+      const b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, pose.b || {});
+      const pv = [PIVOT[0], PIVOT[1] - FLOOR, 0];
+      let R = E.rotAxis(pv, [0, 1, 0], b.yaw * D2R);
+      R = E.compose(R, E.rotAxis(pv, [1, 0, 0], b.roll * D2R));
+      R = E.compose(R, E.rotAxis(pv, [0, 0, 1], -b.pitch * D2R));
+      const T = E.compose({ R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [b.x, b.y, b.z] }, R);
+      return E.compose(T, { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, -FLOOR, 0] });
+    }
+    function chainCums(rig, pose) {
+      const B = bodyT(pose), out = { body: [B] };
+      for (const key in rig.chains) {
+        let T = B; out[key] = rig.chains[key].joints.map(j => (T = E.compose(T, jointT(j, jv(pose, j.id)))));
+      }
+      return out;
+    }
+    function facetTransforms(rig, pose) {
+      const C = chainCums(rig, pose);
+      return rig.facets.map(f => f.chain === 'body' ? C.body[0] : C[f.chain][f.depth]);
+    }
+    const EPS = 0.0022;
+    const restPoint = (rig, f, p) => { const w = E.apply(f.T, [p[0], p[1], 0]); w[2] += f.h * EPS; return w; };
+
+    // ---------- handles & IK ----------
+    const HANDLES = {
+      wF: { chain: 'wF', label: '앞 날개 끝' }, wB: { chain: 'wB', label: '뒤 날개 끝' },
+      beak: { chain: 'neck', label: '부리' }, neck: { chain: 'neck', label: '목', upTo: 'h' },
+      tail: { chain: 'tail', label: '꼬리 끝' }
+    };
+    function handleInfo(rig, hid) {
+      const H = HANDLES[hid], ch = rig.chains[H.chain];
+      if (H.upTo) { const k = ch.joints.findIndex(j => j.id === H.upTo); return { chain: H.chain, depth: k - 1, point: ch.joints[k].p, joints: ch.joints.slice(0, k) }; }
+      return { chain: H.chain, depth: ch.joints.length - 1, point: ch.tip, joints: ch.joints };
+    }
+    function handlePos(rig, pose, hid) {
+      const info = handleInfo(rig, hid), C = chainCums(rig, pose);
+      return E.apply(C[info.chain][info.depth], [info.point[0], info.point[1], 0]);
+    }
+    const LIM = {
+      wing0: [[-178, 178], [-125, 125], [-60, 60]], wing: [[-70, 70]],
+      root: [[-75, 75], [-70, 90]], bend: [[-40, 40], [-35, 35]], head: [[-70, 70], [-90, 90], [-50, 50]], crease: [[-178, 178]]
+    };
+    function limits(j, idx) {
+      if (j.type === 'wing') {
+        if (idx > 0) return LIM.wing;
+        return j.id === 'wF0' ? [[-178, 0], LIM.wing0[1], LIM.wing0[2]] : [[0, 178], LIM.wing0[1], LIM.wing0[2]];
+      }
+      return LIM[j.type];
+    }
+    function solveIK(rig, pose, hid, target, opts = {}) {
+      const info = handleInfo(rig, hid);
+      const params = []; // [jointId, dofIndex, stiffness, lo, hi]
+      info.joints.forEach((j, idx) => {
+        const lim = limits(j, idx);
+        const dofs = j.type === 'wing' ? (idx === 0 ? [0, 1] : [0]) : j.type === 'head' ? [0, 1] : j.type === 'crease' ? [0] : [0, 1];
+        const k = j.type === 'crease' ? 0.12 : j.type === 'bend' || (j.type === 'wing' && idx > 0) ? 0.7 : 0.35;
+        dofs.forEach(d => params.push([j.id, d, k, lim[d][0], lim[d][1], j.type]));
+      });
+      pose.j = pose.j || {};
+      params.forEach(([id]) => { if (!pose.j[id]) pose.j[id] = [0, 0, 0]; });
+      const get = () => params.map(([id, d]) => pose.j[id][d]);
+      const set = th => params.forEach(([id, d, , lo, hi], i) => { pose.j[id][d] = Math.max(lo, Math.min(hi, th[i])); });
+      const th0 = opts.from ? params.map(([id, d]) => ((opts.from.j || {})[id] || [0, 0, 0])[d]) : get();
+      const tipAt = th => { set(th); return handlePos(rig, pose, hid); };
+      let th = get();
+      const m = th.length;
+      for (let it = 0; it < (opts.iters || 14); it++) {
+        const p0 = tipAt(th), e = [target[0] - p0[0], target[1] - p0[1], target[2] - p0[2]];
+        if (Math.hypot(...e) < 1e-4) break;
+        const Jm = [];
+        for (let i = 0; i < m; i++) { const t2 = th.slice(); t2[i] += 0.5; const p1 = tipAt(t2); Jm.push([(p1[0] - p0[0]) / 0.5, (p1[1] - p0[1]) / 0.5, (p1[2] - p0[2]) / 0.5]); }
+        set(th);
+        // (J^T J + damping + stiffness + bend smoothing) dth = J^T e - stiffness (th - th0)
+        const A = Array.from({ length: m }, () => new Array(m).fill(0)), g = new Array(m).fill(0);
+        const mu = opts.mu != null ? opts.mu : 2e-5;
+        for (let i = 0; i < m; i++) {
+          for (let k = 0; k < m; k++) A[i][k] = Jm[i][0] * Jm[k][0] + Jm[i][1] * Jm[k][1] + Jm[i][2] * Jm[k][2];
+          g[i] = Jm[i][0] * e[0] + Jm[i][1] * e[1] + Jm[i][2] * e[2] - mu * params[i][2] * (th[i] - th0[i]);
+          A[i][i] += 1e-5 + mu * params[i][2];
+        }
+        // smooth curvature across consecutive bend cuts of the same dof
+        for (let i = 0; i < m; i++) for (let k = i + 1; k < m; k++) {
+          const a = params[i], b = params[k];
+          if (a[1] === b[1] && (a[5] === 'bend' || (a[5] === 'wing' && !a[0].endsWith('0'))) && a[5] === b[5] && k === i + (a[5] === 'wing' ? 1 : 2)) {
+            const w = 6e-5; A[i][i] += w; A[k][k] += w; A[i][k] -= w; A[k][i] -= w;
+            g[i] -= w * (th[i] - th[k]); g[k] -= w * (th[k] - th[i]);
+          }
+        }
+        const dth = gauss(A, g);
+        const mx = Math.max(...dth.map(Math.abs)); const sc = mx > 25 ? 25 / mx : 1;
+        th = th.map((v, i) => Math.max(params[i][3], Math.min(params[i][4], v + dth[i] * sc)));
+      }
+      set(th);
+      return pose;
+    }
+    function gauss(A, b) {
+      const n = b.length, M = A.map((r, i) => r.concat([b[i]]));
+      for (let c = 0; c < n; c++) {
+        let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+        [M[c], M[p]] = [M[p], M[c]];
+        const d = M[c][c] || 1e-12;
+        for (let r = c + 1; r < n; r++) { const f = M[r][c] / d; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+      }
+      const x = new Array(n).fill(0);
+      for (let r = n - 1; r >= 0; r--) { let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / (M[r][r] || 1e-12); }
+      return x;
+    }
+    // mirror one wing's joint values onto the other (reflection through the body plane)
+    function mirrorWing(pose, from) {
+      const to = from === 'wF' ? 'wB' : 'wF';
+      for (let i = 0; i < 6; i++) { const v = jv(pose, from + i); pose.j[to + i] = [-v[0], v[1], -v[2]]; }
+    }
+
+    // ---------- semantic pose helper (for presets) ----------
+    function P(sem = {}) {
+      const j = {};
+      ['F', 'B'].forEach(X => {
+        const w = Object.assign({ flap: 6, fwd: 0, twist: 0, curl: 8, tip: 0 }, sem['w' + X] || sem.w || {});
+        const sg = X === 'F' ? -1 : 1, k = 'w' + X;
+        j[k + '0'] = [sg * (90 + w.flap), -w.fwd, sg * w.twist];
+        for (let i = 1; i <= 5; i++) j[k + i] = [sg * (w.curl / 5 + (i === 5 ? w.tip : 0)), 0, 0];
+      });
+      const n = Object.assign({ bow: 0, side: 0 }, sem.neck || {});
+      j.n0 = [n.side * 0.4, n.bow * 0.4, 0];
+      for (let i = 1; i <= 4; i++) j['n' + i] = [n.side * 0.15, n.bow * 0.15, 0];
+      const h = Object.assign({ nod: 0, turn: 0, tilt: 0 }, sem.head || {});
+      j.h = [h.turn, h.nod, h.tilt];
+      const t = Object.assign({ up: 0, side: 0 }, sem.tail || {});
+      j.t0 = [t.side * 0.5, t.up * 0.5, 0];
+      for (let i = 1; i <= 4; i++) j['t' + i] = [t.side / 8, t.up / 8, 0];
+      return { b: Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, sem.b || {}), j };
+    }
+
+    // ---------- timeline ----------
+    const EASE = {
+      linear: u => u,
+      in: u => u * u * u,
+      out: u => 1 - Math.pow(1 - u, 3),
+      inout: u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+      snap: u => 1 - Math.pow(1 - u, 6),
+      over: u => { const c1 = 2.2, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); }
+    };
+    const isWing = id => id[0] === 'w';
+    function lerpPose(A, B, u, uw, wingIds) {
+      const out = { b: {}, j: {} };
+      const kb = new Set([...Object.keys(A.b || {}), ...Object.keys(B.b || {})]);
+      kb.forEach(k => { const a = (A.b || {})[k] || 0, b = (B.b || {})[k] || 0; out.b[k] = a + (b - a) * u; });
+      const kj = new Set([...Object.keys(A.j || {}), ...Object.keys(B.j || {})]);
+      kj.forEach(k => {
+        const a = (A.j || {})[k] || [0, 0, 0], b = (B.j || {})[k] || [0, 0, 0], w = (isWing(k) || (wingIds && wingIds.has(k))) ? uw : u;
+        out.j[k] = [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * w);
+      });
+      return out;
+    }
+    // frames: each key, its hold frames, then the in-betweens to the next key
+    function expand(motion, rig) {
+      const frames = [], keys = motion.keys;
+      const wingIds = new Set(); if (rig) for (const id in rig.jointChain) if (rig.jointChain[id][0] === 'w') wingIds.add(id);
+      keys.forEach((k, i) => {
+        frames.push({ pose: k.pose, key: i, kind: 'key' });
+        for (let h = 0; h < (k.hold || 0); h++) frames.push({ pose: k.pose, key: i, kind: 'hold' });
+        const nx = keys[i + 1]; if (!nx) return;
+        const tr = Object.assign({ n: 3, ease: 'inout', wingLag: 0, flap: null }, k.tr || {});
+        for (let s = 1; s <= tr.n; s++) {
+          const u = s / (tr.n + 1), e = EASE[tr.ease] || EASE.inout;
+          const lag = Math.min(0.9, tr.wingLag || 0), uw = e(Math.max(0, (u - lag) / (1 - lag)));
+          const pose = lerpPose(k.pose, nx.pose, e(u), uw, wingIds);
+          if (tr.flap && tr.flap.amp) {
+            const f = tr.flap, acc = f.accel || 0;
+            const ph = f.cycles * (u + acc * u * u) / (1 + acc), env = Math.pow(Math.sin(Math.PI * u), 0.35);
+            const dF = f.amp * Math.sin(2 * Math.PI * ph) * env, dB = f.amp * Math.sin(2 * Math.PI * (ph - (f.lag || 0))) * env;
+            if (pose.j.wF0) pose.j.wF0[0] -= dF;
+            if (pose.j.wB0) pose.j.wB0[0] += dB;
+          }
+          frames.push({ pose, key: i, kind: 'tween', u });
+        }
+      });
+      return frames;
+    }
+
+    function pointPos(rig, pose, chain, depth, p) {
+      const C = chainCums(rig, pose);
+      return E.apply(chain === 'body' ? C.body[0] : C[chain][depth], [p[0], p[1], 0]);
+    }
+
+    // ---------- built-in motion presets ----------
+    function presets(rig) {
+      const key = (role, pose, hold, tr) => ({ role, pose, hold, tr });
+      const merge = (a, b) => { const o = clone(a); for (const k in b) o[k] = Object.assign({}, o[k] || {}, b[k]); return o; };
+      const STAND = {};
+      const M = [];
+      // Look & Tilt
+      {
+        const look = { neck: { bow: -14, side: 22 }, head: { nod: -24, turn: 20 }, b: { yaw: -10 } };
+        M.push({ id: 'look', name: 'Look & Tilt — 발견·갸웃', cut: '2-2', desc: '창문 쪽으로 고개 돌림 → 갸웃 → 조금 더 기울임 → 정지', keys: [
+          key('start', P(STAND), 4, { n: 4, ease: 'inout' }),
+          key('prep', P({ neck: { bow: 8 }, head: { nod: 12 } }), 1, { n: 3, ease: 'snap' }),
+          key('core', P(look), 3, { n: 3, ease: 'out' }),
+          key('core', P(merge(look, { head: { tilt: 26 } })), 6, { n: 4, ease: 'inout' }),
+          key('end', P(merge(look, { head: { tilt: 36, nod: -20 }, neck: { side: 28 }, b: { roll: 5 } })), 16, null)
+        ] });
+      }
+      // Head Scratch
+      {
+        const prep = { neck: { bow: 2, side: 10 }, head: { nod: 34 }, b: { pitch: -4 }, wF: { flap: -8 } };
+        const reach = merge(prep, { head: { tilt: 14 }, wF: { flap: 75, fwd: 60, curl: 30 } });
+        const base = P(reach);
+        const headTop = q => {
+          const ch = rig.chains.neck, k = ch.joints.findIndex(j => j.id === 'h');
+          return pointPos(rig, q, 'neck', k, ch.joints[k].p);
+        };
+        const touch = (dy) => {
+          const q = clone(base), ht = headTop(q);
+          solveIK(rig, q, 'wF', [ht[0] + 0.05, ht[1] + 0.07 + dy, ht[2] + 0.04], { iters: 80, mu: 2e-6 });
+          return q;
+        };
+        const up = touch(0), down = touch(-0.07);
+        M.push({ id: 'scratch', name: 'Head Scratch — 머리 긁기', cut: '2-7', desc: '고개 숙임 → 한쪽 날개를 머리에 댐 → 짧게 두 번 긁음 → 날개 내림', keys: [
+          key('start', P(STAND), 3, { n: 5, ease: 'inout' }),
+          key('prep', P(prep), 2, { n: 5, ease: 'inout' }),
+          key('core', up, 3, { n: 1, ease: 'linear' }),
+          key('core', down, 0, { n: 1, ease: 'linear' }),
+          key('core', clone(up), 0, { n: 1, ease: 'linear' }),
+          key('core', clone(down), 0, { n: 1, ease: 'linear' }),
+          key('core', clone(up), 3, { n: 6, ease: 'inout' }),
+          key('end', P({ neck: { bow: 14 }, head: { nod: 8 } }), 12, null)
+        ] });
+      }
+      // Failed Takeoff
+      {
+        const proud = { wF: { flap: 78, curl: 18 }, wB: { flap: 78, curl: 18 }, neck: { bow: -18 }, head: { nod: -22 }, b: { pitch: 10 }, tail: { up: 8 } };
+        M.push({ id: 'takeoff', name: 'Failed Takeoff — 이륙 실패', cut: '2-4', desc: '준비 자세 → 세찬 퍼덕임 → 짧은 점프 → 균형 상실 → 허우적거림 → 머리부터 추락', keys: [
+          key('start', P(STAND), 3, { n: 5, ease: 'inout' }),
+          key('prep', P({ b: { pitch: -8 }, neck: { bow: 16 }, head: { nod: 6 }, w: { flap: 4, fwd: -28, curl: 2 }, tail: { up: 12 } }), 3, { n: 3, ease: 'snap' }),
+          key('core', P(proud), 8, { n: 10, ease: 'linear', flap: { cycles: 3, amp: 55, lag: 0, accel: 0.5 } }),
+          key('core', P({ b: { y: 0.2, pitch: 6 }, w: { flap: 25, curl: 10 }, neck: { bow: -10 }, head: { nod: -12 }, tail: { up: 4 } }), 2, { n: 6, ease: 'linear', flap: { cycles: 3.5, amp: 60, lag: 0.22, accel: 1.2 } }),
+          key('core', P({ b: { y: 0.15, z: 0.25, roll: 26, pitch: -14 }, wF: { flap: 55, curl: 12 }, wB: { flap: -10, curl: 6 }, neck: { bow: 22, side: -10 }, head: { nod: 18 }, tail: { up: 16 } }), 0, { n: 8, ease: 'linear', flap: { cycles: 4, amp: 62, lag: 0.4, accel: 1.6 } }),
+          key('core', P({ b: { y: 0.12, z: 0.5, roll: 34, pitch: -32 }, wF: { flap: 35, curl: 8 }, wB: { flap: 20, curl: 4 }, neck: { bow: 46, side: -14 }, head: { nod: 30 }, tail: { up: 22 } }), 0, { n: 4, ease: 'in', wingLag: 0.45 }),
+          key('end', P({ b: { y: -1.6, z: 1.0, roll: 40, pitch: -75 }, w: { flap: 70, curl: 26 }, neck: { bow: 30, side: -8 }, head: { nod: 20 }, tail: { up: 30 } }), 6, null)
+        ] });
+      }
+      const rest = [
+        ['wake', 'Wake Up — 깨어나기', '1-3', '고개 숙임 → 천천히 들어 올림 → 순간 멈춤'],
+        ['prepfly', 'Prepare to Fly — 비행 준비', '2-3', '몸을 살짝 낮춤 → 목을 뻗음 → 양 날개를 크게 치켜듦 → 자신만만한 정지'],
+        ['recover', 'Recover — 벌떡 일어나기', '2-6', '옆으로 누움 → 몸을 흔듦 → 갑자기 일어남 → 한 번 휘청 → 균형 잡기'],
+        ['shake', 'Head Shake — 고개 털기', '2-7', '고개 좌우로 짧게 털기 → 마지막에 조금 지나쳤다가 돌아오기'],
+        ['dodge', 'Dodge — 발 피하기', '2-8', '앞으로 이동 → 급정지 → 몸을 한쪽으로 기울임 → 급회전 → 반대쪽으로 도망'],
+        ['deflate', 'Deflate — 낙담하기', '2-9', '움직임 멈춤 → 날개가 처짐 → 목과 몸이 내려감 → 주저앉음'],
+        ['longing', 'Longing — 다시 올려다보기', '2-10', '축 처진 상태 → 고개만 조금 들어 창밖을 바라봄 → 긴 정지'],
+        ['crushed', 'Crushed — 밟힌 상태', '3-2', '정상 형태 → 목·날개가 접히며 몸이 납작해짐. 외부 힘으로 변하는 별도 상태']
+      ].map(([id, name, cut, desc]) => ({ id, name, cut, desc, draft: true, keys: [key('start', P(STAND), 6, null)] }));
+      const order = ['wake', 'look', 'prepfly', 'takeoff', 'recover', 'shake', 'scratch', 'dodge', 'deflate', 'longing', 'crushed'];
+      const all = M.concat(rest);
+      return order.map(id => all.find(m => m.id === id));
+    }
+
+    return { build, facetTransforms, pointPos, presets, restPoint, handlePos, handleInfo, solveIK, mirrorWing, P, expand, lerpPose, EASE, HANDLES, EPS, FLOOR, PIVOT, jv, clone };
+  }
+
+  const api = { create };
+  if (typeof module !== 'undefined') module.exports = api; else root.CraneRig = api;
+})(this);
+
+</script>
+<script>
+(function () {
+  const E = CraneEngine, R = CraneRig.create(E);
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const ROLE = { start: '시작 포즈', prep: '준비 포즈', core: '핵심 동작', end: '끝 포즈' };
+  const ROLEVAR = { start: '--r-start', prep: '--r-prep', core: '--r-core', end: '--r-end' };
+  const STORE = 'crane-motion-ref-v1';
+
+  // ---------- state ----------
+  let rig = R.build([]);
+  const fresh = () => ({ motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  let S;
+  try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
+  if (!S || !S.motions) S = fresh();
+  rig = R.build(S.creases);
+  let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true;
+  const undoStack = [], redoStack = [];
+  const motion = () => S.motions[S.cur];
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { } }
+  function snapshot() { undoStack.push(JSON.stringify(S)); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; }
+  function restore(json) { S = JSON.parse(json); rig = R.build(S.creases); rebuildScene(); refreshAll(); save(); }
+  function toast(t) { const el = $('toast'); el.textContent = t; el.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => el.style.opacity = 0, 2200); }
+
+  // ---------- three.js ----------
+  const stage = $('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 100);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.1;
+  const DEFAULT_CAM = { p: [1.9, 1.25, 4.9], t: [-0.1, 0.3, 0.1] };
+  function applyCam(c) { camera.position.set(...c.p); controls.target.set(...c.t); controls.update(); }
+  applyCam(S.cam || DEFAULT_CAM);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.75));
+  const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(2, 4, 4); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(-3, 1, -3); scene.add(rim);
+
+  // window-sill ledge the crane stands on; its front edge is where the takeoff fails
+  const ledge = new THREE.Mesh(new THREE.BoxGeometry(6, 0.12, 2.4), new THREE.MeshStandardMaterial({ color: new THREE.Color(css('--ledge')).convertSRGBToLinear(), roughness: 0.95 }));
+  ledge.position.set(0, -0.061, -0.2); scene.add(ledge);
+
+  function washi(hex) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 256, 256);
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 400; i++) { const x = rnd() * 256, y = rnd() * 256, l = 4 + rnd() * 16, a = rnd() * Math.PI; g.strokeStyle = `rgba(255,255,255,${0.05 + rnd() * 0.08})`; g.lineWidth = 0.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+  }
+  const matF = new THREE.MeshStandardMaterial({ map: washi('#c4313b'), roughness: 0.85, side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const matB = new THREE.MeshStandardMaterial({ map: washi('#f2eee6'), roughness: 0.9, side: THREE.BackSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const ghostMat = c => new THREE.MeshBasicMaterial({ color: new THREE.Color(c), transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
+  const ghostCols = [css('--ghost-prev'), css('--ghost-prev'), css('--ghost-next'), css('--ghost-next')];
+
+  let G = null; // geometry bundle for current rig topology
+  function makeGeo(nTri, uv) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nTri * 9), 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(nTri * 9), 3));
+    if (uv) g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    return g;
+  }
+  function rebuildScene() {
+    if (G) { G.objs.forEach(o => { scene.remove(o); o.geometry.dispose(); }); }
+    let nTri = 0, nEdge = 0; const triFacet = [];
+    rig.facets.forEach((f, fi) => { for (let j = 1; j < f.poly.length - 1; j++) triFacet.push(fi); nTri += f.poly.length - 2; nEdge += f.poly.length; });
+    const uv = new Float32Array(nTri * 6); let o = 0;
+    rig.facets.forEach(f => { for (let j = 1; j < f.poly.length - 1; j++) [0, j, j + 1].forEach(v => { uv[o++] = (f.poly[v][0] + 1) / 2; uv[o++] = (f.poly[v][1] + 1) / 2; }); });
+    const geo = makeGeo(nTri, uv);
+    const mF = new THREE.Mesh(geo, matF), mB = new THREE.Mesh(geo, matB);
+    const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nEdge * 6), 3));
+    const lines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x3a2a2a, transparent: true, opacity: 0.22 }));
+    const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(Math.max(1, rig.creaseEdges.length) * 6), 3));
+    cg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(Math.max(1, rig.creaseEdges.length) * 6), 3));
+    const creaseLines = new THREE.LineSegments(cg, new THREE.LineBasicMaterial({ vertexColors: true, depthTest: false }));
+    creaseLines.renderOrder = 5;
+    const ghosts = [0, 1, 2, 3].map(i => { const m = new THREE.Mesh(makeGeo(nTri), ghostMat(ghostCols[i])); m.renderOrder = 2; m.material.opacity = i % 2 ? 0.1 : 0.22; return m; });
+    [mF, mB, lines, creaseLines, ...ghosts].forEach(m => { m.frustumCulled = false; scene.add(m); });
+    G = { geo, lg, cg, mF, mB, lines, creaseLines, ghosts, triFacet, objs: [mF, mB, lines, creaseLines, ...ghosts], Ts: null };
+  }
+
+  function writePose(geo, pose, withLines) {
+    const Ts = R.facetTransforms(rig, pose);
+    const pos = geo.attributes.position.array; let o = 0;
+    const lp = withLines ? G.lg.attributes.position.array : null; let lo = 0;
+    rig.facets.forEach((f, i) => {
+      const P = f.poly.map(p => E.apply(Ts[i], R.restPoint(rig, f, p)));
+      for (let j = 1; j < P.length - 1; j++) [0, j, j + 1].forEach(v => { pos[o++] = P[v][0]; pos[o++] = P[v][1]; pos[o++] = P[v][2]; });
+      if (lp) for (let j = 0; j < P.length; j++) { const a = P[j], b = P[(j + 1) % P.length]; lp[lo++] = a[0]; lp[lo++] = a[1]; lp[lo++] = a[2]; lp[lo++] = b[0]; lp[lo++] = b[1]; lp[lo++] = b[2]; }
+    });
+    geo.attributes.position.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere(); geo.computeBoundingBox();
+    if (lp) G.lg.attributes.position.needsUpdate = true;
+    return Ts;
+  }
+  const WARN = new THREE.Color(css('--warn')), NEWC = new THREE.Color('#e3343e');
+  function writeCreases(Ts) {
+    const p = G.cg.attributes.position.array, c = G.cg.attributes.color.array; let o = 0;
+    const worn = wearInfo();
+    rig.creaseEdges.forEach(e => {
+      const f = rig.facets[e.fi], col = worn[e.id] && worn[e.id].flips ? WARN : NEWC;
+      [e.a, e.b].forEach(q => { const w = E.apply(Ts[e.fi], R.restPoint(rig, f, q)); p[o] = w[0]; c[o++] = col.r; p[o] = w[1]; c[o++] = col.g; p[o] = w[2]; c[o++] = col.b; });
+    });
+    G.cg.setDrawRange(0, rig.creaseEdges.length * 2);
+    G.cg.attributes.position.needsUpdate = true; G.cg.attributes.color.needsUpdate = true;
+  }
+
+  // ---------- handles ----------
+  const HANDLE_IDS = ['wF', 'wB', 'beak', 'neck', 'tail', 'body'];
+  const hMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(css('--accent')), depthTest: false });
+  const bMat = new THREE.MeshBasicMaterial({ color: 0x6b7480, depthTest: false });
+  const handles = HANDLE_IDS.map(id => { const m = new THREE.Mesh(new THREE.SphereGeometry(id === 'body' ? 0.045 : 0.035, 16, 12), id === 'body' ? bMat : hMat); m.renderOrder = 10; m.userData.id = id; scene.add(m); return m; });
+  const HLABEL = { wF: '앞 날개 끝', wB: '뒤 날개 끝', beak: '부리', neck: '목', tail: '꼬리 끝', body: '몸통' };
+  function bodyPoint(pose) { const b = pose.b || {}; return [b.x || 0, (b.y || 0) + R.PIVOT[1] - R.FLOOR, b.z || 0]; }
+  function placeHandles(pose) {
+    handles.forEach(h => { const p = h.userData.id === 'body' ? bodyPoint(pose) : R.handlePos(rig, pose, h.userData.id); h.position.set(...p); h.visible = tool === 'drag' && !playing; });
+  }
+
+  // ---------- frames ----------
+  function reexpand() { frames = R.expand(motion(), rig); frame = Math.max(0, Math.min(frame, frames.length - 1)); }
+  const curFrame = () => frames[frame];
+  const curKey = () => motion().keys[curFrame().key];
+
+  function wearInfo() {
+    const out = {};
+    S.creases.forEach(c => {
+      let last = 0, flips = 0, deep = 0;
+      frames.forEach(fr => { const v = ((fr.pose.j || {})[c.id] || [0])[0]; const s = v > 10 ? 1 : v < -10 ? -1 : 0; if (s && last && s !== last) flips++; if (s) last = s; if (Math.abs(v) > 120) deep++; });
+      out[c.id] = { flips, deep };
+    });
+    return out;
+  }
+
+  // make the current frame editable: tweens become a new key, splitting the transition
+  function ensureKey() {
+    const fr = curFrame(), m = motion();
+    if (fr.kind !== 'tween') return m.keys[fr.key];
+    const k = m.keys[fr.key], tr = Object.assign({ n: 3, ease: 'inout' }, k.tr || {});
+    let s = 0; for (let i = 0; i <= frame; i++) if (frames[i].key === fr.key && frames[i].kind === 'tween') s++;
+    const nk = { role: 'core', pose: clone(fr.pose), hold: 0, tr: Object.assign(clone(tr), { n: Math.max(0, tr.n - s) }) };
+    k.tr = Object.assign(clone(tr), { n: s - 1 });
+    m.keys.splice(fr.key + 1, 0, nk);
+    reexpand();
+    frame = frames.findIndex(f => f.key === fr.key + 1 && f.kind === 'key');
+    return nk;
+  }
+
+  // ---------- drawing ----------
+  let dirty = true;
+  function draw() {
+    const fr = curFrame(); if (!fr) return;
+    const Ts = writePose(G.geo, fr.pose, true);
+    writeCreases(Ts);
+    G.ghosts.forEach((g, i) => {
+      const off = [-1, -2, 1, 2][i], idx = frame + off;
+      const show = onion && !playing && Math.abs(off) <= onionN && idx >= 0 && idx < frames.length;
+      g.visible = show; if (show) writePose(g.geometry, frames[idx].pose, false);
+    });
+    placeHandles(fr.pose);
+  }
+
+  // ---------- UI: presets ----------
+  function renderPresets() {
+    const box = $('presetList'); box.querySelectorAll('.preset').forEach(n => n.remove());
+    S.motions.forEach((m, i) => {
+      const b = document.createElement('button'); b.className = 'preset'; b.setAttribute('aria-current', String(i === S.cur));
+      const filled = m.keys.length > 1;
+      b.innerHTML = `<span class="pc">컷 ${m.cut}${filled ? '' : ' · 비어 있음'}</span><span class="pn"></span><span class="pd"></span>`;
+      b.querySelector('.pn').textContent = m.name; b.querySelector('.pd').textContent = m.desc;
+      b.onclick = () => { S.cur = i; frame = 0; setPlaying(false); refreshAll(); save(); };
+      box.appendChild(b);
+    });
+  }
+  // ---------- UI: strip ----------
+  function renderStrip() {
+    const st = $('strip'); st.innerHTML = '';
+    const m = motion();
+    frames.forEach((f, i) => {
+      const c = document.createElement('button'); c.className = 'cell ' + f.kind + (i === frame ? ' cur' : '');
+      const role = m.keys[f.key].role;
+      if (f.kind !== 'tween') c.style.background = `var(${ROLEVAR[role]})`;
+      c.title = `${i + 1} · ${f.kind === 'tween' ? '중간 프레임' : f.kind === 'hold' ? '정지' : ROLE[role]}`;
+      c.setAttribute('role', 'option'); c.setAttribute('aria-selected', String(i === frame));
+      c.onclick = () => { frame = i; setPlaying(false); refreshFrame(); };
+      st.appendChild(c);
+    });
+  }
+  function refreshFrame() {
+    const fr = curFrame(), m = motion(), k = m.keys[fr.key];
+    $('counter').textContent = `${String(frame + 1).padStart(3, '0')} / ${frames.length} · ${(frame / fps).toFixed(2)}s`;
+    $('hud').textContent = fr.kind === 'tween' ? `키 ${fr.key + 1}→${fr.key + 2} 사이` : `키 ${fr.key + 1} · ${ROLE[k.role]}${fr.kind === 'hold' ? ' (정지)' : ''}`;
+    document.querySelectorAll('#strip .cell').forEach((c, i) => { c.classList.toggle('cur', i === frame); c.setAttribute('aria-selected', String(i === frame)); });
+    const cur = $('strip').children[frame]; if (cur) { const st = $('strip'); if (cur.offsetLeft < st.scrollLeft || cur.offsetLeft > st.scrollLeft + st.clientWidth - 20) st.scrollLeft = cur.offsetLeft - st.clientWidth / 2; }
+    renderInspector();
+    dirty = true;
+  }
+  // ---------- UI: inspector ----------
+  const EASES = ['linear', 'in', 'out', 'inout', 'snap', 'over'];
+  function renderInspector() {
+    const fr = curFrame(), m = motion(), k = m.keys[fr.key], last = fr.key === m.keys.length - 1;
+    const tween = fr.kind === 'tween';
+    $('keyTitle').textContent = tween ? `중간 프레임 (키 ${fr.key + 1}→${fr.key + 2})` : `키 ${fr.key + 1} / ${m.keys.length}`;
+    $('roleSel').value = k.role; $('holdIn').value = k.hold || 0; $('holdSec').textContent = `${((k.hold || 0) / fps).toFixed(2)}초`;
+    $('roleSel').disabled = $('holdIn').disabled = tween;
+    $('makeKey').disabled = !tween; $('delKey').disabled = tween || m.keys.length < 2; $('dupKey').disabled = tween;
+    $('keyNote').textContent = tween ? '중간 프레임을 끌어 고치면 자동으로 새 키가 생깁니다.' : '';
+    $('trSec').hidden = last;
+    const tr = Object.assign({ n: 3, ease: 'inout', wingLag: 0, flap: null }, k.tr || {});
+    $('trN').value = tr.n; $('trEase').value = tr.ease; $('trLag').value = tr.wingLag || 0; $('oLag').textContent = Math.round((tr.wingLag || 0) * 100) + '%';
+    $('flapOn').checked = !!(tr.flap && tr.flap.amp); $('flapBox').hidden = !$('flapOn').checked;
+    const f = Object.assign({ cycles: 3, amp: 50, accel: 0.5, lag: 0 }, tr.flap || {});
+    $('fCyc').value = f.cycles; $('oCyc').textContent = f.cycles + '회';
+    $('fAmp').value = f.amp; $('oAmp').textContent = f.amp + '°';
+    $('fAcc').value = f.accel; $('oAcc').textContent = (+f.accel).toFixed(1);
+    $('fLagW').value = f.lag; $('oLagW').textContent = Math.round(f.lag * 100) + '%';
+    const b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, fr.pose.b || {});
+    [['bY', 'y', v => v.toFixed(2)], ['bPitch', 'pitch', v => Math.round(v) + '°'], ['bRoll', 'roll', v => Math.round(v) + '°'], ['bYaw', 'yaw', v => Math.round(v) + '°'], ['bX', 'x', v => v.toFixed(2)], ['bZ', 'z', v => v.toFixed(2)]]
+      .forEach(([id, k2, fmt]) => { $(id).value = b[k2]; $('o' + id).textContent = fmt(b[k2]); });
+    renderCreases();
+  }
+  function renderCreases() {
+    const box = $('creaseList'); box.innerHTML = '';
+    if (!S.creases.length) { box.innerHTML = '<p class="subtle">아직 없습니다. 위의 ‘접힘선 추가’로 부위 위를 두 번 클릭하세요.</p>'; return; }
+    const wi = wearInfo();
+    S.creases.forEach(c => {
+      const d = document.createElement('div'), w = wi[c.id] || { flips: 0, deep: 0 };
+      d.className = 'crease' + (w.flips ? ' warn' : '');
+      d.innerHTML = `<div><b></b><small></small></div><button>삭제</button>`;
+      d.querySelector('b').textContent = `${rig.chains[c.chain] ? rig.chains[c.chain].name : c.chain} 접힘선`;
+      d.querySelector('small').textContent = w.flips ? `이 모션에서 ${w.flips}번 반대로 뒤집힘 · 마모 주의` : w.deep ? '깊게 접힘(120° 이상) 구간 있음' : '이 모션에서 한 방향으로만 접힘';
+      d.querySelector('button').onclick = () => { snapshot(); S.creases = S.creases.filter(x => x !== c); rig = R.build(S.creases); rebuildScene(); refreshAll(); save(); };
+      box.appendChild(d);
+    });
+  }
+  function refreshAll() {
+    reexpand(); renderPresets(); renderStrip();
+    $('cutLabel').textContent = `컷 ${motion().cut} · ${motion().name}`;
+    refreshFrame();
+  }
+
+  // inspector bindings
+  function editKey(fn, structural) {
+    snapshot();
+    const k = ensureKey(); fn(k);
+    reexpand(); if (structural) renderStrip(); refreshFrame(); save();
+  }
+  $('roleSel').onchange = e => editKey(k => k.role = e.target.value, true);
+  $('holdIn').onchange = e => { const keyIdx = curFrame().key; editKey(k => k.hold = Math.max(0, Math.min(96, +e.target.value || 0)), true); frame = frames.findIndex(f => f.key === keyIdx && f.kind === 'key'); refreshFrame(); };
+  const trEdit = fn => { const keyIdx = curFrame().key; snapshot(); const k = motion().keys[keyIdx]; k.tr = Object.assign({ n: 3, ease: 'inout' }, k.tr || {}); fn(k.tr); reexpand(); renderStrip(); refreshFrame(); save(); };
+  $('trN').onchange = e => trEdit(t => t.n = Math.max(0, Math.min(48, +e.target.value || 0)));
+  $('trEase').onchange = e => trEdit(t => t.ease = e.target.value);
+  $('trLag').onchange = e => trEdit(t => t.wingLag = +e.target.value);
+  $('trLag').oninput = e => { $('oLag').textContent = Math.round(e.target.value * 100) + '%'; };
+  $('flapOn').onchange = e => trEdit(t => t.flap = e.target.checked ? Object.assign({ cycles: 3, amp: 50, accel: 0.5, lag: 0 }, t.flap || {}, { amp: (t.flap && t.flap.amp) || 50 }) : null);
+  [['fCyc', 'cycles'], ['fAmp', 'amp'], ['fAcc', 'accel'], ['fLagW', 'lag']].forEach(([id, k]) => {
+    $(id).onchange = e => trEdit(t => { t.flap = Object.assign({ cycles: 3, amp: 50, accel: 0.5, lag: 0 }, t.flap || {}); t.flap[k] = +e.target.value; });
+    $(id).oninput = e => { const v = +e.target.value; $('o' + id.slice(1)).textContent = k === 'cycles' ? v + '회' : k === 'amp' ? v + '°' : k === 'lag' ? Math.round(v * 100) + '%' : v.toFixed(1); };
+  });
+  // body sliders edit live, one undo step per gesture
+  let bodyGesture = false;
+  [['bY', 'y'], ['bPitch', 'pitch'], ['bRoll', 'roll'], ['bYaw', 'yaw'], ['bX', 'x'], ['bZ', 'z']].forEach(([id, k]) => {
+    $(id).oninput = e => {
+      if (!bodyGesture) { snapshot(); bodyGesture = true; }
+      const key = ensureKey(); key.pose.b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, key.pose.b || {}); key.pose.b[k] = +e.target.value;
+      reexpand(); if (frames[frame].kind === 'key') { } renderStrip(); refreshFrame();
+    };
+    $(id).onchange = () => { bodyGesture = false; save(); };
+  });
+  $('makeKey').onclick = () => { snapshot(); ensureKey(); renderStrip(); refreshFrame(); save(); toast('이 프레임을 키로 만들었습니다'); };
+  $('dupKey').onclick = () => { snapshot(); const m = motion(), i = curFrame().key, k = clone(m.keys[i]); k.role = 'core'; m.keys.splice(i + 1, 0, k); m.keys[i].tr = Object.assign({ n: 3, ease: 'inout' }, m.keys[i].tr || {}); reexpand(); frame = frames.findIndex(f => f.key === i + 1 && f.kind === 'key'); renderStrip(); refreshFrame(); save(); };
+  $('delKey').onclick = () => { const m = motion(); if (m.keys.length < 2) return; snapshot(); const i = curFrame().key; m.keys.splice(i, 1); reexpand(); frame = frames.findIndex(f => f.key === Math.max(0, i - 1) && f.kind === 'key'); renderStrip(); refreshFrame(); save(); };
+  $('resetPose').onclick = () => editKey(k => { k.pose = R.P({}); }, false);
+  $('resetPreset').onclick = () => {
+    const base = R.presets(rig).find(m => m.id === motion().id); if (!base) return;
+    snapshot(); S.motions[S.cur] = base; frame = 0; refreshAll(); save(); toast('기본 프리셋으로 되돌렸습니다 (되돌리기로 취소 가능)');
+  };
+  $('copyData').onclick = () => { const t = JSON.stringify(S); const done = () => toast('전체 데이터를 복사했습니다'); try { navigator.clipboard.writeText(t).then(done, () => { $('pasteBox').hidden = false; $('pasteArea').value = t; $('pasteArea').select(); toast('자동 복사가 막혀 있어 아래 칸을 직접 복사하세요'); }); } catch (e) { $('pasteBox').hidden = false; $('pasteArea').value = t; $('pasteArea').select(); } };
+  $('pasteToggle').onclick = () => { $('pasteBox').hidden = !$('pasteBox').hidden; };
+  $('pasteApply').onclick = () => {
+    try { const d = JSON.parse($('pasteArea').value); if (!d.motions) throw 0; snapshot(); S = d; rig = R.build(S.creases); rebuildScene(); frame = 0; refreshAll(); save(); $('pasteBox').hidden = true; toast('불러왔습니다'); }
+    catch (e) { toast('읽을 수 없는 데이터입니다. ‘전체 복사’로 만든 내용을 그대로 붙여넣으세요'); }
+  };
+  $('undo').onclick = () => { if (!undoStack.length) return; redoStack.push(JSON.stringify(S)); restore(undoStack.pop()); };
+  $('redo').onclick = () => { if (!redoStack.length) return; undoStack.push(JSON.stringify(S)); restore(redoStack.pop()); };
+
+  // tools & toggles
+  function setTool(t) { tool = t; $('toolDrag').setAttribute('aria-pressed', String(t === 'drag')); $('toolCrease').setAttribute('aria-pressed', String(t === 'crease')); creaseStart = null; marker.visible = false; $('hint').textContent = t === 'crease' ? '접을 부위 위를 클릭해 접힘선의 첫 점을 찍고, 두 번째 점을 클릭하세요. 선 너머 부분이 이 선에서 접힙니다. Esc로 취소.' : '빨간 점(날개 끝·부리·목·꼬리)과 회색 점(몸통)을 끌어 포즈를 잡습니다. 몸통 점은 Shift를 누르고 끌면 위아래로 움직입니다. 빈 곳을 끌면 시점이 돌아갑니다.'; dirty = true; }
+  $('toolDrag').onclick = () => setTool('drag'); $('toolCrease').onclick = () => setTool('crease');
+  $('symBtn').onclick = () => { sym = !sym; $('symBtn').setAttribute('aria-pressed', String(sym)); };
+  $('onionBtn').onclick = () => { onion = !onion; $('onionBtn').setAttribute('aria-pressed', String(onion)); dirty = true; };
+  $('onionN').onchange = e => { onionN = +e.target.value; dirty = true; };
+  $('fpsSel').onchange = e => { fps = +e.target.value; refreshFrame(); };
+  $('loopBtn').onclick = () => { loop = !loop; $('loopBtn').setAttribute('aria-pressed', String(loop)); };
+  $('camShot').onclick = () => applyCam(S.cam || DEFAULT_CAM);
+  $('camSave').onclick = () => { S.cam = { p: camera.position.toArray(), t: controls.target.toArray() }; save(); toast('지금 시점을 촬영 카메라로 저장했습니다'); };
+  $('guideSel').onchange = () => layoutGuide();
+
+  // transport
+  function setPlaying(p) { playing = p; $('playIcon').innerHTML = p ? '<path d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/>' : '<path d="M4 2l10 6-10 6z"/>'; $('bPlay').title = p ? '일시정지 (Space)' : '재생 (Space)'; dirty = true; }
+  const go = i => { frame = Math.max(0, Math.min(frames.length - 1, i)); setPlaying(false); refreshFrame(); };
+  const keyFrames = () => frames.map((f, i) => f.kind === 'key' ? i : -1).filter(i => i >= 0);
+  $('bPlay').onclick = () => { if (!playing && frame >= frames.length - 1) frame = 0; setPlaying(!playing); };
+  $('bPrev').onclick = () => go(frame - 1); $('bNext').onclick = () => go(frame + 1);
+  $('bPrevKey').onclick = () => { const k = keyFrames().filter(i => i < frame); go(k.length ? k[k.length - 1] : 0); };
+  $('bNextKey').onclick = () => { const k = keyFrames().filter(i => i > frame); go(k.length ? k[0] : frames.length - 1); };
+  window.addEventListener('keydown', e => {
+    const tag = e.target.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { (e.shiftKey ? $('redo') : $('undo')).click(); e.preventDefault(); return; }
+    if (e.key === ' ') { $('bPlay').click(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { (e.shiftKey ? $('bPrevKey') : $('bPrev')).click(); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { (e.shiftKey ? $('bNextKey') : $('bNext')).click(); e.preventDefault(); }
+    else if (e.key.toLowerCase() === 'k' && curFrame().kind === 'tween') $('makeKey').click();
+    else if (e.key === 'Escape') setTool('drag');
+  });
+
+  // ---------- pointer: drag handles / add creases ----------
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  const marker = new THREE.Mesh(new THREE.SphereGeometry(0.018, 12, 8), new THREE.MeshBasicMaterial({ color: 0xe3343e, depthTest: false })); marker.renderOrder = 11; marker.visible = false; scene.add(marker);
+  let drag = null, creaseStart = null;
+  function setRay(e) { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); return r; }
+  function pickHandle(e) {
+    const r = setRay(e); let best = null, bd = 18;
+    handles.forEach(h => { if (!h.visible) return; const v = h.position.clone().project(camera); const x = (v.x + 1) / 2 * r.width, y = (1 - v.y) / 2 * r.height; const d = Math.hypot(x - (e.clientX - r.left), y - (e.clientY - r.top)); if (d < bd) { bd = d; best = h; } });
+    return best;
+  }
+  function hitFacet(e) {
+    setRay(e); const hit = ray.intersectObjects([G.mF, G.mB], false)[0];
+    if (!hit) return null;
+    return { fi: G.triFacet[hit.faceIndex], point: hit.point };
+  }
+  const Tcache = () => R.facetTransforms(rig, curFrame().pose);
+  function worldToRest(fi, w) { const T = Tcache()[fi]; const r = E.apply(E.inverse(T), [w.x, w.y, w.z]); return [r[0], r[1]]; }
+  renderer.domElement.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    if (tool === 'crease') {
+      const h = hitFacet(e);
+      if (!creaseStart) {
+        if (!h) return;
+        const f = rig.facets[h.fi];
+        if (f.chain === 'body') { toast('몸통에는 접힘선을 넣지 않습니다. 날개·목·머리·꼬리 위를 클릭하세요'); return; }
+        creaseStart = { fi: h.fi, rest: worldToRest(h.fi, h.point) };
+        marker.position.copy(h.point); marker.visible = true; controls.enabled = false; e.stopImmediatePropagation(); return;
+      }
+      // second point: on the plane of the first facet
+      const T = Tcache()[creaseStart.fi], n = E.apply({ R: T.R, t: [0, 0, 0] }, [0, 0, 1]);
+      setRay(e); const o = ray.ray.origin, d = ray.ray.direction, p0 = marker.position;
+      const den = n[0] * d.x + n[1] * d.y + n[2] * d.z;
+      if (Math.abs(den) < 1e-6) return;
+      const t = (n[0] * (p0.x - o.x) + n[1] * (p0.y - o.y) + n[2] * (p0.z - o.z)) / den;
+      const w = new THREE.Vector3(o.x + d.x * t, o.y + d.y * t, o.z + d.z * t);
+      const p2 = worldToRest(creaseStart.fi, w), p1 = creaseStart.rest;
+      if (Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) < 0.02) { toast('두 점이 너무 가깝습니다'); return; }
+      const f = rig.facets[creaseStart.fi], after = rig.chains[f.chain].joints[f.depth].id;
+      snapshot();
+      const id = 'c' + (S.nextCrease++);
+      // extend the clicked segment to a long line so it crosses the whole part
+      const D = [p2[0] - p1[0], p2[1] - p1[1]], L = Math.hypot(...D), u = [D[0] / L, D[1] / L];
+      S.creases.push({ id, chain: f.chain, after, p1: [p1[0] - u[0] * 3, p1[1] - u[1] * 3], p2: [p2[0] + u[0] * 3, p2[1] + u[1] * 3] });
+      rig = R.build(S.creases); rebuildScene(); refreshAll(); save();
+      setTool('drag'); controls.enabled = true;
+      toast('접힘선을 추가했습니다. 그 부위 끝을 끌면 이 선에서 접힙니다');
+      return;
+    }
+    const h = pickHandle(e);
+    if (!h) return;
+    snapshot();
+    ensureKey(); renderStrip(); refreshFrame();
+    const pose = curKey().pose;
+    const start = h.userData.id === 'body' ? bodyPoint(pose) : R.handlePos(rig, pose, h.userData.id);
+    const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+    drag = { id: h.userData.id, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, new THREE.Vector3(...start)), start, b0: Object.assign({ x: 0, y: 0, z: 0 }, pose.b || {}) };
+    controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId);
+    e.stopImmediatePropagation();
+  }, true);
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (!drag) { if (tool === 'drag') renderer.domElement.style.cursor = pickHandle(e) ? 'grab' : ''; else renderer.domElement.style.cursor = 'crosshair'; return; }
+    setRay(e);
+    const pose = curKey().pose;
+    if (drag.id === 'body') {
+      const b = pose.b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, pose.b || {});
+      if (e.shiftKey) {
+        const pl = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(camera.position.x - drag.start[0], 0, camera.position.z - drag.start[2]).normalize(), new THREE.Vector3(...drag.start));
+        const p = new THREE.Vector3(); if (ray.ray.intersectPlane(pl, p)) b.y = drag.b0.y + (p.y - drag.start[1]);
+      } else {
+        const pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), -drag.start[1]);
+        const p = new THREE.Vector3(); if (ray.ray.intersectPlane(pl, p)) { b.x = drag.b0.x + (p.x - drag.start[0]); b.z = drag.b0.z + (p.z - drag.start[2]); }
+      }
+    } else {
+      const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(drag.plane, p)) return;
+      R.solveIK(rig, pose, drag.id, [p.x, p.y, p.z], { iters: 8 });
+      if (sym && (drag.id === 'wF' || drag.id === 'wB')) R.mirrorWing(pose, drag.id);
+    }
+    reexpand(); dirty = true; drag.moved = true;
+  });
+  const endDrag = () => { if (!drag) return; drag = null; controls.enabled = true; renderStrip(); refreshFrame(); save(); };
+  renderer.domElement.addEventListener('pointerup', endDrag);
+  renderer.domElement.addEventListener('pointercancel', endDrag);
+
+  // ---------- layout ----------
+  function layoutGuide() {
+    const ar = +$('guideSel').value, w = stage.clientWidth, h = stage.clientHeight, g = $('guide');
+    if (!ar) { g.hidden = true; return; }
+    g.hidden = false;
+    let gw = w - 24, gh = gw / ar; if (gh > h - 70) { gh = h - 70; gw = gh * ar; }
+    g.style.width = gw + 'px'; g.style.height = gh + 'px'; g.style.left = (w - gw) / 2 + 'px'; g.style.top = (h - gh) / 2 + 'px';
+    $('guideText').textContent = ar > 2 ? '2.39:1' : '16:9';
+  }
+  function resize() { const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); layoutGuide(); dirty = true; }
+  new ResizeObserver(resize).observe(stage);
+
+  // ---------- loop ----------
+  rebuildScene(); refreshAll(); resize();
+  let acc = 0, last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (playing) {
+      acc += dt;
+      while (acc >= 1 / fps) { acc -= 1 / fps; if (frame < frames.length - 1) frame++; else if (loop) frame = 0; else { setPlaying(false); break; } refreshFrame(); }
+    } else acc = 0;
+    if (dirty) { draw(); dirty = false; }
+    controls.update(); renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  window.__mo = { st: () => ({ tool, cs: !!creaseStart, ce: controls.enabled }), dbg: (x, y) => { setRay({ clientX: x, clientY: y }); const bs = G.geo.boundingSphere; return JSON.stringify({ bs: bs && [bs.center.toArray(), bs.radius], o: ray.ray.origin.toArray(), d: ray.ray.direction.toArray(), n: ray.intersectObjects([G.mF, G.mB], false).length, all: ray.intersectObjects(scene.children, true).map(h => h.object.type).slice(0, 5) }); }, hit: (x, y) => { const h = hitFacet({ clientX: x, clientY: y }); return h ? rig.facets[h.fi].chain + ':' + rig.facets[h.fi].depth : null; }, hs: id => { const h = handles.find(x => x.userData.id === id); const v = h.position.clone().project(camera), r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, cam: c => { applyCam(c); renderer.render(scene, camera); }, S: () => S, go: i => { frame = i; refreshFrame(); draw(); renderer.render(scene, camera); }, select: i => { S.cur = i; frame = 0; refreshAll(); draw(); renderer.render(scene, camera); }, frames: () => frames, rig: () => rig, R, renderNow: () => { draw(); renderer.render(scene, camera); }, setOnion: v => { onion = v; } };
+  requestAnimationFrame(tick);
+})();
+</script>

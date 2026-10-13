@@ -1,0 +1,630 @@
+<title>종이학 모션 레퍼런스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: animation workbench. Motion list left, viewport centre, key inspector right, frame strip along the bottom like an exposure sheet. */
+:root {
+  --bg: #e7eaee; --panel: #f4f5f7; --stage: #d9dee4; --ink: #1c2530; --muted: #5d6874; --line: #c6ccd3;
+  --accent: #b8323b; --accent-ink: #fff; --ledge: #b9b1a6;
+  --r-start: #3d7a5a; --r-prep: #b9822b; --r-core: #b8323b; --r-end: #4a5f9c; --tween: #cfd5db;
+  --ghost-prev: #2f6fd6; --ghost-next: #e2861f; --warn: #d9772b;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161d; --panel: #171e27; --stage: #1b232d; --ink: #e5e9ee; --muted: #97a2af; --line: #2b3542;
+  --accent: #e0545c; --accent-ink: #170b0c; --ledge: #5d564e; --tween: #3a4552; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11161d; --panel: #171e27; --stage: #1b232d; --ink: #e5e9ee; --muted: #97a2af; --line: #2b3542;
+  --accent: #e0545c; --accent-ink: #170b0c; --ledge: #5d564e; --tween: #3a4552; color-scheme: dark; }
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 13px; overflow: hidden; }
+.app { height: 100%; display: grid; grid-template-columns: 236px minmax(0, 1fr) 300px; grid-template-rows: auto minmax(0, 1fr) auto; }
+header { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding-block: 10px; padding-inline: 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-size: 1.25rem; margin: 0; white-space: nowrap; }
+.cut { font-family: var(--font-mono); color: var(--muted); font-size: 12px; }
+.spacer { flex: 1; }
+.group { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+button, select, input[type=number] { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 7px; height: 30px; padding: 0 9px; cursor: pointer; }
+input[type=number] { width: 54px; padding: 0 6px; cursor: text; font-variant-numeric: tabular-nums; }
+button:hover, select:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button:disabled { opacity: .4; cursor: default; }
+button svg { width: 14px; height: 14px; fill: currentColor; vertical-align: -2px; }
+.side { background: var(--panel); overflow: auto; min-height: 0; }
+.left { border-right: 1px solid var(--line); padding-block: 12px; padding-inline: 10px; display: grid; align-content: start; gap: 4px; }
+.right { border-left: 1px solid var(--line); padding-block: 12px; padding-inline: 14px; display: grid; align-content: start; gap: 16px; }
+.label { font-size: 11px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; margin: 2px 4px 6px; }
+.preset { display: grid; gap: 1px; text-align: left; height: auto; padding: 7px 9px; border-color: transparent; border-radius: 8px; }
+.preset .pn { font-weight: 600; font-size: 12.5px; }
+.preset .pc { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.preset .pd { font-size: 11px; color: var(--muted); }
+.preset[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.stage { position: relative; overflow: hidden; min-width: 0; min-height: 0; background: radial-gradient(ellipse at 50% 35%, var(--stage), var(--bg) 80%); }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.guide { position: absolute; pointer-events: none; outline: 1px solid color-mix(in srgb, var(--ink) 55%, transparent); box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bg) 55%, transparent); }
+.guide span { position: absolute; left: 6px; top: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.tools { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100% - 24px); }
+.tools button { background: var(--panel); }
+.tools button[aria-pressed="true"] { background: var(--accent); }
+.hud { position: absolute; right: 12px; top: 12px; font-family: var(--font-mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; }
+.hint { position: absolute; left: 12px; bottom: 10px; right: 12px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.toast { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 7px 12px; border-radius: 8px; font-size: 12.5px; pointer-events: none; transition: opacity .25s; }
+.sec { display: grid; gap: 8px; }
+.sec h3 { margin: 0; font-size: 12px; letter-spacing: .05em; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+.row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.row > span { color: var(--muted); }
+.sl { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; }
+.sl label { color: var(--muted); font-size: 12px; }
+.sl output { font-family: var(--font-mono); font-size: 11.5px; }
+.sl input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--accent); }
+.rolepill { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+.subtle { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+.creases { display: grid; gap: 6px; }
+.crease { display: flex; gap: 8px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; }
+.crease.warn { border-color: var(--warn); }
+.crease small { color: var(--muted); display: block; }
+.crease.warn small { color: var(--warn); }
+textarea { width: 100%; min-height: 70px; font-family: var(--font-mono); font-size: 11px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; box-sizing: border-box; }
+footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid var(--line); padding-block: 8px 10px; padding-inline: 16px; display: grid; gap: 8px; }
+.transport { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.counter { font-family: var(--font-mono); font-size: 12px; min-width: 150px; font-variant-numeric: tabular-nums; }
+.strip { display: flex; gap: 2px; overflow-x: auto; padding-bottom: 4px; }
+.cell { flex: 0 0 auto; width: 15px; height: 30px; border-radius: 3px; background: var(--tween); position: relative; cursor: pointer; border: 0; padding: 0; }
+.cell.key { height: 30px; }
+.cell.hold { opacity: .45; }
+.cell.cur { outline: 2px solid var(--ink); outline-offset: 1px; }
+.cell.key::after { content: ""; position: absolute; left: 4px; right: 4px; bottom: 3px; height: 3px; border-radius: 2px; background: var(--accent-ink); opacity: .9; }
+.legend { display: flex; gap: 12px; color: var(--muted); font-size: 11.5px; flex-wrap: wrap; }
+@media (max-width: 1000px) {
+  body { overflow: auto; }
+  .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 56vh auto auto auto; }
+  .left { border: 0; border-bottom: 1px solid var(--line); grid-row: 4; display: flex; overflow-x: auto; }
+  .left .label { display: none; }
+  .preset { flex: 0 0 auto; }
+  .preset .pd { display: none; }
+  .right { border: 0; grid-row: 5; }
+  footer { grid-row: 3; }
+  .hint { display: none; }
+  .hud { top: auto; bottom: 10px; }
+}
+</style>
+
+<div class="app">
+  <header>
+    <h1>종이학 모션 레퍼런스</h1>
+    <span class="cut" id="cutLabel"></span>
+    <span class="spacer"></span>
+    <div class="group">
+      <button id="undo" title="실행 취소 (Ctrl+Z)">되돌리기</button>
+      <button id="redo" title="다시 실행 (Ctrl+Shift+Z)">다시</button>
+    </div>
+    <div class="group">
+      <button id="camShot" title="저장된 촬영 카메라 시점으로">촬영 카메라</button>
+      <button id="camSave" title="지금 보이는 시점을 촬영 카메라로 저장">시점 저장</button>
+      <select id="guideSel" aria-label="화면비 가이드"><option value="2.39">2.39:1</option><option value="1.778">16:9</option><option value="0">가이드 끔</option></select>
+    </div>
+  </header>
+
+  <aside class="side left" id="presetList" aria-label="모션 프리셋"><div class="label">모션 프리셋</div></aside>
+
+  <main class="stage" id="stage">
+    <div class="guide" id="guide"><span id="guideText"></span></div>
+    <div class="tools">
+      <button id="toolDrag" aria-pressed="true" title="점을 끌어 포즈 잡기">포즈 잡기</button>
+      <button id="toolCrease" aria-pressed="false" title="부위 위를 두 번 클릭해 새 접힘선 추가">접힘선 추가</button>
+      <button id="symBtn" aria-pressed="false" title="한쪽 날개를 움직이면 반대쪽도 똑같이">날개 대칭</button>
+      <button id="onionBtn" aria-pressed="true" title="앞뒤 프레임을 반투명하게 겹쳐 보기">어니언 스킨</button>
+    </div>
+    <div class="hud" id="hud"></div>
+    <div class="hint" id="hint">빨간 점(날개 끝·부리·목·꼬리)과 회색 점(몸통)을 끌어 포즈를 잡습니다. 몸통 점은 Shift를 누르고 끌면 위아래로 움직입니다. 빈 곳을 끌면 시점이 돌아갑니다.</div>
+    <div class="toast" id="toast" style="opacity:0"></div>
+  </main>
+
+  <aside class="side right" aria-label="키 편집">
+    <section class="sec">
+      <h3 id="keyTitle">키</h3>
+      <div class="row"><span>역할</span>
+        <select id="roleSel"><option value="start">시작 포즈</option><option value="prep">준비 포즈</option><option value="core">핵심 동작</option><option value="end">끝 포즈</option></select></div>
+      <div class="row"><span>정지 유지</span><span class="group"><input type="number" id="holdIn" min="0" max="96"> <small id="holdSec" class="subtle"></small></span></div>
+      <div class="group"><button id="makeKey" title="현재 중간 프레임을 키로 바꿔 직접 편집 (K)">이 프레임을 키로</button><button id="dupKey">키 복제</button><button id="delKey">키 삭제</button></div>
+      <p class="subtle" id="keyNote"></p>
+    </section>
+    <section class="sec" id="trSec">
+      <h3>다음 키까지</h3>
+      <div class="row"><span>중간 프레임</span><input type="number" id="trN" min="0" max="48"></div>
+      <div class="row"><span>속도</span>
+        <select id="trEase"><option value="linear">일정하게</option><option value="in">천천히 시작 → 빨라짐</option><option value="out">빠르게 시작 → 느려짐</option><option value="inout">부드럽게</option><option value="snap">확 튀어나감</option><option value="over">지나쳤다 돌아옴</option></select></div>
+      <div class="sl"><label for="trLag">날개가 늦게 따라옴</label><output id="oLag"></output><input type="range" id="trLag" min="0" max="0.7" step="0.05"></div>
+      <div class="row"><span>구간 중 퍼덕임</span><input type="checkbox" id="flapOn" aria-label="퍼덕임 켜기"></div>
+      <div id="flapBox" class="sec">
+        <div class="sl"><label for="fCyc">횟수</label><output id="oCyc"></output><input type="range" id="fCyc" min="0.5" max="8" step="0.5"></div>
+        <div class="sl"><label for="fAmp">세기</label><output id="oAmp"></output><input type="range" id="fAmp" min="5" max="80" step="1"></div>
+        <div class="sl"><label for="fAcc">점점 빨라짐</label><output id="oAcc"></output><input type="range" id="fAcc" min="0" max="3" step="0.1"></div>
+        <div class="sl"><label for="fLagW">뒤 날개 어긋남</label><output id="oLagW"></output><input type="range" id="fLagW" min="0" max="0.5" step="0.01"></div>
+      </div>
+    </section>
+    <section class="sec">
+      <h3>몸</h3>
+      <div class="sl"><label for="bY">높이</label><output id="obY"></output><input type="range" id="bY" min="-2" max="0.8" step="0.01"></div>
+      <div class="sl"><label for="bPitch">앞뒤 숙임</label><output id="obPitch"></output><input type="range" id="bPitch" min="-90" max="60" step="1"></div>
+      <div class="sl"><label for="bRoll">옆 기울기</label><output id="obRoll"></output><input type="range" id="bRoll" min="-90" max="90" step="1"></div>
+      <div class="sl"><label for="bYaw">방향 돌리기</label><output id="obYaw"></output><input type="range" id="bYaw" min="-180" max="180" step="1"></div>
+      <div class="sl"><label for="bX">앞뒤 위치</label><output id="obX"></output><input type="range" id="bX" min="-2" max="2" step="0.01"></div>
+      <div class="sl"><label for="bZ">카메라 쪽 위치</label><output id="obZ"></output><input type="range" id="bZ" min="-1.5" max="1.5" step="0.01"></div>
+      <button id="resetPose">서 있는 자세로 되돌리기</button>
+    </section>
+    <section class="sec">
+      <h3>접힘선</h3>
+      <div class="creases" id="creaseList"></div>
+      <p class="subtle">새 접힘선은 빨간색, 이 모션 안에서 앞뒤로 뒤집혀 접히는 선은 주황색으로 표시합니다. 같은 선을 반대로 접었다 펴면 종이가 가장 빨리 닳습니다.</p>
+    </section>
+    <section class="sec">
+      <h3>데이터</h3>
+      <div class="group"><button id="copyData">전체 복사</button><button id="pasteToggle">붙여넣기</button><button id="resetPreset">이 프리셋 초기화</button></div>
+      <div id="pasteBox" hidden class="sec"><textarea id="pasteArea" aria-label="붙여넣을 데이터"></textarea><button id="pasteApply" class="primary">불러오기</button></div>
+      <p class="subtle">작업은 이 브라우저에 자동 저장됩니다. 다른 기기로 옮길 때는 전체 복사 → 붙여넣기를 쓰세요.</p>
+    </section>
+  </aside>
+
+  <footer>
+    <div class="transport">
+      <button id="bPrevKey" title="이전 키 (Shift+←)"><svg viewBox="0 0 16 16"><path d="M2 2h2v12H2zM14 2v12L5 8z"/></svg></button>
+      <button id="bPrev" title="이전 프레임 (←)"><svg viewBox="0 0 16 16"><path d="M12 2v12L4 8z"/></svg></button>
+      <button id="bPlay" class="primary" title="재생 (Space)"><svg viewBox="0 0 16 16" id="playIcon"><path d="M4 2l10 6-10 6z"/></svg></button>
+      <button id="bNext" title="다음 프레임 (→)"><svg viewBox="0 0 16 16"><path d="M4 2v12l8-6z"/></svg></button>
+      <button id="bNextKey" title="다음 키 (Shift+→)"><svg viewBox="0 0 16 16"><path d="M12 2h2v12h-2zM2 2v12l9-6z"/></svg></button>
+      <span class="counter" id="counter"></span>
+      <select id="fpsSel" aria-label="초당 프레임"><option value="8">8 fps</option><option value="12" selected>12 fps</option><option value="24">24 fps</option></select>
+      <button id="loopBtn" aria-pressed="true">반복</button>
+      <select id="onionN" aria-label="어니언 스킨 장수"><option value="1">앞뒤 1장</option><option value="2">앞뒤 2장</option></select>
+      <span class="spacer"></span>
+      <div class="legend"><span><i class="rolepill" style="background:var(--r-start)"></i>시작</span><span><i class="rolepill" style="background:var(--r-prep)"></i>준비</span><span><i class="rolepill" style="background:var(--r-core)"></i>핵심</span><span><i class="rolepill" style="background:var(--r-end)"></i>끝</span><span><i class="rolepill" style="background:var(--tween)"></i>중간 프레임</span><span>흐린 칸 = 정지</span></div>
+    </div>
+    <div class="strip" id="strip" role="listbox" aria-label="프레임"></div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/*ENGINE*/
+</script>
+<script>
+/*RIG*/
+</script>
+<script>
+(function () {
+  const E = CraneEngine, R = CraneRig.create(E);
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const ROLE = { start: '시작 포즈', prep: '준비 포즈', core: '핵심 동작', end: '끝 포즈' };
+  const ROLEVAR = { start: '--r-start', prep: '--r-prep', core: '--r-core', end: '--r-end' };
+  const STORE = 'crane-motion-ref-v1';
+
+  // ---------- state ----------
+  let rig = R.build([]);
+  const fresh = () => ({ motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  let S;
+  try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
+  if (!S || !S.motions) S = fresh();
+  rig = R.build(S.creases);
+  let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true;
+  const undoStack = [], redoStack = [];
+  const motion = () => S.motions[S.cur];
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { } }
+  function snapshot() { undoStack.push(JSON.stringify(S)); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; }
+  function restore(json) { S = JSON.parse(json); rig = R.build(S.creases); rebuildScene(); refreshAll(); save(); }
+  function toast(t) { const el = $('toast'); el.textContent = t; el.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => el.style.opacity = 0, 2200); }
+
+  // ---------- three.js ----------
+  const stage = $('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 100);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.1;
+  const DEFAULT_CAM = { p: [1.9, 1.25, 4.9], t: [-0.1, 0.3, 0.1] };
+  function applyCam(c) { camera.position.set(...c.p); controls.target.set(...c.t); controls.update(); }
+  applyCam(S.cam || DEFAULT_CAM);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.75));
+  const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(2, 4, 4); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(-3, 1, -3); scene.add(rim);
+
+  // window-sill ledge the crane stands on; its front edge is where the takeoff fails
+  const ledge = new THREE.Mesh(new THREE.BoxGeometry(6, 0.12, 2.4), new THREE.MeshStandardMaterial({ color: new THREE.Color(css('--ledge')).convertSRGBToLinear(), roughness: 0.95 }));
+  ledge.position.set(0, -0.061, -0.2); scene.add(ledge);
+
+  function washi(hex) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 256, 256);
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 400; i++) { const x = rnd() * 256, y = rnd() * 256, l = 4 + rnd() * 16, a = rnd() * Math.PI; g.strokeStyle = `rgba(255,255,255,${0.05 + rnd() * 0.08})`; g.lineWidth = 0.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+  }
+  const matF = new THREE.MeshStandardMaterial({ map: washi('#c4313b'), roughness: 0.85, side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const matB = new THREE.MeshStandardMaterial({ map: washi('#f2eee6'), roughness: 0.9, side: THREE.BackSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const ghostMat = c => new THREE.MeshBasicMaterial({ color: new THREE.Color(c), transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
+  const ghostCols = [css('--ghost-prev'), css('--ghost-prev'), css('--ghost-next'), css('--ghost-next')];
+
+  let G = null; // geometry bundle for current rig topology
+  function makeGeo(nTri, uv) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nTri * 9), 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(nTri * 9), 3));
+    if (uv) g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    return g;
+  }
+  function rebuildScene() {
+    if (G) { G.objs.forEach(o => { scene.remove(o); o.geometry.dispose(); }); }
+    let nTri = 0, nEdge = 0; const triFacet = [];
+    rig.facets.forEach((f, fi) => { for (let j = 1; j < f.poly.length - 1; j++) triFacet.push(fi); nTri += f.poly.length - 2; nEdge += f.poly.length; });
+    const uv = new Float32Array(nTri * 6); let o = 0;
+    rig.facets.forEach(f => { for (let j = 1; j < f.poly.length - 1; j++) [0, j, j + 1].forEach(v => { uv[o++] = (f.poly[v][0] + 1) / 2; uv[o++] = (f.poly[v][1] + 1) / 2; }); });
+    const geo = makeGeo(nTri, uv);
+    const mF = new THREE.Mesh(geo, matF), mB = new THREE.Mesh(geo, matB);
+    const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nEdge * 6), 3));
+    const lines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x3a2a2a, transparent: true, opacity: 0.22 }));
+    const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(Math.max(1, rig.creaseEdges.length) * 6), 3));
+    cg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(Math.max(1, rig.creaseEdges.length) * 6), 3));
+    const creaseLines = new THREE.LineSegments(cg, new THREE.LineBasicMaterial({ vertexColors: true, depthTest: false }));
+    creaseLines.renderOrder = 5;
+    const ghosts = [0, 1, 2, 3].map(i => { const m = new THREE.Mesh(makeGeo(nTri), ghostMat(ghostCols[i])); m.renderOrder = 2; m.material.opacity = i % 2 ? 0.1 : 0.22; return m; });
+    [mF, mB, lines, creaseLines, ...ghosts].forEach(m => { m.frustumCulled = false; scene.add(m); });
+    G = { geo, lg, cg, mF, mB, lines, creaseLines, ghosts, triFacet, objs: [mF, mB, lines, creaseLines, ...ghosts], Ts: null };
+  }
+
+  function writePose(geo, pose, withLines) {
+    const Ts = R.facetTransforms(rig, pose);
+    const pos = geo.attributes.position.array; let o = 0;
+    const lp = withLines ? G.lg.attributes.position.array : null; let lo = 0;
+    rig.facets.forEach((f, i) => {
+      const P = f.poly.map(p => E.apply(Ts[i], R.restPoint(rig, f, p)));
+      for (let j = 1; j < P.length - 1; j++) [0, j, j + 1].forEach(v => { pos[o++] = P[v][0]; pos[o++] = P[v][1]; pos[o++] = P[v][2]; });
+      if (lp) for (let j = 0; j < P.length; j++) { const a = P[j], b = P[(j + 1) % P.length]; lp[lo++] = a[0]; lp[lo++] = a[1]; lp[lo++] = a[2]; lp[lo++] = b[0]; lp[lo++] = b[1]; lp[lo++] = b[2]; }
+    });
+    geo.attributes.position.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere(); geo.computeBoundingBox();
+    if (lp) G.lg.attributes.position.needsUpdate = true;
+    return Ts;
+  }
+  const WARN = new THREE.Color(css('--warn')), NEWC = new THREE.Color('#e3343e');
+  function writeCreases(Ts) {
+    const p = G.cg.attributes.position.array, c = G.cg.attributes.color.array; let o = 0;
+    const worn = wearInfo();
+    rig.creaseEdges.forEach(e => {
+      const f = rig.facets[e.fi], col = worn[e.id] && worn[e.id].flips ? WARN : NEWC;
+      [e.a, e.b].forEach(q => { const w = E.apply(Ts[e.fi], R.restPoint(rig, f, q)); p[o] = w[0]; c[o++] = col.r; p[o] = w[1]; c[o++] = col.g; p[o] = w[2]; c[o++] = col.b; });
+    });
+    G.cg.setDrawRange(0, rig.creaseEdges.length * 2);
+    G.cg.attributes.position.needsUpdate = true; G.cg.attributes.color.needsUpdate = true;
+  }
+
+  // ---------- handles ----------
+  const HANDLE_IDS = ['wF', 'wB', 'beak', 'neck', 'tail', 'body'];
+  const hMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(css('--accent')), depthTest: false });
+  const bMat = new THREE.MeshBasicMaterial({ color: 0x6b7480, depthTest: false });
+  const handles = HANDLE_IDS.map(id => { const m = new THREE.Mesh(new THREE.SphereGeometry(id === 'body' ? 0.045 : 0.035, 16, 12), id === 'body' ? bMat : hMat); m.renderOrder = 10; m.userData.id = id; scene.add(m); return m; });
+  const HLABEL = { wF: '앞 날개 끝', wB: '뒤 날개 끝', beak: '부리', neck: '목', tail: '꼬리 끝', body: '몸통' };
+  function bodyPoint(pose) { const b = pose.b || {}; return [b.x || 0, (b.y || 0) + R.PIVOT[1] - R.FLOOR, b.z || 0]; }
+  function placeHandles(pose) {
+    handles.forEach(h => { const p = h.userData.id === 'body' ? bodyPoint(pose) : R.handlePos(rig, pose, h.userData.id); h.position.set(...p); h.visible = tool === 'drag' && !playing; });
+  }
+
+  // ---------- frames ----------
+  function reexpand() { frames = R.expand(motion(), rig); frame = Math.max(0, Math.min(frame, frames.length - 1)); }
+  const curFrame = () => frames[frame];
+  const curKey = () => motion().keys[curFrame().key];
+
+  function wearInfo() {
+    const out = {};
+    S.creases.forEach(c => {
+      let last = 0, flips = 0, deep = 0;
+      frames.forEach(fr => { const v = ((fr.pose.j || {})[c.id] || [0])[0]; const s = v > 10 ? 1 : v < -10 ? -1 : 0; if (s && last && s !== last) flips++; if (s) last = s; if (Math.abs(v) > 120) deep++; });
+      out[c.id] = { flips, deep };
+    });
+    return out;
+  }
+
+  // make the current frame editable: tweens become a new key, splitting the transition
+  function ensureKey() {
+    const fr = curFrame(), m = motion();
+    if (fr.kind !== 'tween') return m.keys[fr.key];
+    const k = m.keys[fr.key], tr = Object.assign({ n: 3, ease: 'inout' }, k.tr || {});
+    let s = 0; for (let i = 0; i <= frame; i++) if (frames[i].key === fr.key && frames[i].kind === 'tween') s++;
+    const nk = { role: 'core', pose: clone(fr.pose), hold: 0, tr: Object.assign(clone(tr), { n: Math.max(0, tr.n - s) }) };
+    k.tr = Object.assign(clone(tr), { n: s - 1 });
+    m.keys.splice(fr.key + 1, 0, nk);
+    reexpand();
+    frame = frames.findIndex(f => f.key === fr.key + 1 && f.kind === 'key');
+    return nk;
+  }
+
+  // ---------- drawing ----------
+  let dirty = true;
+  function draw() {
+    const fr = curFrame(); if (!fr) return;
+    const Ts = writePose(G.geo, fr.pose, true);
+    writeCreases(Ts);
+    G.ghosts.forEach((g, i) => {
+      const off = [-1, -2, 1, 2][i], idx = frame + off;
+      const show = onion && !playing && Math.abs(off) <= onionN && idx >= 0 && idx < frames.length;
+      g.visible = show; if (show) writePose(g.geometry, frames[idx].pose, false);
+    });
+    placeHandles(fr.pose);
+  }
+
+  // ---------- UI: presets ----------
+  function renderPresets() {
+    const box = $('presetList'); box.querySelectorAll('.preset').forEach(n => n.remove());
+    S.motions.forEach((m, i) => {
+      const b = document.createElement('button'); b.className = 'preset'; b.setAttribute('aria-current', String(i === S.cur));
+      const filled = m.keys.length > 1;
+      b.innerHTML = `<span class="pc">컷 ${m.cut}${filled ? '' : ' · 비어 있음'}</span><span class="pn"></span><span class="pd"></span>`;
+      b.querySelector('.pn').textContent = m.name; b.querySelector('.pd').textContent = m.desc;
+      b.onclick = () => { S.cur = i; frame = 0; setPlaying(false); refreshAll(); save(); };
+      box.appendChild(b);
+    });
+  }
+  // ---------- UI: strip ----------
+  function renderStrip() {
+    const st = $('strip'); st.innerHTML = '';
+    const m = motion();
+    frames.forEach((f, i) => {
+      const c = document.createElement('button'); c.className = 'cell ' + f.kind + (i === frame ? ' cur' : '');
+      const role = m.keys[f.key].role;
+      if (f.kind !== 'tween') c.style.background = `var(${ROLEVAR[role]})`;
+      c.title = `${i + 1} · ${f.kind === 'tween' ? '중간 프레임' : f.kind === 'hold' ? '정지' : ROLE[role]}`;
+      c.setAttribute('role', 'option'); c.setAttribute('aria-selected', String(i === frame));
+      c.onclick = () => { frame = i; setPlaying(false); refreshFrame(); };
+      st.appendChild(c);
+    });
+  }
+  function refreshFrame() {
+    const fr = curFrame(), m = motion(), k = m.keys[fr.key];
+    $('counter').textContent = `${String(frame + 1).padStart(3, '0')} / ${frames.length} · ${(frame / fps).toFixed(2)}s`;
+    $('hud').textContent = fr.kind === 'tween' ? `키 ${fr.key + 1}→${fr.key + 2} 사이` : `키 ${fr.key + 1} · ${ROLE[k.role]}${fr.kind === 'hold' ? ' (정지)' : ''}`;
+    document.querySelectorAll('#strip .cell').forEach((c, i) => { c.classList.toggle('cur', i === frame); c.setAttribute('aria-selected', String(i === frame)); });
+    const cur = $('strip').children[frame]; if (cur) { const st = $('strip'); if (cur.offsetLeft < st.scrollLeft || cur.offsetLeft > st.scrollLeft + st.clientWidth - 20) st.scrollLeft = cur.offsetLeft - st.clientWidth / 2; }
+    renderInspector();
+    dirty = true;
+  }
+  // ---------- UI: inspector ----------
+  const EASES = ['linear', 'in', 'out', 'inout', 'snap', 'over'];
+  function renderInspector() {
+    const fr = curFrame(), m = motion(), k = m.keys[fr.key], last = fr.key === m.keys.length - 1;
+    const tween = fr.kind === 'tween';
+    $('keyTitle').textContent = tween ? `중간 프레임 (키 ${fr.key + 1}→${fr.key + 2})` : `키 ${fr.key + 1} / ${m.keys.length}`;
+    $('roleSel').value = k.role; $('holdIn').value = k.hold || 0; $('holdSec').textContent = `${((k.hold || 0) / fps).toFixed(2)}초`;
+    $('roleSel').disabled = $('holdIn').disabled = tween;
+    $('makeKey').disabled = !tween; $('delKey').disabled = tween || m.keys.length < 2; $('dupKey').disabled = tween;
+    $('keyNote').textContent = tween ? '중간 프레임을 끌어 고치면 자동으로 새 키가 생깁니다.' : '';
+    $('trSec').hidden = last;
+    const tr = Object.assign({ n: 3, ease: 'inout', wingLag: 0, flap: null }, k.tr || {});
+    $('trN').value = tr.n; $('trEase').value = tr.ease; $('trLag').value = tr.wingLag || 0; $('oLag').textContent = Math.round((tr.wingLag || 0) * 100) + '%';
+    $('flapOn').checked = !!(tr.flap && tr.flap.amp); $('flapBox').hidden = !$('flapOn').checked;
+    const f = Object.assign({ cycles: 3, amp: 50, accel: 0.5, lag: 0 }, tr.flap || {});
+    $('fCyc').value = f.cycles; $('oCyc').textContent = f.cycles + '회';
+    $('fAmp').value = f.amp; $('oAmp').textContent = f.amp + '°';
+    $('fAcc').value = f.accel; $('oAcc').textContent = (+f.accel).toFixed(1);
+    $('fLagW').value = f.lag; $('oLagW').textContent = Math.round(f.lag * 100) + '%';
+    const b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, fr.pose.b || {});
+    [['bY', 'y', v => v.toFixed(2)], ['bPitch', 'pitch', v => Math.round(v) + '°'], ['bRoll', 'roll', v => Math.round(v) + '°'], ['bYaw', 'yaw', v => Math.round(v) + '°'], ['bX', 'x', v => v.toFixed(2)], ['bZ', 'z', v => v.toFixed(2)]]
+      .forEach(([id, k2, fmt]) => { $(id).value = b[k2]; $('o' + id).textContent = fmt(b[k2]); });
+    renderCreases();
+  }
+  function renderCreases() {
+    const box = $('creaseList'); box.innerHTML = '';
+    if (!S.creases.length) { box.innerHTML = '<p class="subtle">아직 없습니다. 위의 ‘접힘선 추가’로 부위 위를 두 번 클릭하세요.</p>'; return; }
+    const wi = wearInfo();
+    S.creases.forEach(c => {
+      const d = document.createElement('div'), w = wi[c.id] || { flips: 0, deep: 0 };
+      d.className = 'crease' + (w.flips ? ' warn' : '');
+      d.innerHTML = `<div><b></b><small></small></div><button>삭제</button>`;
+      d.querySelector('b').textContent = `${rig.chains[c.chain] ? rig.chains[c.chain].name : c.chain} 접힘선`;
+      d.querySelector('small').textContent = w.flips ? `이 모션에서 ${w.flips}번 반대로 뒤집힘 · 마모 주의` : w.deep ? '깊게 접힘(120° 이상) 구간 있음' : '이 모션에서 한 방향으로만 접힘';
+      d.querySelector('button').onclick = () => { snapshot(); S.creases = S.creases.filter(x => x !== c); rig = R.build(S.creases); rebuildScene(); refreshAll(); save(); };
+      box.appendChild(d);
+    });
+  }
+  function refreshAll() {
+    reexpand(); renderPresets(); renderStrip();
+    $('cutLabel').textContent = `컷 ${motion().cut} · ${motion().name}`;
+    refreshFrame();
+  }
+
+  // inspector bindings
+  function editKey(fn, structural) {
+    snapshot();
+    const k = ensureKey(); fn(k);
+    reexpand(); if (structural) renderStrip(); refreshFrame(); save();
+  }
+  $('roleSel').onchange = e => editKey(k => k.role = e.target.value, true);
+  $('holdIn').onchange = e => { const keyIdx = curFrame().key; editKey(k => k.hold = Math.max(0, Math.min(96, +e.target.value || 0)), true); frame = frames.findIndex(f => f.key === keyIdx && f.kind === 'key'); refreshFrame(); };
+  const trEdit = fn => { const keyIdx = curFrame().key; snapshot(); const k = motion().keys[keyIdx]; k.tr = Object.assign({ n: 3, ease: 'inout' }, k.tr || {}); fn(k.tr); reexpand(); renderStrip(); refreshFrame(); save(); };
+  $('trN').onchange = e => trEdit(t => t.n = Math.max(0, Math.min(48, +e.target.value || 0)));
+  $('trEase').onchange = e => trEdit(t => t.ease = e.target.value);
+  $('trLag').onchange = e => trEdit(t => t.wingLag = +e.target.value);
+  $('trLag').oninput = e => { $('oLag').textContent = Math.round(e.target.value * 100) + '%'; };
+  $('flapOn').onchange = e => trEdit(t => t.flap = e.target.checked ? Object.assign({ cycles: 3, amp: 50, accel: 0.5, lag: 0 }, t.flap || {}, { amp: (t.flap && t.flap.amp) || 50 }) : null);
+  [['fCyc', 'cycles'], ['fAmp', 'amp'], ['fAcc', 'accel'], ['fLagW', 'lag']].forEach(([id, k]) => {
+    $(id).onchange = e => trEdit(t => { t.flap = Object.assign({ cycles: 3, amp: 50, accel: 0.5, lag: 0 }, t.flap || {}); t.flap[k] = +e.target.value; });
+    $(id).oninput = e => { const v = +e.target.value; $('o' + id.slice(1)).textContent = k === 'cycles' ? v + '회' : k === 'amp' ? v + '°' : k === 'lag' ? Math.round(v * 100) + '%' : v.toFixed(1); };
+  });
+  // body sliders edit live, one undo step per gesture
+  let bodyGesture = false;
+  [['bY', 'y'], ['bPitch', 'pitch'], ['bRoll', 'roll'], ['bYaw', 'yaw'], ['bX', 'x'], ['bZ', 'z']].forEach(([id, k]) => {
+    $(id).oninput = e => {
+      if (!bodyGesture) { snapshot(); bodyGesture = true; }
+      const key = ensureKey(); key.pose.b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, key.pose.b || {}); key.pose.b[k] = +e.target.value;
+      reexpand(); if (frames[frame].kind === 'key') { } renderStrip(); refreshFrame();
+    };
+    $(id).onchange = () => { bodyGesture = false; save(); };
+  });
+  $('makeKey').onclick = () => { snapshot(); ensureKey(); renderStrip(); refreshFrame(); save(); toast('이 프레임을 키로 만들었습니다'); };
+  $('dupKey').onclick = () => { snapshot(); const m = motion(), i = curFrame().key, k = clone(m.keys[i]); k.role = 'core'; m.keys.splice(i + 1, 0, k); m.keys[i].tr = Object.assign({ n: 3, ease: 'inout' }, m.keys[i].tr || {}); reexpand(); frame = frames.findIndex(f => f.key === i + 1 && f.kind === 'key'); renderStrip(); refreshFrame(); save(); };
+  $('delKey').onclick = () => { const m = motion(); if (m.keys.length < 2) return; snapshot(); const i = curFrame().key; m.keys.splice(i, 1); reexpand(); frame = frames.findIndex(f => f.key === Math.max(0, i - 1) && f.kind === 'key'); renderStrip(); refreshFrame(); save(); };
+  $('resetPose').onclick = () => editKey(k => { k.pose = R.P({}); }, false);
+  $('resetPreset').onclick = () => {
+    const base = R.presets(rig).find(m => m.id === motion().id); if (!base) return;
+    snapshot(); S.motions[S.cur] = base; frame = 0; refreshAll(); save(); toast('기본 프리셋으로 되돌렸습니다 (되돌리기로 취소 가능)');
+  };
+  $('copyData').onclick = () => { const t = JSON.stringify(S); const done = () => toast('전체 데이터를 복사했습니다'); try { navigator.clipboard.writeText(t).then(done, () => { $('pasteBox').hidden = false; $('pasteArea').value = t; $('pasteArea').select(); toast('자동 복사가 막혀 있어 아래 칸을 직접 복사하세요'); }); } catch (e) { $('pasteBox').hidden = false; $('pasteArea').value = t; $('pasteArea').select(); } };
+  $('pasteToggle').onclick = () => { $('pasteBox').hidden = !$('pasteBox').hidden; };
+  $('pasteApply').onclick = () => {
+    try { const d = JSON.parse($('pasteArea').value); if (!d.motions) throw 0; snapshot(); S = d; rig = R.build(S.creases); rebuildScene(); frame = 0; refreshAll(); save(); $('pasteBox').hidden = true; toast('불러왔습니다'); }
+    catch (e) { toast('읽을 수 없는 데이터입니다. ‘전체 복사’로 만든 내용을 그대로 붙여넣으세요'); }
+  };
+  $('undo').onclick = () => { if (!undoStack.length) return; redoStack.push(JSON.stringify(S)); restore(undoStack.pop()); };
+  $('redo').onclick = () => { if (!redoStack.length) return; undoStack.push(JSON.stringify(S)); restore(redoStack.pop()); };
+
+  // tools & toggles
+  function setTool(t) { tool = t; $('toolDrag').setAttribute('aria-pressed', String(t === 'drag')); $('toolCrease').setAttribute('aria-pressed', String(t === 'crease')); creaseStart = null; marker.visible = false; $('hint').textContent = t === 'crease' ? '접을 부위 위를 클릭해 접힘선의 첫 점을 찍고, 두 번째 점을 클릭하세요. 선 너머 부분이 이 선에서 접힙니다. Esc로 취소.' : '빨간 점(날개 끝·부리·목·꼬리)과 회색 점(몸통)을 끌어 포즈를 잡습니다. 몸통 점은 Shift를 누르고 끌면 위아래로 움직입니다. 빈 곳을 끌면 시점이 돌아갑니다.'; dirty = true; }
+  $('toolDrag').onclick = () => setTool('drag'); $('toolCrease').onclick = () => setTool('crease');
+  $('symBtn').onclick = () => { sym = !sym; $('symBtn').setAttribute('aria-pressed', String(sym)); };
+  $('onionBtn').onclick = () => { onion = !onion; $('onionBtn').setAttribute('aria-pressed', String(onion)); dirty = true; };
+  $('onionN').onchange = e => { onionN = +e.target.value; dirty = true; };
+  $('fpsSel').onchange = e => { fps = +e.target.value; refreshFrame(); };
+  $('loopBtn').onclick = () => { loop = !loop; $('loopBtn').setAttribute('aria-pressed', String(loop)); };
+  $('camShot').onclick = () => applyCam(S.cam || DEFAULT_CAM);
+  $('camSave').onclick = () => { S.cam = { p: camera.position.toArray(), t: controls.target.toArray() }; save(); toast('지금 시점을 촬영 카메라로 저장했습니다'); };
+  $('guideSel').onchange = () => layoutGuide();
+
+  // transport
+  function setPlaying(p) { playing = p; $('playIcon').innerHTML = p ? '<path d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/>' : '<path d="M4 2l10 6-10 6z"/>'; $('bPlay').title = p ? '일시정지 (Space)' : '재생 (Space)'; dirty = true; }
+  const go = i => { frame = Math.max(0, Math.min(frames.length - 1, i)); setPlaying(false); refreshFrame(); };
+  const keyFrames = () => frames.map((f, i) => f.kind === 'key' ? i : -1).filter(i => i >= 0);
+  $('bPlay').onclick = () => { if (!playing && frame >= frames.length - 1) frame = 0; setPlaying(!playing); };
+  $('bPrev').onclick = () => go(frame - 1); $('bNext').onclick = () => go(frame + 1);
+  $('bPrevKey').onclick = () => { const k = keyFrames().filter(i => i < frame); go(k.length ? k[k.length - 1] : 0); };
+  $('bNextKey').onclick = () => { const k = keyFrames().filter(i => i > frame); go(k.length ? k[0] : frames.length - 1); };
+  window.addEventListener('keydown', e => {
+    const tag = e.target.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { (e.shiftKey ? $('redo') : $('undo')).click(); e.preventDefault(); return; }
+    if (e.key === ' ') { $('bPlay').click(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { (e.shiftKey ? $('bPrevKey') : $('bPrev')).click(); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { (e.shiftKey ? $('bNextKey') : $('bNext')).click(); e.preventDefault(); }
+    else if (e.key.toLowerCase() === 'k' && curFrame().kind === 'tween') $('makeKey').click();
+    else if (e.key === 'Escape') setTool('drag');
+  });
+
+  // ---------- pointer: drag handles / add creases ----------
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  const marker = new THREE.Mesh(new THREE.SphereGeometry(0.018, 12, 8), new THREE.MeshBasicMaterial({ color: 0xe3343e, depthTest: false })); marker.renderOrder = 11; marker.visible = false; scene.add(marker);
+  let drag = null, creaseStart = null;
+  function setRay(e) { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); return r; }
+  function pickHandle(e) {
+    const r = setRay(e); let best = null, bd = 18;
+    handles.forEach(h => { if (!h.visible) return; const v = h.position.clone().project(camera); const x = (v.x + 1) / 2 * r.width, y = (1 - v.y) / 2 * r.height; const d = Math.hypot(x - (e.clientX - r.left), y - (e.clientY - r.top)); if (d < bd) { bd = d; best = h; } });
+    return best;
+  }
+  function hitFacet(e) {
+    setRay(e); const hit = ray.intersectObjects([G.mF, G.mB], false)[0];
+    if (!hit) return null;
+    return { fi: G.triFacet[hit.faceIndex], point: hit.point };
+  }
+  const Tcache = () => R.facetTransforms(rig, curFrame().pose);
+  function worldToRest(fi, w) { const T = Tcache()[fi]; const r = E.apply(E.inverse(T), [w.x, w.y, w.z]); return [r[0], r[1]]; }
+  renderer.domElement.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    if (tool === 'crease') {
+      const h = hitFacet(e);
+      if (!creaseStart) {
+        if (!h) return;
+        const f = rig.facets[h.fi];
+        if (f.chain === 'body') { toast('몸통에는 접힘선을 넣지 않습니다. 날개·목·머리·꼬리 위를 클릭하세요'); return; }
+        creaseStart = { fi: h.fi, rest: worldToRest(h.fi, h.point) };
+        marker.position.copy(h.point); marker.visible = true; controls.enabled = false; e.stopImmediatePropagation(); return;
+      }
+      // second point: on the plane of the first facet
+      const T = Tcache()[creaseStart.fi], n = E.apply({ R: T.R, t: [0, 0, 0] }, [0, 0, 1]);
+      setRay(e); const o = ray.ray.origin, d = ray.ray.direction, p0 = marker.position;
+      const den = n[0] * d.x + n[1] * d.y + n[2] * d.z;
+      if (Math.abs(den) < 1e-6) return;
+      const t = (n[0] * (p0.x - o.x) + n[1] * (p0.y - o.y) + n[2] * (p0.z - o.z)) / den;
+      const w = new THREE.Vector3(o.x + d.x * t, o.y + d.y * t, o.z + d.z * t);
+      const p2 = worldToRest(creaseStart.fi, w), p1 = creaseStart.rest;
+      if (Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) < 0.02) { toast('두 점이 너무 가깝습니다'); return; }
+      const f = rig.facets[creaseStart.fi], after = rig.chains[f.chain].joints[f.depth].id;
+      snapshot();
+      const id = 'c' + (S.nextCrease++);
+      // extend the clicked segment to a long line so it crosses the whole part
+      const D = [p2[0] - p1[0], p2[1] - p1[1]], L = Math.hypot(...D), u = [D[0] / L, D[1] / L];
+      S.creases.push({ id, chain: f.chain, after, p1: [p1[0] - u[0] * 3, p1[1] - u[1] * 3], p2: [p2[0] + u[0] * 3, p2[1] + u[1] * 3] });
+      rig = R.build(S.creases); rebuildScene(); refreshAll(); save();
+      setTool('drag'); controls.enabled = true;
+      toast('접힘선을 추가했습니다. 그 부위 끝을 끌면 이 선에서 접힙니다');
+      return;
+    }
+    const h = pickHandle(e);
+    if (!h) return;
+    snapshot();
+    ensureKey(); renderStrip(); refreshFrame();
+    const pose = curKey().pose;
+    const start = h.userData.id === 'body' ? bodyPoint(pose) : R.handlePos(rig, pose, h.userData.id);
+    const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+    drag = { id: h.userData.id, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, new THREE.Vector3(...start)), start, b0: Object.assign({ x: 0, y: 0, z: 0 }, pose.b || {}) };
+    controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId);
+    e.stopImmediatePropagation();
+  }, true);
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (!drag) { if (tool === 'drag') renderer.domElement.style.cursor = pickHandle(e) ? 'grab' : ''; else renderer.domElement.style.cursor = 'crosshair'; return; }
+    setRay(e);
+    const pose = curKey().pose;
+    if (drag.id === 'body') {
+      const b = pose.b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, pose.b || {});
+      if (e.shiftKey) {
+        const pl = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(camera.position.x - drag.start[0], 0, camera.position.z - drag.start[2]).normalize(), new THREE.Vector3(...drag.start));
+        const p = new THREE.Vector3(); if (ray.ray.intersectPlane(pl, p)) b.y = drag.b0.y + (p.y - drag.start[1]);
+      } else {
+        const pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), -drag.start[1]);
+        const p = new THREE.Vector3(); if (ray.ray.intersectPlane(pl, p)) { b.x = drag.b0.x + (p.x - drag.start[0]); b.z = drag.b0.z + (p.z - drag.start[2]); }
+      }
+    } else {
+      const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(drag.plane, p)) return;
+      R.solveIK(rig, pose, drag.id, [p.x, p.y, p.z], { iters: 8 });
+      if (sym && (drag.id === 'wF' || drag.id === 'wB')) R.mirrorWing(pose, drag.id);
+    }
+    reexpand(); dirty = true; drag.moved = true;
+  });
+  const endDrag = () => { if (!drag) return; drag = null; controls.enabled = true; renderStrip(); refreshFrame(); save(); };
+  renderer.domElement.addEventListener('pointerup', endDrag);
+  renderer.domElement.addEventListener('pointercancel', endDrag);
+
+  // ---------- layout ----------
+  function layoutGuide() {
+    const ar = +$('guideSel').value, w = stage.clientWidth, h = stage.clientHeight, g = $('guide');
+    if (!ar) { g.hidden = true; return; }
+    g.hidden = false;
+    let gw = w - 24, gh = gw / ar; if (gh > h - 70) { gh = h - 70; gw = gh * ar; }
+    g.style.width = gw + 'px'; g.style.height = gh + 'px'; g.style.left = (w - gw) / 2 + 'px'; g.style.top = (h - gh) / 2 + 'px';
+    $('guideText').textContent = ar > 2 ? '2.39:1' : '16:9';
+  }
+  function resize() { const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); layoutGuide(); dirty = true; }
+  new ResizeObserver(resize).observe(stage);
+
+  // ---------- loop ----------
+  rebuildScene(); refreshAll(); resize();
+  let acc = 0, last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (playing) {
+      acc += dt;
+      while (acc >= 1 / fps) { acc -= 1 / fps; if (frame < frames.length - 1) frame++; else if (loop) frame = 0; else { setPlaying(false); break; } refreshFrame(); }
+    } else acc = 0;
+    if (dirty) { draw(); dirty = false; }
+    controls.update(); renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  window.__mo = { st: () => ({ tool, cs: !!creaseStart, ce: controls.enabled }), dbg: (x, y) => { setRay({ clientX: x, clientY: y }); const bs = G.geo.boundingSphere; return JSON.stringify({ bs: bs && [bs.center.toArray(), bs.radius], o: ray.ray.origin.toArray(), d: ray.ray.direction.toArray(), n: ray.intersectObjects([G.mF, G.mB], false).length, all: ray.intersectObjects(scene.children, true).map(h => h.object.type).slice(0, 5) }); }, hit: (x, y) => { const h = hitFacet({ clientX: x, clientY: y }); return h ? rig.facets[h.fi].chain + ':' + rig.facets[h.fi].depth : null; }, hs: id => { const h = handles.find(x => x.userData.id === id); const v = h.position.clone().project(camera), r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, cam: c => { applyCam(c); renderer.render(scene, camera); }, S: () => S, go: i => { frame = i; refreshFrame(); draw(); renderer.render(scene, camera); }, select: i => { S.cur = i; frame = 0; refreshAll(); draw(); renderer.render(scene, camera); }, frames: () => frames, rig: () => rig, R, renderNow: () => { draw(); renderer.render(scene, camera); }, setOnion: v => { onion = v; } };
+  requestAnimationFrame(tick);
+})();
+</script>

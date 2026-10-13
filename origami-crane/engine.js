@@ -106,7 +106,7 @@
     const n = [-(b[1] - a[1]), b[0] - a[0]];
     const A = clipHalf(f.poly, a, n), B = clipHalf(f.poly, a, [-n[0], -n[1]]);
     if (A.length < 3 || B.length < 3 || Math.abs(area2(A)) < 1e-9 || Math.abs(area2(B)) < 1e-9) return [f];
-    return [mkFacet(A, f.T, f.l), mkFacet(B, f.T, f.l)].map(g => (g.h = f.h, g));
+    return [mkFacet(A, f.T, f.l), mkFacet(B, f.T, f.l)].map(g => (g.h = f.h, g.tag = f.tag, g));
   }
   function facetsAt(facets, pt) { // facets containing table pt, sorted top (high h/l) first
     return facets.filter(f => insideConvex(tableProj(f), pt, 1e-7)).sort((a, b) => (b.l - a.l));
@@ -213,10 +213,10 @@
       if (opts.flat === false) { L = facets.map(f => f.l); H = facets.map(f => f.h); }
       else { const r = order(facets, T0, Tend, opts.probe ? opts.probe() : motion(0.985), opts.rule); L = r.L; H = r.H; }
       steps.push(Object.assign(step, {
-        facets: facets.map(f => ({ id: f.id, poly: f.poly, T0: f.T, h0: f.h })),
+        facets: facets.map(f => ({ id: f.id, poly: f.poly, T0: f.T, h0: f.h, tag: f.tag })),
         motion, Tend, h1: H, mode: opts.mode || 'flat'
       }));
-      facets = facets.map((f, i) => Object.assign(mkFacet(f.poly, Tend[i], L[i]), { id: f.id, h: H[i] }));
+      facets = facets.map((f, i) => Object.assign(mkFacet(f.poly, Tend[i], L[i]), { id: f.id, h: H[i], tag: f.tag }));
     }
     const rotGroups = groups => { const F = facets; return s => F.map(f => {
       let T = f.T;
@@ -393,7 +393,7 @@
 
     // ---- 4. inside reverse folds ----
     const frontCorner = () => { const f = facetsAt(facets, [0, 1.8])[0]; const c = paperCentroid(f); return [Math.sign(c[0]), Math.sign(c[1])]; };
-    function reverseFold(step, P, D, move, seedPt) {
+    function reverseFold(step, P, D, move, seedPt, tag) {
       const fc = frontCorner();
       const front = f => { const c = paperCentroid(f); return c[0] * fc[0] + c[1] * fc[1] > 0; };
       const seed = facetsAt(facets, seedPt)[0];
@@ -407,6 +407,7 @@
         for (const gg of splitFacet(f, P, D)) { next.push(gg); if (side(centroid2(tableProj(gg))) > 1e-7) moving.add(gg.id); }
       }
       facets = next;
+      facets.forEach(f => { if (moving.has(f.id)) f.tag = tag; });
       const d3 = norm([D[0], D[1], 0]), P3 = [P[0], P[1], 0], m3 = [move[0], move[1], 0];
       const sg = apply(rotAxis(P3, d3, 0.1), m3)[2] > 0 ? 1 : -1;
       const isF = facets.map(f => front(f)), isM = facets.map(f => moving.has(f.id));
@@ -429,15 +430,15 @@
       commit(step, motion, { rule });
     }
     const nA = [-0.9087, -0.4171];
-    reverseFold({ title: '목 만들기 (안으로 뒤집어 접기)', desc: '왼쪽 다리를 두 겹 사이로 뒤집어 넣으며 위로 올립니다.' }, [0, 1], nA, [-0.05, 0.3], [-0.05, 0.5]);
-    reverseFold({ title: '꼬리 만들기 (안으로 뒤집어 접기)', desc: '오른쪽 다리도 같은 방법으로 위로 올려 꼬리를 만듭니다.' }, [0, 1], [-nA[0], nA[1]], [0.05, 0.3], [0.05, 0.5]);
+    reverseFold({ title: '목 만들기 (안으로 뒤집어 접기)', desc: '왼쪽 다리를 두 겹 사이로 뒤집어 넣으며 위로 올립니다.' }, [0, 1], nA, [-0.05, 0.3], [-0.05, 0.5], 'neck');
+    reverseFold({ title: '꼬리 만들기 (안으로 뒤집어 접기)', desc: '오른쪽 다리도 같은 방법으로 위로 올려 꼬리를 만듭니다.' }, [0, 1], [-nA[0], nA[1]], [0.05, 0.3], [0.05, 0.5], 'tail');
     {
       const M0 = [-0.0915, 0.958], tipP = [-0.758, 1.652];
       const L0 = Math.hypot(tipP[0] - M0[0], tipP[1] - M0[1]);
       const a = [(tipP[0] - M0[0]) / L0, (tipP[1] - M0[1]) / L0], b = [-0.906, -0.423];
       const m = norm([a[0] + b[0], a[1] + b[1], 0]);
       const at = f => [M0[0] + f * L0 * a[0], M0[1] + f * L0 * a[1]];
-      reverseFold({ title: '머리 만들기', desc: '목 끝을 조금 남기고 안으로 뒤집어 접어 부리를 만듭니다.' }, at(0.8), [m[0], m[1]], at(0.97), at(0.88));
+      reverseFold({ title: '머리 만들기', desc: '목 끝을 조금 남기고 안으로 뒤집어 접어 부리를 만듭니다.' }, at(0.8), [m[0], m[1]], at(0.97), at(0.88), 'head');
     }
 
     // ---- 5. wings ----
@@ -473,6 +474,6 @@
     return steps;
   }
 
-  var api = { build, apply, compose, rotAxis, I, order };
+  var api = { build, apply, compose, rotAxis, I, order, inverse };
   if (typeof module !== 'undefined') module.exports = api; else root.CraneEngine = api;
 })(this);
