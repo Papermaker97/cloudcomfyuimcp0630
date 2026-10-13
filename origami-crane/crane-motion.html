@@ -1087,18 +1087,96 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
           key('end', P({ b: { y: -1.6, z: 1.7, roll: 40, pitch: -75, ground: 0 }, w: { flap: 55, curl: 26 }, neck: { bow: 30, side: -8 }, head: { nod: 20 }, tail: { up: 30 } }), 6, null)
         ] });
       }
-      const rest = [
-        ['wake', 'Wake Up — 깨어나기', '1-3', '고개 숙임 → 천천히 들어 올림 → 순간 멈춤'],
-        ['prepfly', 'Prepare to Fly — 비행 준비', '2-3', '몸을 살짝 낮춤 → 목을 뻗음 → 양 날개를 크게 치켜듦 → 자신만만한 정지'],
-        ['recover', 'Recover — 벌떡 일어나기', '2-6', '옆으로 누움 → 몸을 흔듦 → 갑자기 일어남 → 한 번 휘청 → 균형 잡기'],
-        ['shake', 'Head Shake — 고개 털기', '2-7', '고개 좌우로 짧게 털기 → 마지막에 조금 지나쳤다가 돌아오기'],
-        ['dodge', 'Dodge — 발 피하기', '2-8', '앞으로 이동 → 급정지 → 몸을 한쪽으로 기울임 → 급회전 → 반대쪽으로 도망'],
-        ['deflate', 'Deflate — 낙담하기', '2-9', '움직임 멈춤 → 날개가 처짐 → 목과 몸이 내려감 → 주저앉음'],
-        ['longing', 'Longing — 다시 올려다보기', '2-10', '축 처진 상태 → 고개만 조금 들어 창밖을 바라봄 → 긴 정지'],
-        ['crushed', 'Crushed — 밟힌 상태', '3-2', '정상 형태 → 목·날개가 접히며 몸이 납작해짐. 외부 힘으로 변하는 별도 상태']
-      ].map(([id, name, cut, desc]) => ({ id, name, cut, desc, draft: true, keys: [key('start', P(STAND), 6, null)] }));
+      // Wake Up — head down, slow lift, sudden freeze
+      {
+        const sleep = { b: { pitch: -6 }, neck: { bow: 40 }, head: { nod: 40 }, w: { flap: -20, curl: 4 }, tail: { up: -4 } };
+        const up = { neck: { bow: -18 }, head: { nod: -12 }, w: { flap: 10, curl: 8 }, tail: { up: 4 } };
+        M.push({ id: 'wake', name: 'Wake Up — 깨어나기', cut: '1-3', desc: '고개 숙임 → 천천히 들어 올림 → 순간 멈춤', keys: [
+          key('start', P(sleep), 8, { n: 4, ease: 'inout' }),
+          key('prep', P(merge(sleep, { neck: { bow: 34 }, head: { nod: 30 } })), 2, { n: 12, ease: 'inout' }),
+          key('core', P({ neck: { bow: -6 }, head: { nod: 2 }, w: { flap: 4, curl: 6 } }), 0, { n: 2, ease: 'snap' }),
+          key('end', P(merge(up, { head: { tilt: 6 } })), 12, null)
+        ] });
+      }
+      // Prepare to Fly — crouch, stretch neck, wings way up, proud hold
+      {
+        const proud = { b: { pitch: 9 }, w: { flap: 62, curl: 14 }, neck: { bow: -30 }, head: { nod: -22 }, tail: { up: 14 } };
+        M.push({ id: 'prepfly', name: 'Prepare to Fly — 비행 준비', cut: '2-3', desc: '몸을 살짝 낮춤 → 목을 뻗음 → 양 날개를 크게 치켜듦 → 자신만만한 정지', keys: [
+          key('start', P(STAND), 3, { n: 3, ease: 'inout' }),
+          key('prep', P({ b: { pitch: -8 }, neck: { bow: 16 }, head: { nod: 8 }, w: { flap: -10, curl: 4 }, tail: { up: 10 } }), 2, { n: 3, ease: 'snap' }),
+          key('core', P({ b: { pitch: 4 }, neck: { bow: -30 }, head: { nod: -15 }, w: { flap: 10 }, tail: { up: 6 } }), 1, { n: 2, ease: 'snap' }),
+          key('core', P(merge(proud, { w: { flap: 70 } })), 0, { n: 3, ease: 'over' }),
+          key('end', P(proud), 16, null)
+        ] });
+      }
+      // Recover — lying on its side, wriggle, pop up, wobble, settle
+      {
+        const lying = { b: { roll: -68 }, wB: { flap: 55, curl: 6 }, wF: { flap: -12 }, neck: { bow: 20, side: -14 }, head: { nod: 18 }, tail: { up: -6 } };
+        M.push({ id: 'recover', name: 'Recover — 벌떡 일어나기', cut: '2-6', desc: '옆으로 누움 → 몸을 흔듦 → 갑자기 일어남 → 한 번 휘청 → 균형 잡기', keys: [
+          key('start', P(lying), 6, { n: 2, ease: 'linear' }),
+          key('prep', P(merge(lying, { b: { roll: -60 }, wF: { flap: 18 }, head: { nod: 6 } })), 0, { n: 2, ease: 'linear' }),
+          key('prep', P(merge(lying, { b: { roll: -70 }, wF: { flap: -14 } })), 0, { n: 2, ease: 'linear' }),
+          key('prep', P(merge(lying, { b: { roll: -60 }, wF: { flap: 20 } })), 1, { n: 2, ease: 'snap' }),
+          key('core', P({ b: { roll: 10 }, w: { flap: 32, curl: 10 }, neck: { bow: -12 }, head: { nod: -8 }, tail: { up: 6 } }), 0, { n: 3, ease: 'out' }),
+          key('core', P({ b: { roll: -10, pitch: -8 }, wF: { flap: 12 }, wB: { flap: 42, curl: 10 }, neck: { bow: 10, side: 12 }, head: { nod: 6, tilt: -10 } }), 0, { n: 4, ease: 'over' }),
+          key('end', P({ w: { flap: 14, curl: 8 }, neck: { bow: -6 }, head: { nod: -4 } }), 12, null)
+        ] });
+      }
+      // Head Shake — quick left/right shakes, last one overshoots and settles
+      {
+        const sh = (t, s) => P({ neck: { side: s }, head: { turn: t, nod: 4 }, w: { flap: 6 + Math.abs(s) * 0.3 } });
+        M.push({ id: 'shake', name: 'Head Shake — 고개 털기', cut: '2-7', desc: '고개 좌우로 짧게 털기 → 마지막에 조금 지나쳤다가 돌아오기', keys: [
+          key('start', P(STAND), 3, { n: 2, ease: 'inout' }),
+          key('prep', P({ neck: { bow: 8 }, head: { nod: 12 } }), 1, { n: 1, ease: 'snap' }),
+          key('core', sh(30, 14), 0, { n: 1, ease: 'linear' }),
+          key('core', sh(-30, -14), 0, { n: 1, ease: 'linear' }),
+          key('core', sh(26, 12), 0, { n: 1, ease: 'linear' }),
+          key('core', sh(-24, -11), 0, { n: 4, ease: 'over' }),
+          key('end', P({ head: { tilt: 6, nod: -2 }, neck: { bow: -4 } }), 10, null)
+        ] });
+      }
+      // Dodge — walk forward, stop dead, lean, spin, run the other way
+      {
+        M.push({ id: 'dodge', name: 'Dodge — 발 피하기', cut: '2-8', desc: '앞으로 이동 → 급정지 → 몸을 한쪽으로 기울임 → 급회전 → 반대쪽으로 도망', keys: [
+          key('start', P(STAND), 2, { n: 6, ease: 'linear' }),
+          key('core', P({ b: { x: -0.4, pitch: -5 }, neck: { bow: 8 }, w: { flap: 8 } }), 0, { n: 1, ease: 'snap' }),
+          key('core', P({ b: { x: -0.46, pitch: 10 }, w: { flap: 28, curl: 10 }, neck: { bow: -22 }, head: { nod: -12 }, tail: { up: 8 } }), 3, { n: 2, ease: 'snap' }),
+          key('core', P({ b: { x: -0.46, z: 0.06, roll: 18 }, w: { flap: 20 }, neck: { bow: -10, side: 16 }, head: { turn: 10 } }), 1, { n: 2, ease: 'snap' }),
+          key('core', P({ b: { x: -0.4, z: 0.1, yaw: 150, roll: 8 }, w: { flap: 32 }, neck: { bow: 6 } }), 0, { n: 6, ease: 'linear', flap: { cycles: 2, amp: 26, lag: 0.1, accel: 0.4 } }),
+          key('end', P({ b: { x: 0.7, z: 0.15, yaw: 150, pitch: -10 }, w: { flap: 36, curl: 10 }, neck: { bow: 22 }, head: { nod: 8 }, tail: { up: 10 } }), 4, null)
+        ] });
+      }
+      // Deflate — stop, wings droop, neck and body sink, slump
+      {
+        const slump = { b: { pitch: -12, roll: -4 }, w: { flap: -38, curl: -8 }, neck: { bow: 46 }, head: { nod: 34 }, tail: { up: -14 } };
+        M.push({ id: 'deflate', name: 'Deflate — 낙담하기', cut: '2-9', desc: '움직임 멈춤 → 날개가 처짐 → 목과 몸이 내려감 → 주저앉음', keys: [
+          key('start', P({ neck: { bow: -6 }, head: { nod: -4 } }), 6, { n: 6, ease: 'in' }),
+          key('core', P({ w: { flap: -24, curl: -6 }, neck: { bow: -2 } }), 2, { n: 8, ease: 'inout' }),
+          key('core', P({ b: { pitch: -8 }, w: { flap: -32, curl: -6 }, neck: { bow: 36 }, head: { nod: 24 }, tail: { up: -8 } }), 2, { n: 3, ease: 'out' }),
+          key('end', P(slump), 14, null)
+        ] });
+      }
+      // Longing — still slumped, only the head lifts toward the window, long hold
+      {
+        const slump = { b: { pitch: -12, roll: -4 }, w: { flap: -38, curl: -8 }, neck: { bow: 46 }, head: { nod: 34 }, tail: { up: -14 } };
+        M.push({ id: 'longing', name: 'Longing — 다시 올려다보기', cut: '2-10', desc: '축 처진 상태 → 고개만 조금 들어 창밖을 바라봄 → 긴 정지', keys: [
+          key('start', P(slump), 8, { n: 6, ease: 'inout' }),
+          key('prep', P(merge(slump, { head: { nod: 40 } })), 2, { n: 10, ease: 'inout' }),
+          key('end', P(merge(slump, { neck: { bow: 22, side: 6 }, head: { nod: -22, turn: 10, tilt: 6 } })), 36, null)
+        ] });
+      }
+      // Crushed — pressed flat by an outside force
+      {
+        M.push({ id: 'crushed', name: 'Crushed — 밟힌 상태', cut: '3-2', desc: '정상 형태 → 목·날개가 접히며 몸이 납작해짐. 외부 힘으로 변하는 별도 상태', keys: [
+          key('start', P(STAND), 4, { n: 2, ease: 'snap' }),
+          key('core', P({ b: { pitch: -4 }, w: { flap: -32, curl: -20 }, neck: { bow: 30 }, head: { nod: 20 }, tail: { up: -22 } }), 0, { n: 3, ease: 'out' }),
+          key('end', P({ w: { flap: -40, curl: -40 }, neck: { bow: 46, side: 8 }, head: { nod: 30, tilt: 12 }, tail: { up: -42, side: -6 } }), 14, null)
+        ] });
+      }
+      const rest = [];
       const order = ['wake', 'look', 'prepfly', 'takeoff', 'recover', 'shake', 'scratch', 'dodge', 'deflate', 'longing', 'crushed'];
       const all = M.concat(rest);
+      all.forEach(m => { m.draft = false; });
       return order.map(id => all.find(m => m.id === id));
     }
 
@@ -1240,12 +1318,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- state ----------
   let rig = R.build([]);
-  const fresh = () => ({ v: 4, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  const fresh = () => ({ v: 5, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
   let S;
   const undoStack = [], redoStack = [];
   try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
   if (!S || !S.motions) S = fresh();
-  const oldPresets = (S.v || 1) < 4;
+  const oldPresets = (S.v || 1) < 5;
   if (oldPresets) {
     undoStack.push(JSON.stringify(S));
     // wings used to hang from a lower hinge, folded downward: convert saved wing angles and wing creases
@@ -1259,6 +1337,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const np = R.presets(R.build(S.creases || []));
     S.motions = S.motions.map(m => (['look', 'scratch', 'takeoff'].includes(m.id) ? np.find(x => x.id === m.id) : m));
     S.v = 4;
+  }
+  if ((S.v || 1) < 5) {
+    // fill the presets that were still empty with the new motions
+    const np = R.presets(R.build(S.creases || []));
+    S.motions = S.motions.map(m => (m.keys.length <= 1 ? (np.find(x => x.id === m.id) || m) : m));
+    S.v = 5;
   }
   rig = R.build(S.creases);
   let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true, block = true;
@@ -1424,7 +1508,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const box = $('presetList'); box.querySelectorAll('.preset').forEach(n => n.remove());
     S.motions.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'preset'; b.setAttribute('aria-current', String(i === S.cur));
-      const filled = m.keys.length > 1;
+      const filled = m.keys.length > 1 || !m.draft;
       b.innerHTML = `<span class="pc">컷 ${m.cut}${filled ? '' : ' · 비어 있음'}</span><span class="pn"></span><span class="pd"></span>`;
       b.querySelector('.pn').textContent = m.name; b.querySelector('.pd').textContent = m.desc;
       b.onclick = () => { S.cur = i; frame = 0; setPlaying(false); refreshAll(); save(); };
@@ -1700,7 +1784,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- loop ----------
   rebuildScene(); refreshAll(); resize();
-  if (oldPresets) { save(); setTimeout(() => toast('날개가 실제 종이학처럼 몸통 위쪽에 붙도록 바뀌었고, 머리 긁기는 사진을 보고 다시 만들었습니다. 이전 작업은 ‘되돌리기’로 복원할 수 있습니다'), 600); }
+  if (oldPresets) { save(); setTimeout(() => toast('11개 모션이 모두 채워졌습니다. 이전 작업은 ‘되돌리기’로 복원할 수 있습니다'), 600); }
   let acc = 0, last = performance.now();
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;

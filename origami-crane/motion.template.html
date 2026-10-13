@@ -217,12 +217,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- state ----------
   let rig = R.build([]);
-  const fresh = () => ({ v: 4, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  const fresh = () => ({ v: 5, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
   let S;
   const undoStack = [], redoStack = [];
   try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
   if (!S || !S.motions) S = fresh();
-  const oldPresets = (S.v || 1) < 4;
+  const oldPresets = (S.v || 1) < 5;
   if (oldPresets) {
     undoStack.push(JSON.stringify(S));
     // wings used to hang from a lower hinge, folded downward: convert saved wing angles and wing creases
@@ -236,6 +236,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const np = R.presets(R.build(S.creases || []));
     S.motions = S.motions.map(m => (['look', 'scratch', 'takeoff'].includes(m.id) ? np.find(x => x.id === m.id) : m));
     S.v = 4;
+  }
+  if ((S.v || 1) < 5) {
+    // fill the presets that were still empty with the new motions
+    const np = R.presets(R.build(S.creases || []));
+    S.motions = S.motions.map(m => (m.keys.length <= 1 ? (np.find(x => x.id === m.id) || m) : m));
+    S.v = 5;
   }
   rig = R.build(S.creases);
   let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true, block = true;
@@ -401,7 +407,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const box = $('presetList'); box.querySelectorAll('.preset').forEach(n => n.remove());
     S.motions.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'preset'; b.setAttribute('aria-current', String(i === S.cur));
-      const filled = m.keys.length > 1;
+      const filled = m.keys.length > 1 || !m.draft;
       b.innerHTML = `<span class="pc">컷 ${m.cut}${filled ? '' : ' · 비어 있음'}</span><span class="pn"></span><span class="pd"></span>`;
       b.querySelector('.pn').textContent = m.name; b.querySelector('.pd').textContent = m.desc;
       b.onclick = () => { S.cur = i; frame = 0; setPlaying(false); refreshAll(); save(); };
@@ -677,7 +683,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- loop ----------
   rebuildScene(); refreshAll(); resize();
-  if (oldPresets) { save(); setTimeout(() => toast('날개가 실제 종이학처럼 몸통 위쪽에 붙도록 바뀌었고, 머리 긁기는 사진을 보고 다시 만들었습니다. 이전 작업은 ‘되돌리기’로 복원할 수 있습니다'), 600); }
+  if (oldPresets) { save(); setTimeout(() => toast('11개 모션이 모두 채워졌습니다. 이전 작업은 ‘되돌리기’로 복원할 수 있습니다'), 600); }
   let acc = 0, last = performance.now();
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
