@@ -79,6 +79,9 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 .cell.key { height: 30px; }
 .cell.hold { opacity: .45; }
 .cell.cur { outline: 2px solid var(--ink); outline-offset: 1px; }
+.cell.hit::before { content: ""; position: absolute; left: 2px; right: 2px; top: -5px; height: 3px; border-radius: 2px; background: #e3343e; }
+.hud.bad { border-color: #e3343e; color: #e3343e; }
+.strip { padding-top: 6px; }
 .cell.key::after { content: ""; position: absolute; left: 4px; right: 4px; bottom: 3px; height: 3px; border-radius: 2px; background: var(--accent-ink); opacity: .9; }
 .legend { display: flex; gap: 12px; color: var(--muted); font-size: 11.5px; flex-wrap: wrap; }
 @media (max-width: 1000px) {
@@ -120,6 +123,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       <button id="toolCrease" aria-pressed="false" title="부위 위를 두 번 클릭해 새 접힘선 추가">접힘선 추가</button>
       <button id="symBtn" aria-pressed="false" title="한쪽 날개를 움직이면 반대쪽도 똑같이">날개 대칭</button>
       <button id="onionBtn" aria-pressed="true" title="앞뒤 프레임을 반투명하게 겹쳐 보기">어니언 스킨</button>
+      <button id="blockBtn" aria-pressed="true" title="끌 때 종이가 다른 부위나 창턱을 뚫고 지나가지 않게 멈춤">관통 막기</button>
     </div>
     <div class="hud" id="hud"></div>
     <div class="hint" id="hint">빨간 점(날개 끝·부리·목·꼬리)과 회색 점(몸통)을 끌어 포즈를 잡습니다. 몸통 점은 Shift를 누르고 끌면 위아래로 움직입니다. 빈 곳을 끌면 시점이 돌아갑니다.</div>
@@ -157,6 +161,8 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       <div class="sl"><label for="bYaw">방향 돌리기</label><output id="obYaw"></output><input type="range" id="bYaw" min="-180" max="180" step="1"></div>
       <div class="sl"><label for="bX">앞뒤 위치</label><output id="obX"></output><input type="range" id="bX" min="-2" max="2" step="0.01"></div>
       <div class="sl"><label for="bZ">카메라 쪽 위치</label><output id="obZ"></output><input type="range" id="bZ" min="-1.5" max="1.5" step="0.01"></div>
+      <div class="row"><span>창턱에 서 있기 (자동 높이)</span><input type="checkbox" id="groundOn" aria-label="창턱에 서 있기"></div>
+      <p class="subtle">켜 두면 어떤 부위도 창턱을 뚫지 않도록 몸이 저절로 올라갑니다. 떨어지는 장면에서만 끄세요.</p>
       <button id="resetPose">서 있는 자세로 되돌리기</button>
     </section>
     <section class="sec">
@@ -184,7 +190,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       <button id="loopBtn" aria-pressed="true">반복</button>
       <select id="onionN" aria-label="어니언 스킨 장수"><option value="1">앞뒤 1장</option><option value="2">앞뒤 2장</option></select>
       <span class="spacer"></span>
-      <div class="legend"><span><i class="rolepill" style="background:var(--r-start)"></i>시작</span><span><i class="rolepill" style="background:var(--r-prep)"></i>준비</span><span><i class="rolepill" style="background:var(--r-core)"></i>핵심</span><span><i class="rolepill" style="background:var(--r-end)"></i>끝</span><span><i class="rolepill" style="background:var(--tween)"></i>중간 프레임</span><span>흐린 칸 = 정지</span></div>
+      <div class="legend"><span><i class="rolepill" style="background:var(--r-start)"></i>시작</span><span><i class="rolepill" style="background:var(--r-prep)"></i>준비</span><span><i class="rolepill" style="background:var(--r-core)"></i>핵심</span><span><i class="rolepill" style="background:var(--r-end)"></i>끝</span><span><i class="rolepill" style="background:var(--tween)"></i>중간 프레임</span><span>흐린 칸 = 정지</span><span style="color:#e3343e">빨간 줄 = 관통 있음</span></div>
     </div>
     <div class="strip" id="strip" role="listbox" aria-label="프레임"></div>
   </footer>
@@ -210,12 +216,14 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- state ----------
   let rig = R.build([]);
-  const fresh = () => ({ motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  const fresh = () => ({ v: 2, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
   let S;
   try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
   if (!S || !S.motions) S = fresh();
+  const oldPresets = !S.v; S.v = 2;
   rig = R.build(S.creases);
-  let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true;
+  let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true, block = true;
+  let hitCache = [], hitQueue = 0;
   const undoStack = [], redoStack = [];
   const motion = () => S.motions[S.cur];
   function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { } }
@@ -278,9 +286,10 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     cg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(Math.max(1, rig.creaseEdges.length) * 6), 3));
     const creaseLines = new THREE.LineSegments(cg, new THREE.LineBasicMaterial({ vertexColors: true, depthTest: false }));
     creaseLines.renderOrder = 5;
+    const hitGeo = makeGeo(nTri); const hitMesh = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({ color: 0xe3343e, transparent: true, opacity: 0.75, side: THREE.DoubleSide, depthTest: false })); hitMesh.renderOrder = 6;
     const ghosts = [0, 1, 2, 3].map(i => { const m = new THREE.Mesh(makeGeo(nTri), ghostMat(ghostCols[i])); m.renderOrder = 2; m.material.opacity = i % 2 ? 0.1 : 0.22; return m; });
-    [mF, mB, lines, creaseLines, ...ghosts].forEach(m => { m.frustumCulled = false; scene.add(m); });
-    G = { geo, lg, cg, mF, mB, lines, creaseLines, ghosts, triFacet, objs: [mF, mB, lines, creaseLines, ...ghosts], Ts: null };
+    [mF, mB, lines, creaseLines, hitMesh, ...ghosts].forEach(m => { m.frustumCulled = false; scene.add(m); });
+    G = { geo, lg, cg, mF, mB, lines, creaseLines, hitMesh, hitGeo, ghosts, triFacet, objs: [mF, mB, lines, creaseLines, hitMesh, ...ghosts], Ts: null };
   }
 
   function writePose(geo, pose, withLines) {
@@ -320,7 +329,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
   }
 
   // ---------- frames ----------
-  function reexpand() { frames = R.expand(motion(), rig); frame = Math.max(0, Math.min(frame, frames.length - 1)); }
+  function reexpand() { frames = R.expand(motion(), rig); frame = Math.max(0, Math.min(frame, frames.length - 1)); hitCache = new Array(frames.length).fill(null); hitQueue = 0; }
   const curFrame = () => frames[frame];
   const curKey = () => motion().keys[curFrame().key];
 
@@ -360,7 +369,17 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       g.visible = show; if (show) writePose(g.geometry, frames[idx].pose, false);
     });
     placeHandles(fr.pose);
+    // red overlay on every triangle that passes through other paper or the ledge
+    const c = R.collisions(rig, fr.pose); hitCache[frame] = c.n;
+    const ids = new Set(); c.pairs.forEach(([a, b]) => { ids.add(a); ids.add(b); }); c.floor.forEach(a => ids.add(a)); c.side.forEach(a => ids.add(a));
+    const hp = G.hitGeo.attributes.position.array; let o = 0;
+    ids.forEach(t => c.tris[t].v.forEach(v => { hp[o++] = v[0]; hp[o++] = v[1]; hp[o++] = v[2]; }));
+    G.hitGeo.setDrawRange(0, ids.size * 3); G.hitGeo.attributes.position.needsUpdate = true; G.hitMesh.visible = ids.size > 0;
+    const hud = $('hud'); hud.classList.toggle('bad', c.n > 0);
+    hud.textContent = hud.textContent.replace(/ · 관통.*$/, '') + (c.n ? ' · 관통: ' + [c.pairs.length && '종이끼리', c.side.length && '날개가 몸통 너머로', c.floor.length && '창턱'].filter(Boolean).join(', ') : '');
+    markHit(frame);
   }
+  function markHit(i) { const cell = $('strip').children[i]; if (cell && hitCache[i] != null) cell.classList.toggle('hit', hitCache[i] > 0); }
 
   // ---------- UI: presets ----------
   function renderPresets() {
@@ -385,6 +404,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       c.title = `${i + 1} · ${f.kind === 'tween' ? '중간 프레임' : f.kind === 'hold' ? '정지' : ROLE[role]}`;
       c.setAttribute('role', 'option'); c.setAttribute('aria-selected', String(i === frame));
       c.onclick = () => { frame = i; setPlaying(false); refreshFrame(); };
+      if (hitCache[i]) c.classList.add('hit');
       st.appendChild(c);
     });
   }
@@ -419,6 +439,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, fr.pose.b || {});
     [['bY', 'y', v => v.toFixed(2)], ['bPitch', 'pitch', v => Math.round(v) + '°'], ['bRoll', 'roll', v => Math.round(v) + '°'], ['bYaw', 'yaw', v => Math.round(v) + '°'], ['bX', 'x', v => v.toFixed(2)], ['bZ', 'z', v => v.toFixed(2)]]
       .forEach(([id, k2, fmt]) => { $(id).value = b[k2]; $('o' + id).textContent = fmt(b[k2]); });
+    $('groundOn').checked = (fr.pose.b && fr.pose.b.ground != null ? fr.pose.b.ground : 1) >= 0.5;
     renderCreases();
   }
   function renderCreases() {
@@ -492,6 +513,8 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
   $('symBtn').onclick = () => { sym = !sym; $('symBtn').setAttribute('aria-pressed', String(sym)); };
   $('onionBtn').onclick = () => { onion = !onion; $('onionBtn').setAttribute('aria-pressed', String(onion)); dirty = true; };
   $('onionN').onchange = e => { onionN = +e.target.value; dirty = true; };
+  $('blockBtn').onclick = () => { block = !block; $('blockBtn').setAttribute('aria-pressed', String(block)); toast(block ? '끌 때 종이가 뚫고 지나가지 않게 멈춥니다' : '관통 막기를 껐습니다. 관통한 곳은 빨갛게 표시됩니다'); };
+  $('groundOn').onchange = e => editKey(k => { k.pose.b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, k.pose.b || {}); k.pose.b.ground = e.target.checked ? 1 : 0; }, false);
   $('fpsSel').onchange = e => { fps = +e.target.value; refreshFrame(); };
   $('loopBtn').onclick = () => { loop = !loop; $('loopBtn').setAttribute('aria-pressed', String(loop)); };
   $('camShot').onclick = () => applyCam(S.cam || DEFAULT_CAM);
@@ -575,8 +598,13 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId);
     e.stopImmediatePropagation();
   }, true);
+  let pendingMove = null;
   renderer.domElement.addEventListener('pointermove', e => {
     if (!drag) { if (tool === 'drag') renderer.domElement.style.cursor = pickHandle(e) ? 'grab' : ''; else renderer.domElement.style.cursor = 'crosshair'; return; }
+    pendingMove = { clientX: e.clientX, clientY: e.clientY, shiftKey: e.shiftKey };
+  });
+  let lastBlockToast = 0;
+  function applyMove(e) {
     setRay(e);
     const pose = curKey().pose;
     if (drag.id === 'body') {
@@ -590,12 +618,20 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       }
     } else {
       const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(drag.plane, p)) return;
+      const before = clone(pose);
       R.solveIK(rig, pose, drag.id, [p.x, p.y, p.z], { iters: 8 });
       if (sym && (drag.id === 'wF' || drag.id === 'wB')) R.mirrorWing(pose, drag.id);
+      if (block) {
+        const chains = [R.HANDLES[drag.id].chain].concat(sym && drag.id[0] === 'w' ? [drag.id === 'wF' ? 'wB' : 'wF'] : []);
+        let blocked = false, cur = pose;
+        chains.forEach(ch => { const r = R.blockAt(rig, before, cur, ch); cur = r.pose; blocked = blocked || r.blocked; });
+        pose.j = cur.j;
+        if (blocked && performance.now() - lastBlockToast > 2500) { lastBlockToast = performance.now(); toast('종이가 닿아서 멈췄습니다. 다른 방향으로 돌아가거나 ‘관통 막기’를 끄세요'); }
+      }
     }
     reexpand(); dirty = true; drag.moved = true;
-  });
-  const endDrag = () => { if (!drag) return; drag = null; controls.enabled = true; renderStrip(); refreshFrame(); save(); };
+  }
+  const endDrag = () => { if (!drag) return; if (pendingMove) { applyMove(pendingMove); pendingMove = null; } drag = null; controls.enabled = true; renderStrip(); refreshFrame(); save(); };
   renderer.domElement.addEventListener('pointerup', endDrag);
   renderer.domElement.addEventListener('pointercancel', endDrag);
 
@@ -613,6 +649,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- loop ----------
   rebuildScene(); refreshAll(); resize();
+  if (oldPresets && S.motions.some(m => m.keys.length > 1)) setTimeout(() => toast('프리셋이 관통 없게 고쳐졌습니다. 저장된 작업은 그대로 두었으니, 새 버전을 쓰려면 ‘이 프리셋 초기화’를 누르세요'), 600);
   let acc = 0, last = performance.now();
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -620,7 +657,10 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       acc += dt;
       while (acc >= 1 / fps) { acc -= 1 / fps; if (frame < frames.length - 1) frame++; else if (loop) frame = 0; else { setPlaying(false); break; } refreshFrame(); }
     } else acc = 0;
+    if (drag && pendingMove) { applyMove(pendingMove); pendingMove = null; }
     if (dirty) { draw(); dirty = false; }
+    // scan a few frames per tick so the strip shows where paper passes through
+    for (let n = 0; n < 3 && hitQueue < frames.length; hitQueue++) { if (hitCache[hitQueue] == null) { hitCache[hitQueue] = R.collisions(rig, frames[hitQueue].pose).n; markHit(hitQueue); n++; } }
     controls.update(); renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }

@@ -136,6 +136,8 @@
     }
 
     // ---------- forward kinematics ----------
+    const EPS = 0.0022;
+    const restPoint = (rig, f, p) => { const w = E.apply(f.T, [p[0], p[1], 0]); w[2] += f.h * EPS; return w; };
     const jv = (pose, id) => (pose.j && pose.j[id]) || [0, 0, 0];
     function jointT(j, v) {
       const p = [j.p[0], j.p[1], 0];
@@ -153,10 +155,24 @@
       const T = E.compose({ R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [b.x, b.y, b.z] }, R);
       return E.compose(T, { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, -FLOOR, 0] });
     }
+    const onLedge = w => w[0] > -3 && w[0] < 3 && w[2] > -1.4 && w[2] < 0.55;
     function chainCums(rig, pose) {
       const B = bodyT(pose), out = { body: [B] };
       for (const key in rig.chains) {
         let T = B; out[key] = rig.chains[key].joints.map(j => (T = E.compose(T, jointT(j, jv(pose, j.id)))));
+      }
+      // standing on the ledge: lift the whole crane so its lowest point rests on the ledge instead of sinking in
+      const g = pose.b && pose.b.ground != null ? pose.b.ground : 1;
+      if (g >= 0.5) {
+        let minY = 0;
+        rig.facets.forEach(f => {
+          const T = f.chain === 'body' ? out.body[0] : out[f.chain][f.depth];
+          f.poly.forEach(p => { const w = E.apply(T, restPoint(rig, f, p)); if (w[1] < minY && onLedge(w)) minY = w[1]; });
+        });
+        if (minY < 0) {
+          const L = { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, -minY, 0] };
+          for (const k in out) out[k] = out[k].map(T => E.compose(L, T));
+        }
       }
       return out;
     }
@@ -164,8 +180,6 @@
       const C = chainCums(rig, pose);
       return rig.facets.map(f => f.chain === 'body' ? C.body[0] : C[f.chain][f.depth]);
     }
-    const EPS = 0.0022;
-    const restPoint = (rig, f, p) => { const w = E.apply(f.T, [p[0], p[1], 0]); w[2] += f.h * EPS; return w; };
 
     // ---------- handles & IK ----------
     const HANDLES = {
@@ -274,7 +288,7 @@
       const t = Object.assign({ up: 0, side: 0 }, sem.tail || {});
       j.t0 = [t.side * 0.5, t.up * 0.5, 0];
       for (let i = 1; i <= 4; i++) j['t' + i] = [t.side / 8, t.up / 8, 0];
-      return { b: Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, sem.b || {}), j };
+      return { b: Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, ground: 1 }, sem.b || {}), j };
     }
 
     // ---------- timeline ----------
@@ -315,8 +329,8 @@
             const f = tr.flap, acc = f.accel || 0;
             const ph = f.cycles * (u + acc * u * u) / (1 + acc), env = Math.pow(Math.sin(Math.PI * u), 0.35);
             const dF = f.amp * Math.sin(2 * Math.PI * ph) * env, dB = f.amp * Math.sin(2 * Math.PI * (ph - (f.lag || 0))) * env;
-            if (pose.j.wF0) pose.j.wF0[0] -= dF;
-            if (pose.j.wB0) pose.j.wB0[0] += dB;
+            if (pose.j.wF0) pose.j.wF0[0] = -Math.max(50, Math.min(154, -pose.j.wF0[0] + dF));
+            if (pose.j.wB0) pose.j.wB0[0] = Math.max(50, Math.min(154, pose.j.wB0[0] + dB));
           }
           frames.push({ pose, key: i, kind: 'tween', u });
         }
@@ -348,41 +362,52 @@
       }
       // Head Scratch
       {
-        const prep = { neck: { bow: 2, side: 10 }, head: { nod: 34 }, b: { pitch: -4 }, wF: { flap: -8 } };
-        const reach = merge(prep, { head: { tilt: 14 }, wF: { flap: 75, fwd: 60, curl: 30 } });
-        const base = P(reach);
+        const prep = { neck: { bow: 4, side: 55 }, head: { nod: 34, turn: 20 }, b: { pitch: -4 }, wF: { flap: -2 } };
+        const reachBase = merge(prep, { head: { tilt: 14 } });
         const headTop = q => {
           const ch = rig.chains.neck, k = ch.joints.findIndex(j => j.id === 'h');
           return pointPos(rig, q, 'neck', k, ch.joints[k].p);
         };
-        const touch = (dy) => {
-          const q = clone(base), ht = headTop(q);
-          solveIK(rig, q, 'wF', [ht[0] + 0.05, ht[1] + 0.07 + dy, ht[2] + 0.04], { iters: 80, mu: 2e-6 });
-          return q;
+        // try several starting wing shapes and keep the one that reaches the head without passing through paper
+        const touch = (dy, seed) => {
+          let best = null;
+          const seeds = seed ? [seed] : [];
+          for (const flap of [50, 65, 78]) for (const fwd of [55, 80, 100]) for (const curl of [10, 35]) seeds.push(P(merge(reachBase, { wF: { flap, fwd, curl } })));
+          for (const s0 of seeds) {
+            const q = clone(s0), ht = headTop(q);
+            const tg = [ht[0] + 0.03, ht[1] + 0.07 + dy, ht[2] + 0.2];
+            solveIK(rig, q, 'wF', tg, { iters: 50, mu: 2e-6 });
+            const tip = handlePos(rig, q, 'wF'), err = Math.hypot(tip[0] - tg[0], tip[1] - tg[1], tip[2] - tg[2]);
+            const score = collisions(rig, q).n * 10 + err;
+            if (!best || score < best.score) best = { q, score };
+          }
+          return best.q;
         };
-        const up = touch(0), down = touch(-0.07);
+        const up = touch(0), down = touch(-0.05, up);
         M.push({ id: 'scratch', name: 'Head Scratch — 머리 긁기', cut: '2-7', desc: '고개 숙임 → 한쪽 날개를 머리에 댐 → 짧게 두 번 긁음 → 날개 내림', keys: [
           key('start', P(STAND), 3, { n: 5, ease: 'inout' }),
-          key('prep', P(prep), 2, { n: 5, ease: 'inout' }),
+          key('prep', P(prep), 2, { n: 3, ease: 'inout' }),
+          key('core', P(merge(reachBase, { wF: { flap: 60, fwd: 0, curl: 8 } })), 0, { n: 3, ease: 'out' }),
           key('core', up, 3, { n: 1, ease: 'linear' }),
           key('core', down, 0, { n: 1, ease: 'linear' }),
           key('core', clone(up), 0, { n: 1, ease: 'linear' }),
           key('core', clone(down), 0, { n: 1, ease: 'linear' }),
-          key('core', clone(up), 3, { n: 6, ease: 'inout' }),
+          key('core', clone(up), 3, { n: 3, ease: 'inout' }),
+          key('core', P(merge(reachBase, { wF: { flap: 50, fwd: 0, curl: 8 } })), 0, { n: 4, ease: 'inout' }),
           key('end', P({ neck: { bow: 14 }, head: { nod: 8 } }), 12, null)
         ] });
       }
       // Failed Takeoff
       {
-        const proud = { wF: { flap: 78, curl: 18 }, wB: { flap: 78, curl: 18 }, neck: { bow: -18 }, head: { nod: -22 }, b: { pitch: 10 }, tail: { up: 8 } };
+        const proud = { wF: { flap: 66, curl: 10 }, wB: { flap: 66, curl: 10 }, neck: { bow: -18, side: -8 }, head: { nod: -22 }, b: { pitch: 10 }, tail: { up: 8 } };
         M.push({ id: 'takeoff', name: 'Failed Takeoff — 이륙 실패', cut: '2-4', desc: '준비 자세 → 세찬 퍼덕임 → 짧은 점프 → 균형 상실 → 허우적거림 → 머리부터 추락', keys: [
           key('start', P(STAND), 3, { n: 5, ease: 'inout' }),
-          key('prep', P({ b: { pitch: -8 }, neck: { bow: 16 }, head: { nod: 6 }, w: { flap: 4, fwd: -28, curl: 2 }, tail: { up: 12 } }), 3, { n: 3, ease: 'snap' }),
+          key('prep', P({ b: { pitch: -8 }, neck: { bow: 16 }, head: { nod: 6 }, w: { flap: 4, curl: 2 }, tail: { up: 12 } }), 3, { n: 3, ease: 'snap' }),
           key('core', P(proud), 8, { n: 10, ease: 'linear', flap: { cycles: 3, amp: 55, lag: 0, accel: 0.5 } }),
           key('core', P({ b: { y: 0.2, pitch: 6 }, w: { flap: 25, curl: 10 }, neck: { bow: -10 }, head: { nod: -12 }, tail: { up: 4 } }), 2, { n: 6, ease: 'linear', flap: { cycles: 3.5, amp: 60, lag: 0.22, accel: 1.2 } }),
           key('core', P({ b: { y: 0.15, z: 0.25, roll: 26, pitch: -14 }, wF: { flap: 55, curl: 12 }, wB: { flap: -10, curl: 6 }, neck: { bow: 22, side: -10 }, head: { nod: 18 }, tail: { up: 16 } }), 0, { n: 8, ease: 'linear', flap: { cycles: 4, amp: 62, lag: 0.4, accel: 1.6 } }),
           key('core', P({ b: { y: 0.12, z: 0.5, roll: 34, pitch: -32 }, wF: { flap: 35, curl: 8 }, wB: { flap: 20, curl: 4 }, neck: { bow: 46, side: -14 }, head: { nod: 30 }, tail: { up: 22 } }), 0, { n: 4, ease: 'in', wingLag: 0.45 }),
-          key('end', P({ b: { y: -1.6, z: 1.0, roll: 40, pitch: -75 }, w: { flap: 70, curl: 26 }, neck: { bow: 30, side: -8 }, head: { nod: 20 }, tail: { up: 30 } }), 6, null)
+          key('end', P({ b: { y: -1.6, z: 1.7, roll: 40, pitch: -75, ground: 0 }, w: { flap: 55, curl: 26 }, neck: { bow: 30, side: -8 }, head: { nod: 20 }, tail: { up: 30 } }), 6, null)
         ] });
       }
       const rest = [
@@ -400,7 +425,97 @@
       return order.map(id => all.find(m => m.id === id));
     }
 
-    return { build, facetTransforms, pointPos, presets, restPoint, handlePos, handleInfo, solveIK, mirrorWing, P, expand, lerpPose, EASE, HANDLES, EPS, FLOOR, PIVOT, jv, clone };
+    // ---------- collision: triangle-triangle intersections between parts, plus the ledge ----------
+    const LEDGE = { x0: -3, x1: 3, z0: -1.4, z1: 0.55 };
+    const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    function interval(p0, p1, p2, d0, d1, d2) {
+      if (d0 * d1 > 0) return [p2 + (p0 - p2) * d2 / (d2 - d0), p2 + (p1 - p2) * d2 / (d2 - d1)];
+      if (d0 * d2 > 0) return [p1 + (p0 - p1) * d1 / (d1 - d0), p1 + (p2 - p1) * d1 / (d1 - d2)];
+      if (d1 * d2 > 0 || d0 !== 0) return [p0 + (p1 - p0) * d0 / (d0 - d1), p0 + (p2 - p0) * d0 / (d0 - d2)];
+      if (d1 !== 0) return [p1 + (p0 - p1) * d1 / (d1 - d0), p1 + (p2 - p1) * d1 / (d1 - d2)];
+      if (d2 !== 0) return [p2 + (p0 - p2) * d2 / (d2 - d0), p2 + (p1 - p2) * d2 / (d2 - d1)];
+      return null;
+    }
+    function triTri(V0, V1, V2, U0, U1, U2) {
+      const N1 = cross3(sub3(V1, V0), sub3(V2, V0)), d1 = -dot3(N1, V0);
+      const e1 = 1e-9 * (Math.abs(N1[0]) + Math.abs(N1[1]) + Math.abs(N1[2]) + 1e-12);
+      let du0 = dot3(N1, U0) + d1, du1 = dot3(N1, U1) + d1, du2 = dot3(N1, U2) + d1;
+      if (Math.abs(du0) < e1) du0 = 0; if (Math.abs(du1) < e1) du1 = 0; if (Math.abs(du2) < e1) du2 = 0;
+      if (du0 * du1 > 0 && du0 * du2 > 0) return false;
+      const N2 = cross3(sub3(U1, U0), sub3(U2, U0)), d2 = -dot3(N2, U0);
+      const e2 = 1e-9 * (Math.abs(N2[0]) + Math.abs(N2[1]) + Math.abs(N2[2]) + 1e-12);
+      let dv0 = dot3(N2, V0) + d2, dv1 = dot3(N2, V1) + d2, dv2 = dot3(N2, V2) + d2;
+      if (Math.abs(dv0) < e2) dv0 = 0; if (Math.abs(dv1) < e2) dv1 = 0; if (Math.abs(dv2) < e2) dv2 = 0;
+      if (dv0 * dv1 > 0 && dv0 * dv2 > 0) return false;
+      const D = cross3(N1, N2), ax = Math.abs(D[0]) > Math.abs(D[1]) ? (Math.abs(D[0]) > Math.abs(D[2]) ? 0 : 2) : (Math.abs(D[1]) > Math.abs(D[2]) ? 1 : 2);
+      const a = interval(V0[ax], V1[ax], V2[ax], dv0, dv1, dv2), b = interval(U0[ax], U1[ax], U2[ax], du0, du1, du2);
+      if (!a || !b) return false; // coplanar: stacked layers, not a crossing
+      const a0 = Math.min(a[0], a[1]), a1 = Math.max(a[0], a[1]), b0 = Math.min(b[0], b[1]), b1 = Math.max(b[0], b[1]);
+      return a1 > b0 + 1e-7 && b1 > a0 + 1e-7;
+    }
+    // which facet pairs may legitimately touch: same rigid piece, neighbouring segments, or a part's root against the body
+    function mayTouch(fa, fb) {
+      if (fa.chain === fb.chain) return fa.chain === 'body' || Math.abs(fa.depth - fb.depth) <= 1;
+      // every part is anchored in the body core, where real paper is layered rather than crossing
+      // (the first two segments of each part sit inside that core and press against each other)
+      return fa.depth <= 1 && fb.depth <= 1;
+    }
+    function worldTris(rig, pose) {
+      const Ts = facetTransforms(rig, pose), tris = [];
+      rig.facets.forEach((f, fi) => {
+        const P = f.poly.map(p => E.apply(Ts[fi], restPoint(rig, f, p)));
+        for (let j = 1; j < P.length - 1; j++) {
+          let A = P[0], B = P[j], C = P[j + 1];
+          const c = [(A[0] + B[0] + C[0]) / 3, (A[1] + B[1] + C[1]) / 3, (A[2] + B[2] + C[2]) / 3];
+          const sh = q => [c[0] + (q[0] - c[0]) * 0.97, c[1] + (q[1] - c[1]) * 0.97, c[2] + (q[2] - c[2]) * 0.97];
+          A = sh(A); B = sh(B); C = sh(C);
+          tris.push({ fi, v: [A, B, C], lo: [Math.min(A[0], B[0], C[0]), Math.min(A[1], B[1], C[1]), Math.min(A[2], B[2], C[2])], hi: [Math.max(A[0], B[0], C[0]), Math.max(A[1], B[1], C[1]), Math.max(A[2], B[2], C[2])] });
+        }
+      });
+      return tris;
+    }
+    // returns {pairs:[[ti,tj]], floor:[ti], tris, n}; `only` limits checks to triangles of one chain
+    function collisions(rig, pose, only) {
+      const tris = worldTris(rig, pose), pairs = [], floor = [], side = [];
+      const F = rig.facets;
+      // each wing must stay on its own side of the body: crossing over means it went through the body
+      const bi = F.findIndex(f => f.chain === 'body'), Binv = E.inverse(facetTransforms(rig, pose)[bi]);
+      tris.forEach((t, i) => {
+        const f = F[t.fi]; if ((f.chain !== 'wF' && f.chain !== 'wB') || f.depth < 1 || (only && f.chain !== only)) return;
+        const sg = f.chain === 'wF' ? 1 : -1;
+        if (t.v.some(v => { const l = E.apply(Binv, v); return l[2] * sg < -0.03 && Math.abs(l[0]) < 0.34 && l[1] > 0.88 && l[1] < 1.46; })) side.push(i);
+      });
+      for (let i = 0; i < tris.length; i++) {
+        const A = tris[i], fa = F[A.fi];
+        if (only && fa.chain !== only) continue;
+        if (A.lo[1] < -0.004 && A.v.some(v => v[1] < -0.004 && v[0] > LEDGE.x0 && v[0] < LEDGE.x1 && v[2] > LEDGE.z0 && v[2] < LEDGE.z1)) floor.push(i);
+        for (let j = 0; j < tris.length; j++) {
+          if (j === i || (!only && j < i)) continue;
+          const B = tris[j], fb = F[B.fi];
+          if (only && fb.chain === only && j < i) continue;
+          if (A.lo[0] > B.hi[0] || B.lo[0] > A.hi[0] || A.lo[1] > B.hi[1] || B.lo[1] > A.hi[1] || A.lo[2] > B.hi[2] || B.lo[2] > A.hi[2]) continue;
+          if (mayTouch(fa, fb)) continue;
+          if (triTri(A.v[0], A.v[1], A.v[2], B.v[0], B.v[1], B.v[2])) pairs.push([i, j]);
+        }
+      }
+      return { pairs, floor, side, tris, n: pairs.length + floor.length + side.length };
+    }
+    // move from pose `from` toward `to` (joint values of one chain) as far as possible without new penetration
+    function blockAt(rig, from, to, chain) {
+      const ids = rig.chains[chain].joints.map(j => j.id);
+      const base = collisions(rig, from, chain).n;
+      const mix = t => { const q = clone(to); ids.forEach(id => { const a = jv(from, id), b = jv(to, id); q.j[id] = [0, 1, 2].map(k => a[k] + (b[k] - a[k]) * t); }); return q; };
+      // walk along the move so a part cannot jump through paper in one step
+      let lo = 0, hi = null;
+      for (let s = 1; s <= 6; s++) { if (collisions(rig, mix(s / 6), chain).n > base) { hi = s / 6; break; } lo = s / 6; }
+      if (hi === null) return { pose: to, blocked: false };
+      for (let it = 0; it < 7; it++) { const m = (lo + hi) / 2; if (collisions(rig, mix(m), chain).n <= base) lo = m; else hi = m; }
+      return { pose: mix(lo), blocked: true };
+    }
+
+    return { build, facetTransforms, pointPos, presets, collisions, blockAt, LEDGE, restPoint, handlePos, handleInfo, solveIK, mirrorWing, P, expand, lerpPose, EASE, HANDLES, EPS, FLOOR, PIVOT, jv, clone };
   }
 
   const api = { create };
