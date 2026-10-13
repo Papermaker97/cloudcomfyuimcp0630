@@ -709,11 +709,13 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const steps = E.build();
     const W = steps.find(s => s.title === '날개 내리기'), fin = steps[steps.length - 1];
     const { fw, bw } = fin.wings;
-    const base = W.facets.map((f, i) => ({ poly: f.poly, T: W.Tend[i], h: W.h1[i], tag: f.tag || null, id: f.id }));
+    const base = W.facets.map(f => ({ poly: f.poly, T: f.T0, h: f.h0, tag: f.tag || null, id: f.id }));
     const restOf = (f, p) => { const w = E.apply(f.T, [p[0], p[1], 0]); return [w[0], w[1]]; };
     const centroidRest = f => { let x = 0, y = 0; f.poly.forEach(p => { const r = restOf(f, p); x += r[0]; y += r[1]; }); return [x / f.poly.length, y / f.poly.length]; };
+    // wings hinge on the line joining where neck and tail leave the body (the body's widest point)
+    const HINGE = 1.35;
     let FLOOR = 1e9;
-    base.forEach(f => { if (!fw.has(f.id) && !bw.has(f.id)) f.poly.forEach(p => { FLOOR = Math.min(FLOOR, restOf(f, p)[1]); }); });
+    base.forEach(f => f.poly.forEach(p => { FLOOR = Math.min(FLOOR, restOf(f, p)[1]); }));
     const PIVOT = [0, 1.15];
 
     // neck / head / tail geometry (matches the folding sequence)
@@ -727,11 +729,11 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const fixH = (h, a) => crossZ(h, a) > 0 ? h : [-h[0], -h[1]];
     const J = (id, p, h, a, type, dof) => ({ id, p, h: type === 'wing' ? h : fixH(nrm2(h), a), a, type, dof });
 
-    const wingJoints = k => [J(k + '0', [0, 1], [1, 0], [0, -1], 'wing', 3)].concat(
-      [0.82, 0.66, 0.5, 0.34, 0.18].map((y, i) => J(k + (i + 1), [0, y], [1, 0], [0, -1], 'wing', 1)));
+    const wingJoints = k => [J(k + '0', [0, HINGE], [1, 0], [0, 1], 'wing', 3)].concat(
+      [0.18, 0.34, 0.5, 0.66, 0.82].map((f, i) => J(k + (i + 1), [0, HINGE + f * (2 - HINGE)], [1, 0], [0, 1], 'wing', 1)));
     const CHAINS = {
-      wF: { name: '앞 날개', joints: wingJoints('wF'), a: [0, -1], tip: [0, 0] },
-      wB: { name: '뒤 날개', joints: wingJoints('wB'), a: [0, -1], tip: [0, 0] },
+      wF: { name: '앞 날개', joints: wingJoints('wF'), a: [0, 1], tip: [0, 2] },
+      wB: { name: '뒤 날개', joints: wingJoints('wB'), a: [0, 1], tip: [0, 2] },
       neck: {
         name: '목·머리', a: aN, tip: null,
         joints: [J('n0', M0, [-0.9087, -0.4171], aN, 'root', 2)]
@@ -758,7 +760,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     // build the rig: base facets + built-in cuts + user creases
     function build(creases) {
       const chains = clone(CHAINS);
-      let facets = base.map(f => Object.assign({}, f, { chain: chainOfBase(f), depth: 0 }));
+      let facets = [];
+      base.forEach(f => {
+        const ch = chainOfBase(f);
+        if (ch !== 'wF' && ch !== 'wB') { facets.push(Object.assign({}, f, { chain: ch, depth: 0 })); return; }
+        splitByRest(f, [0, HINGE], [1, 0]).forEach(g => facets.push(Object.assign({}, g, { chain: centroidRest(g)[1] > HINGE ? ch : 'body', depth: 0 })));
+      });
       for (const key in chains) {
         const ch = chains[key];
         ch.joints.forEach((j, idx) => {
@@ -816,15 +823,18 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       });
       const jointChain = {};
       for (const key in chains) chains[key].joints.forEach(j => { jointChain[j.id] = key; });
-      return { facets, chains, creaseEdges, jointChain, FLOOR, PIVOT, restOf };
+      const hBase = {}; facets.forEach(f => { hBase[f.chain] = Math.min(hBase[f.chain] == null ? 1e9 : hBase[f.chain], f.h); });
+      // hinge axes sit on the part's own layer so bending does not open gaps
+      for (const key in chains) chains[key].joints.forEach(j => { j.z = (hBase[key] || 0) * EPS; });
+      return { facets, chains, creaseEdges, jointChain, FLOOR, PIVOT, restOf, hBase };
     }
 
     // ---------- forward kinematics ----------
     const EPS = 0.0022;
-    const restPoint = (rig, f, p) => { const w = E.apply(f.T, [p[0], p[1], 0]); w[2] += f.h * EPS; return w; };
+    const restPoint = (rig, f, p) => { const w = E.apply(f.T, [p[0], p[1], 0]); w[2] += (f.chain === 'body' ? f.h : (f.h - rig.hBase[f.chain]) * (f.chain[0] === 'w' ? 0.08 : 0.35) + rig.hBase[f.chain]) * EPS; return w; };
     const jv = (pose, id) => (pose.j && pose.j[id]) || [0, 0, 0];
     function jointT(j, v) {
-      const p = [j.p[0], j.p[1], 0];
+      const p = [j.p[0], j.p[1], j.z || 0];
       let T = E.rotAxis(p, [j.h[0], j.h[1], 0], v[0] * D2R);
       if (v[1]) T = E.compose(T, E.rotAxis(p, [0, 0, 1], v[1] * D2R));
       if (v[2]) T = E.compose(T, E.rotAxis(p, [j.a[0], j.a[1], 0], v[2] * D2R));
@@ -887,7 +897,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     function limits(j, idx) {
       if (j.type === 'wing') {
         if (idx > 0) return LIM.wing;
-        return j.id === 'wF0' ? [[-178, 0], LIM.wing0[1], LIM.wing0[2]] : [[0, 178], LIM.wing0[1], LIM.wing0[2]];
+        return j.id === 'wF0' ? [[-10, 178], LIM.wing0[1], LIM.wing0[2]] : [[-178, 10], LIM.wing0[1], LIM.wing0[2]];
       }
       return LIM[j.type];
     }
@@ -960,9 +970,10 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       const j = {};
       ['F', 'B'].forEach(X => {
         const w = Object.assign({ flap: 6, fwd: 0, twist: 0, curl: 8, tip: 0 }, sem['w' + X] || sem.w || {});
-        const sg = X === 'F' ? -1 : 1, k = 'w' + X;
-        j[k + '0'] = [sg * (90 + w.flap), -w.fwd, sg * w.twist];
-        for (let i = 1; i <= 5; i++) j[k + i] = [sg * (w.curl / 5 + (i === 5 ? w.tip : 0)), 0, 0];
+        const sg = X === 'F' ? 1 : -1, k = 'w' + X;
+        // rest wing points straight up; flap 0 = horizontal, positive = raised
+        j[k + '0'] = [sg * (90 - w.flap), w.fwd, sg * w.twist];
+        for (let i = 1; i <= 5; i++) j[k + i] = [-sg * (w.curl / 5 + (i === 5 ? w.tip : 0)), 0, 0];
       });
       const n = Object.assign({ bow: 0, side: 0 }, sem.neck || {});
       j.n0 = [n.side * 0.4, n.bow * 0.4, 0];
@@ -1013,8 +1024,8 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
             const f = tr.flap, acc = f.accel || 0;
             const ph = f.cycles * (u + acc * u * u) / (1 + acc), env = Math.pow(Math.sin(Math.PI * u), 0.35);
             const dF = f.amp * Math.sin(2 * Math.PI * ph) * env, dB = f.amp * Math.sin(2 * Math.PI * (ph - (f.lag || 0))) * env;
-            if (pose.j.wF0) pose.j.wF0[0] = -Math.max(50, Math.min(154, -pose.j.wF0[0] + dF));
-            if (pose.j.wB0) pose.j.wB0[0] = Math.max(50, Math.min(154, pose.j.wB0[0] + dB));
+            if (pose.j.wF0) pose.j.wF0[0] = Math.max(26, Math.min(130, pose.j.wF0[0] - dF));
+            if (pose.j.wB0) pose.j.wB0[0] = -Math.max(26, Math.min(130, -pose.j.wB0[0] - dB));
           }
           frames.push({ pose, key: i, kind: 'tween', u });
         }
@@ -1044,41 +1055,23 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
           key('end', P(merge(look, { head: { tilt: 36, nod: -20 }, neck: { side: 28 }, b: { roll: 5 } })), 16, null)
         ] });
       }
-      // Head Scratch
+      // Head Scratch — pose fitted to a photo of a real crane scratching its head
       {
-        const prep = { neck: { bow: 4, side: 55 }, head: { nod: 34, turn: 20 }, b: { pitch: -4 }, wF: { flap: -2 } };
-        const reachBase = merge(prep, { head: { tilt: 14 } });
-        const headTop = q => {
-          const ch = rig.chains.neck, k = ch.joints.findIndex(j => j.id === 'h');
-          return pointPos(rig, q, 'neck', k, ch.joints[k].p);
-        };
-        // try several starting wing shapes and keep the one that reaches the head without passing through paper
-        const touch = (dy, seed) => {
-          let best = null;
-          const seeds = seed ? [seed] : [];
-          for (const flap of [50, 65, 78]) for (const fwd of [55, 80, 100]) for (const curl of [10, 35]) seeds.push(P(merge(reachBase, { wF: { flap, fwd, curl } })));
-          for (const s0 of seeds) {
-            const q = clone(s0), ht = headTop(q);
-            const tg = [ht[0] + 0.03, ht[1] + 0.07 + dy, ht[2] + 0.2];
-            solveIK(rig, q, 'wF', tg, { iters: 50, mu: 2e-6 });
-            const tip = handlePos(rig, q, 'wF'), err = Math.hypot(tip[0] - tg[0], tip[1] - tg[1], tip[2] - tg[2]);
-            const score = collisions(rig, q).n * 10 + err;
-            if (!best || score < best.score) best = { q, score };
-          }
-          return best.q;
-        };
-        const up = touch(0), down = touch(-0.05, up);
+        const touch = { b: { roll: -7 }, wB: { flap: -24, fwd: -2, curl: 2, twist: -24 }, wF: { flap: 20, fwd: 25, curl: 109, twist: 27 }, neck: { bow: -45, side: -1 }, head: { nod: 8 }, tail: { up: 11, side: 4 } };
+        const rub = merge(touch, { wF: { flap: 15, curl: 122 }, head: { nod: 16, tilt: 8 } });
+        const prep = { b: { roll: -5 }, wB: { flap: -18, twist: -18 }, neck: { bow: -36 }, head: { nod: 4 }, tail: { up: 9 } };
+        const reach = merge(prep, { wF: { flap: 55, fwd: 15, curl: 40, twist: 15 } });
         M.push({ id: 'scratch', name: 'Head Scratch — 머리 긁기', cut: '2-7', desc: '고개 숙임 → 한쪽 날개를 머리에 댐 → 짧게 두 번 긁음 → 날개 내림', keys: [
-          key('start', P(STAND), 3, { n: 5, ease: 'inout' }),
-          key('prep', P(prep), 2, { n: 3, ease: 'inout' }),
-          key('core', P(merge(reachBase, { wF: { flap: 60, fwd: 0, curl: 8 } })), 0, { n: 3, ease: 'out' }),
-          key('core', up, 3, { n: 1, ease: 'linear' }),
-          key('core', down, 0, { n: 1, ease: 'linear' }),
-          key('core', clone(up), 0, { n: 1, ease: 'linear' }),
-          key('core', clone(down), 0, { n: 1, ease: 'linear' }),
-          key('core', clone(up), 3, { n: 3, ease: 'inout' }),
-          key('core', P(merge(reachBase, { wF: { flap: 50, fwd: 0, curl: 8 } })), 0, { n: 4, ease: 'inout' }),
-          key('end', P({ neck: { bow: 14 }, head: { nod: 8 } }), 12, null)
+          key('start', P(STAND), 3, { n: 4, ease: 'inout' }),
+          key('prep', P(prep), 1, { n: 3, ease: 'inout' }),
+          key('core', P(reach), 0, { n: 3, ease: 'out' }),
+          key('core', P(touch), 3, { n: 1, ease: 'linear' }),
+          key('core', P(rub), 0, { n: 1, ease: 'linear' }),
+          key('core', P(touch), 0, { n: 1, ease: 'linear' }),
+          key('core', P(rub), 0, { n: 1, ease: 'linear' }),
+          key('core', P(touch), 3, { n: 3, ease: 'inout' }),
+          key('core', P(reach), 0, { n: 4, ease: 'inout' }),
+          key('end', P({ neck: { bow: -10 }, head: { nod: 6 } }), 12, null)
         ] });
       }
       // Failed Takeoff
@@ -1144,7 +1137,10 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       if (fa.chain === fb.chain) return fa.chain === 'body' || Math.abs(fa.depth - fb.depth) <= 1;
       // every part is anchored in the body core, where real paper is layered rather than crossing
       // (the first two segments of each part sit inside that core and press against each other)
-      return fa.depth <= 1 && fb.depth <= 1;
+      if (fa.depth <= 1 && fb.depth <= 1) return true;
+      // neck and tail run between the body layers (which now include the wing bases) for their first segments
+      const inBody = (a, b) => a.chain === 'body' && (b.chain === 'neck' || b.chain === 'tail') && b.depth <= 2;
+      return inBody(fa, fb) || inBody(fb, fa);
     }
     function worldTris(rig, pose) {
       const Ts = facetTransforms(rig, pose), tris = [];
@@ -1169,7 +1165,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       tris.forEach((t, i) => {
         const f = F[t.fi]; if ((f.chain !== 'wF' && f.chain !== 'wB') || f.depth < 1 || (only && f.chain !== only)) return;
         const sg = f.chain === 'wF' ? 1 : -1;
-        if (t.v.some(v => { const l = E.apply(Binv, v); return l[2] * sg < -0.03 && Math.abs(l[0]) < 0.34 && l[1] > 0.88 && l[1] < 1.46; })) side.push(i);
+        if (t.v.some(v => { const l = E.apply(Binv, v); return l[2] * sg < -0.03 && Math.abs(l[0]) < 0.34 && l[1] > 0.88 && l[1] < 1.5; })) side.push(i);
       });
       for (let i = 0; i < tris.length; i++) {
         const A = tris[i], fa = F[A.fi];
@@ -1244,13 +1240,26 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- state ----------
   let rig = R.build([]);
-  const fresh = () => ({ v: 3, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  const fresh = () => ({ v: 4, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
   let S;
   const undoStack = [], redoStack = [];
   try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
   if (!S || !S.motions) S = fresh();
-  const oldPresets = (S.v || 1) < 3;
-  if (oldPresets) { undoStack.push(JSON.stringify(S)); const np = R.presets(R.build(S.creases || [])); S.motions = S.motions.map(m => (['look', 'scratch', 'takeoff'].includes(m.id) ? np.find(x => x.id === m.id) : m)); S.v = 3; }
+  const oldPresets = (S.v || 1) < 4;
+  if (oldPresets) {
+    undoStack.push(JSON.stringify(S));
+    // wings used to hang from a lower hinge, folded downward: convert saved wing angles and wing creases
+    const wingCreases = new Set((S.creases || []).filter(c => c.chain === 'wF' || c.chain === 'wB').map(c => c.id));
+    S.motions.forEach(m => m.keys.forEach(k => {
+      const j = (k.pose && k.pose.j) || {};
+      ['wF', 'wB'].forEach(X => { const v = j[X + '0']; if (v) j[X + '0'] = [v[0] + (X === 'wF' ? 180 : -180), -v[1], -v[2]]; });
+      wingCreases.forEach(id => { if (j[id]) j[id] = [-j[id][0], j[id][1], j[id][2]]; });
+    }));
+    (S.creases || []).forEach(c => { if (wingCreases.has(c.id)) { c.p1 = [c.p1[0], 2 - c.p1[1]]; c.p2 = [c.p2[0], 2 - c.p2[1]]; } });
+    const np = R.presets(R.build(S.creases || []));
+    S.motions = S.motions.map(m => (['look', 'scratch', 'takeoff'].includes(m.id) ? np.find(x => x.id === m.id) : m));
+    S.v = 4;
+  }
   rig = R.build(S.creases);
   let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true, block = true;
   let hitCache = [], hitQueue = 0;
@@ -1691,7 +1700,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- loop ----------
   rebuildScene(); refreshAll(); resize();
-  if (oldPresets) { save(); setTimeout(() => toast('갸웃·머리 긁기·이륙 실패를 관통 없는 새 버전으로 바꿨습니다. 이전 작업은 ‘되돌리기’로 복원할 수 있습니다'), 600); }
+  if (oldPresets) { save(); setTimeout(() => toast('날개가 실제 종이학처럼 몸통 위쪽에 붙도록 바뀌었고, 머리 긁기는 사진을 보고 다시 만들었습니다. 이전 작업은 ‘되돌리기’로 복원할 수 있습니다'), 600); }
   let acc = 0, last = performance.now();
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -1706,7 +1715,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     controls.update(); renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
-  window.__mo = { st: () => ({ tool, cs: !!creaseStart, ce: controls.enabled }), dbg: (x, y) => { setRay({ clientX: x, clientY: y }); const bs = G.geo.boundingSphere; return JSON.stringify({ bs: bs && [bs.center.toArray(), bs.radius], o: ray.ray.origin.toArray(), d: ray.ray.direction.toArray(), n: ray.intersectObjects([G.mF, G.mB], false).length, all: ray.intersectObjects(scene.children, true).map(h => h.object.type).slice(0, 5) }); }, hit: (x, y) => { const h = hitFacet({ clientX: x, clientY: y }); return h ? rig.facets[h.fi].chain + ':' + rig.facets[h.fi].depth : null; }, hs: id => { const h = handles.find(x => x.userData.id === id); const v = h.position.clone().project(camera), r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, cam: c => { applyCam(c); renderer.render(scene, camera); }, S: () => S, go: i => { frame = i; refreshFrame(); draw(); renderer.render(scene, camera); }, select: i => { S.cur = i; frame = 0; refreshAll(); draw(); renderer.render(scene, camera); }, frames: () => frames, rig: () => rig, R, renderNow: () => { draw(); renderer.render(scene, camera); }, setOnion: v => { onion = v; } };
+  window.__mo = { camF: (c, fov) => { camera.fov = fov; camera.updateProjectionMatrix(); applyCam(c); renderer.render(scene, camera); }, st: () => ({ tool, cs: !!creaseStart, ce: controls.enabled }), dbg: (x, y) => { setRay({ clientX: x, clientY: y }); const bs = G.geo.boundingSphere; return JSON.stringify({ bs: bs && [bs.center.toArray(), bs.radius], o: ray.ray.origin.toArray(), d: ray.ray.direction.toArray(), n: ray.intersectObjects([G.mF, G.mB], false).length, all: ray.intersectObjects(scene.children, true).map(h => h.object.type).slice(0, 5) }); }, hit: (x, y) => { const h = hitFacet({ clientX: x, clientY: y }); return h ? rig.facets[h.fi].chain + ':' + rig.facets[h.fi].depth : null; }, hs: id => { const h = handles.find(x => x.userData.id === id); const v = h.position.clone().project(camera), r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, cam: c => { applyCam(c); renderer.render(scene, camera); }, S: () => S, go: i => { frame = i; refreshFrame(); draw(); renderer.render(scene, camera); }, select: i => { S.cur = i; frame = 0; refreshAll(); draw(); renderer.render(scene, camera); }, frames: () => frames, rig: () => rig, R, renderNow: () => { draw(); renderer.render(scene, camera); }, setOnion: v => { onion = v; } };
   requestAnimationFrame(tick);
 })();
 </script>
