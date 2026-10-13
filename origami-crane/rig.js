@@ -165,7 +165,9 @@
       const T = E.compose({ R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [b.x, b.y, b.z] }, R);
       return E.compose(T, { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, -FLOOR, 0] });
     }
-    const onLedge = w => w[0] > -3 && w[0] < 3 && w[2] > -1.4 && w[2] < 0.55;
+    // classroom set: black desk top at y=0 (front edge at z=0.55), oak floor below
+    const DESK = { x0: -8, x1: 8, z0: -7.45, z1: 0.55, under: -0.6, floor: -9 };
+    const support = w => (w[0] > DESK.x0 && w[0] < DESK.x1 && w[2] > DESK.z0 && w[2] < DESK.z1 && w[1] > DESK.under) ? 0 : DESK.floor;
     function chainCums(rig, pose) {
       const B = bodyT(pose), out = { body: [B] };
       for (const key in rig.chains) {
@@ -174,13 +176,13 @@
       // standing on the ledge: lift the whole crane so its lowest point rests on the ledge instead of sinking in
       const g = pose.b && pose.b.ground != null ? pose.b.ground : 1;
       if (g >= 0.5) {
-        let minY = 0;
+        let lift = 0;
         rig.facets.forEach(f => {
           const T = f.chain === 'body' ? out.body[0] : out[f.chain][f.depth];
-          f.poly.forEach(p => { const w = E.apply(T, restPoint(rig, f, p)); if (w[1] < minY && onLedge(w)) minY = w[1]; });
+          f.poly.forEach(p => { const w = E.apply(T, restPoint(rig, f, p)); lift = Math.max(lift, support(w) - w[1]); });
         });
-        if (minY < 0) {
-          const L = { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, -minY, 0] };
+        if (lift > 0) {
+          const L = { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, lift, 0] };
           for (const k in out) out[k] = out[k].map(T => E.compose(L, T));
         }
       }
@@ -490,14 +492,54 @@
         ] });
       }
       const rest = [];
+      // ---- Folded Wings shots (storyboard + on-set guide): exact 12 fps slot counts ----
+      const SH = [];
+      const kp = (role, pose, hold, tr, prop) => Object.assign(key(role, pose, hold, tr), { prop });
+      {
+        const b = { z: -1.5, yaw: 180 };
+        const up = { b, neck: { bow: -12 }, head: { nod: -6 } };
+        SH.push({ id: 'shot02', group: 'shot', target: 24, name: 'Shot 02 · Awakening and curiosity', cut: '02', desc: 'Raises its head → tilts slightly → turns toward the classroom window → holds. Eye-level close-up, 2 s.',
+          cam: { p: [-2.7, 0.75, 2.4], t: [1.1, 0.4, -2.4], lens: 50 }, keys: [
+            kp('start', P({ b, neck: { bow: 14 }, head: { nod: 16 } }), 2, { n: 4, ease: 'inout' }, 'Large close-up crane'),
+            kp('core', P(up), 1, { n: 2, ease: 'out' }, 'Large close-up crane'),
+            kp('core', P(merge(up, { head: { tilt: 14 } })), 1, { n: 3, ease: 'snap' }, 'Large close-up crane'),
+            kp('end', P(merge(up, { neck: { side: 22 }, head: { turn: 28, tilt: 18, nod: -10 } })), 7, null, 'Large close-up crane')
+          ] });
+      }
+      const proudAt = z => ({ b: { x: 1.5, z, yaw: 90, pitch: 8 }, w: { flap: 62, curl: 14 }, neck: { bow: -24 }, head: { nod: -18 }, tail: { up: 12 } });
+      {
+        SH.push({ id: 'shot04', group: 'shot', target: 24, name: 'Shot 04 · Ready to fly', cut: '04', desc: 'Approaches the desk edge → tiny body dip → raises both wings proudly → holds. High angle over the edge, 2 s.',
+          cam: { p: [-3.8, 6.6, -6.0], t: [3.4, -4.4, 4.6], lens: 35 }, keys: [
+            kp('start', P({ b: { x: 1.5, z: -0.8, yaw: 90 } }), 2, { n: 3, ease: 'inout' }, 'Small crane · neutral'),
+            kp('prep', P({ b: { x: 1.5, z: -0.4, yaw: 90, pitch: -7 }, neck: { bow: 10 }, head: { nod: 6 }, w: { flap: 2 } }), 1, { n: 2, ease: 'snap' }, 'Small crane · neutral'),
+            kp('core', P(merge(proudAt(-0.4), { w: { flap: 68 } })), 0, { n: 2, ease: 'over' }, 'Small crane · wings-up'),
+            kp('end', P(proudAt(-0.4)), 10, null, 'Small crane · wings-up')
+          ] });
+      }
+      {
+        SH.push({ id: 'shot05', group: 'shot', target: 12, name: 'Shot 05 · The failed leap', cut: '05', desc: 'One ambitious flap → awkward tumble below the desk → wings splay unevenly → tips head-first and exits low. Extreme wide, 1 s. Fallback: proud pose at edge → one suspended falling pose → floor still.',
+          cam: { p: [11.5, -6.9, 9.8], t: [1.6, -6.4, 0.6], lens: 24 }, keys: [
+            kp('start', P(proudAt(-0.25)), 0, { n: 1, ease: 'snap' }, 'Small crane · wings-up'),
+            kp('core', P({ b: { x: 1.5, z: 0.35, y: 0.35, yaw: 90, pitch: -5 }, wF: { flap: -20 }, wB: { flap: -28 }, neck: { bow: -20 }, head: { nod: -10 }, tail: { up: 10 } }), 0, { n: 2, ease: 'linear' }, 'Small crane · falling pose on removable rig'),
+            kp('core', P({ b: { x: 1.5, z: 1.2, y: -1.8, yaw: 90, pitch: -50, roll: 25, ground: 0 }, wF: { flap: 55, curl: 10 }, wB: { flap: -15 }, neck: { bow: 30 }, head: { nod: 25 }, tail: { up: 25 } }), 0, { n: 2, ease: 'in' }, 'Small crane · falling pose on removable rig'),
+            kp('core', P({ b: { x: 1.5, z: 1.7, y: -6.0, yaw: 90, pitch: -115, roll: 35, ground: 0 }, wF: { flap: 70, curl: 20 }, wB: { flap: 10 }, neck: { bow: 40 }, head: { nod: 30 }, tail: { up: 30 } }), 0, { n: 1, ease: 'in' }, 'Small crane · falling pose on removable rig'),
+            kp('end', P({ b: { x: 1.5, z: 2.0, y: -8.6, yaw: 90, pitch: -140, roll: 40 }, wF: { flap: 30, curl: 10 }, wB: { flap: -10 }, neck: { bow: 40 }, head: { nod: 30 }, tail: { up: 20 } }), 1, null, 'Small crane · collapsed')
+          ] });
+      }
+      {
+        SH.push({ id: 'shot06', group: 'shot', target: 36, name: 'Shot 06 · An awkward silence', cut: '06', desc: 'The crane lies collapsed on the oak floor. One still held for 3 s; keep wheels and furniture fixed.',
+          cam: { p: [7.8, -3.0, 10.0], t: [1.4, -9, 2.4], lens: 28 }, keys: [
+            kp('start', P({ b: { x: 1.6, z: 2.6, y: -9, yaw: 120, roll: 62 }, wF: { flap: -10, curl: -10 }, wB: { flap: 50, curl: 10 }, neck: { bow: 30, side: -10 }, head: { nod: 30 }, tail: { up: -10 } }), 35, null, 'Small crane · collapsed')
+          ] });
+      }
       const order = ['wake', 'look', 'prepfly', 'takeoff', 'recover', 'shake', 'scratch', 'dodge', 'deflate', 'longing', 'crushed'];
       const all = M.concat(rest);
-      all.forEach(m => { m.draft = false; });
-      return order.map(id => all.find(m => m.id === id));
+      all.forEach(m => { m.draft = false; m.group = 'library'; });
+      return SH.concat(order.map(id => all.find(m => m.id === id)));
     }
 
     // ---------- collision: triangle-triangle intersections between parts, plus the ledge ----------
-    const LEDGE = { x0: -3, x1: 3, z0: -1.4, z1: 0.55 };
+    const LEDGE = DESK;
     const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
     const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -564,7 +606,7 @@
       for (let i = 0; i < tris.length; i++) {
         const A = tris[i], fa = F[A.fi];
         if (only && fa.chain !== only) continue;
-        if (A.lo[1] < -0.004 && A.v.some(v => v[1] < -0.004 && v[0] > LEDGE.x0 && v[0] < LEDGE.x1 && v[2] > LEDGE.z0 && v[2] < LEDGE.z1)) floor.push(i);
+        if (A.v.some(v => v[1] < support(v) - 0.004)) floor.push(i);
         for (let j = 0; j < tris.length; j++) {
           if (j === i || (!only && j < i)) continue;
           const B = tris[j], fb = F[B.fi];

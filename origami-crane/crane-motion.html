@@ -110,11 +110,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     <div class="group">
       <button id="camShot" title="Jump to the saved shooting camera">Shot camera</button>
       <button id="camSave" title="Save the current view as the shooting camera">Save view</button>
-      <select id="guideSel" aria-label="Aspect ratio guide"><option value="2.39">2.39:1</option><option value="1.778">16:9</option><option value="0">No guide</option></select>
+      <select id="lensSel" aria-label="Lens (full frame)"><option value="24">24mm</option><option value="28">28mm</option><option value="35">35mm</option><option value="50">50mm</option><option value="70">70mm</option></select>
+      <select id="guideSel" aria-label="Aspect ratio guide"><option value="1.778">16:9</option><option value="2.39">2.39:1</option><option value="0">No guide</option></select>
     </div>
   </header>
 
-  <aside class="side left" id="presetList" aria-label="Motion presets"><div class="label">Motion presets</div></aside>
+  <aside class="side left" id="presetList" aria-label="Motion presets"></aside>
 
   <main class="stage" id="stage">
     <div class="guide" id="guide"><span id="guideText"></span></div>
@@ -135,6 +136,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       <h3 id="keyTitle">Key</h3>
       <div class="row"><span>Role</span>
         <select id="roleSel"><option value="start">Start pose</option><option value="prep">Anticipation</option><option value="core">Main action</option><option value="end">End pose</option></select></div>
+      <div class="row"><span>Prop</span><input type="text" id="propIn" placeholder="e.g. Small crane · wings-up" style="width:170px;height:30px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:0 8px;font:inherit"></div>
       <div class="row"><span>Hold</span><span class="group"><input type="number" id="holdIn" min="0" max="96"> <small id="holdSec" class="subtle"></small></span></div>
       <div class="group"><button id="fixKey" title="Pull back only the parts that pass through paper on this key">Fix clipping</button><button id="fixAll" title="Fix every key in this motion">Fix all keys</button></div>
       <div class="group"><button id="makeKey" title="Turn this in-between into a key you can edit (K)">Make key</button><button id="dupKey">Duplicate key</button><button id="delKey">Delete key</button></div>
@@ -849,7 +851,9 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       const T = E.compose({ R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [b.x, b.y, b.z] }, R);
       return E.compose(T, { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, -FLOOR, 0] });
     }
-    const onLedge = w => w[0] > -3 && w[0] < 3 && w[2] > -1.4 && w[2] < 0.55;
+    // classroom set: black desk top at y=0 (front edge at z=0.55), oak floor below
+    const DESK = { x0: -8, x1: 8, z0: -7.45, z1: 0.55, under: -0.6, floor: -9 };
+    const support = w => (w[0] > DESK.x0 && w[0] < DESK.x1 && w[2] > DESK.z0 && w[2] < DESK.z1 && w[1] > DESK.under) ? 0 : DESK.floor;
     function chainCums(rig, pose) {
       const B = bodyT(pose), out = { body: [B] };
       for (const key in rig.chains) {
@@ -858,13 +862,13 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       // standing on the ledge: lift the whole crane so its lowest point rests on the ledge instead of sinking in
       const g = pose.b && pose.b.ground != null ? pose.b.ground : 1;
       if (g >= 0.5) {
-        let minY = 0;
+        let lift = 0;
         rig.facets.forEach(f => {
           const T = f.chain === 'body' ? out.body[0] : out[f.chain][f.depth];
-          f.poly.forEach(p => { const w = E.apply(T, restPoint(rig, f, p)); if (w[1] < minY && onLedge(w)) minY = w[1]; });
+          f.poly.forEach(p => { const w = E.apply(T, restPoint(rig, f, p)); lift = Math.max(lift, support(w) - w[1]); });
         });
-        if (minY < 0) {
-          const L = { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, -minY, 0] };
+        if (lift > 0) {
+          const L = { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, lift, 0] };
           for (const k in out) out[k] = out[k].map(T => E.compose(L, T));
         }
       }
@@ -1174,14 +1178,54 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
         ] });
       }
       const rest = [];
+      // ---- Folded Wings shots (storyboard + on-set guide): exact 12 fps slot counts ----
+      const SH = [];
+      const kp = (role, pose, hold, tr, prop) => Object.assign(key(role, pose, hold, tr), { prop });
+      {
+        const b = { z: -1.5, yaw: 180 };
+        const up = { b, neck: { bow: -12 }, head: { nod: -6 } };
+        SH.push({ id: 'shot02', group: 'shot', target: 24, name: 'Shot 02 · Awakening and curiosity', cut: '02', desc: 'Raises its head → tilts slightly → turns toward the classroom window → holds. Eye-level close-up, 2 s.',
+          cam: { p: [-2.7, 0.75, 2.4], t: [1.1, 0.4, -2.4], lens: 50 }, keys: [
+            kp('start', P({ b, neck: { bow: 14 }, head: { nod: 16 } }), 2, { n: 4, ease: 'inout' }, 'Large close-up crane'),
+            kp('core', P(up), 1, { n: 2, ease: 'out' }, 'Large close-up crane'),
+            kp('core', P(merge(up, { head: { tilt: 14 } })), 1, { n: 3, ease: 'snap' }, 'Large close-up crane'),
+            kp('end', P(merge(up, { neck: { side: 22 }, head: { turn: 28, tilt: 18, nod: -10 } })), 7, null, 'Large close-up crane')
+          ] });
+      }
+      const proudAt = z => ({ b: { x: 1.5, z, yaw: 90, pitch: 8 }, w: { flap: 62, curl: 14 }, neck: { bow: -24 }, head: { nod: -18 }, tail: { up: 12 } });
+      {
+        SH.push({ id: 'shot04', group: 'shot', target: 24, name: 'Shot 04 · Ready to fly', cut: '04', desc: 'Approaches the desk edge → tiny body dip → raises both wings proudly → holds. High angle over the edge, 2 s.',
+          cam: { p: [-3.8, 6.6, -6.0], t: [3.4, -4.4, 4.6], lens: 35 }, keys: [
+            kp('start', P({ b: { x: 1.5, z: -0.8, yaw: 90 } }), 2, { n: 3, ease: 'inout' }, 'Small crane · neutral'),
+            kp('prep', P({ b: { x: 1.5, z: -0.4, yaw: 90, pitch: -7 }, neck: { bow: 10 }, head: { nod: 6 }, w: { flap: 2 } }), 1, { n: 2, ease: 'snap' }, 'Small crane · neutral'),
+            kp('core', P(merge(proudAt(-0.4), { w: { flap: 68 } })), 0, { n: 2, ease: 'over' }, 'Small crane · wings-up'),
+            kp('end', P(proudAt(-0.4)), 10, null, 'Small crane · wings-up')
+          ] });
+      }
+      {
+        SH.push({ id: 'shot05', group: 'shot', target: 12, name: 'Shot 05 · The failed leap', cut: '05', desc: 'One ambitious flap → awkward tumble below the desk → wings splay unevenly → tips head-first and exits low. Extreme wide, 1 s. Fallback: proud pose at edge → one suspended falling pose → floor still.',
+          cam: { p: [11.5, -6.9, 9.8], t: [1.6, -6.4, 0.6], lens: 24 }, keys: [
+            kp('start', P(proudAt(-0.25)), 0, { n: 1, ease: 'snap' }, 'Small crane · wings-up'),
+            kp('core', P({ b: { x: 1.5, z: 0.35, y: 0.35, yaw: 90, pitch: -5 }, wF: { flap: -20 }, wB: { flap: -28 }, neck: { bow: -20 }, head: { nod: -10 }, tail: { up: 10 } }), 0, { n: 2, ease: 'linear' }, 'Small crane · falling pose on removable rig'),
+            kp('core', P({ b: { x: 1.5, z: 1.2, y: -1.8, yaw: 90, pitch: -50, roll: 25, ground: 0 }, wF: { flap: 55, curl: 10 }, wB: { flap: -15 }, neck: { bow: 30 }, head: { nod: 25 }, tail: { up: 25 } }), 0, { n: 2, ease: 'in' }, 'Small crane · falling pose on removable rig'),
+            kp('core', P({ b: { x: 1.5, z: 1.7, y: -6.0, yaw: 90, pitch: -115, roll: 35, ground: 0 }, wF: { flap: 70, curl: 20 }, wB: { flap: 10 }, neck: { bow: 40 }, head: { nod: 30 }, tail: { up: 30 } }), 0, { n: 1, ease: 'in' }, 'Small crane · falling pose on removable rig'),
+            kp('end', P({ b: { x: 1.5, z: 2.0, y: -8.6, yaw: 90, pitch: -140, roll: 40 }, wF: { flap: 30, curl: 10 }, wB: { flap: -10 }, neck: { bow: 40 }, head: { nod: 30 }, tail: { up: 20 } }), 1, null, 'Small crane · collapsed')
+          ] });
+      }
+      {
+        SH.push({ id: 'shot06', group: 'shot', target: 36, name: 'Shot 06 · An awkward silence', cut: '06', desc: 'The crane lies collapsed on the oak floor. One still held for 3 s; keep wheels and furniture fixed.',
+          cam: { p: [7.8, -3.0, 10.0], t: [1.4, -9, 2.4], lens: 28 }, keys: [
+            kp('start', P({ b: { x: 1.6, z: 2.6, y: -9, yaw: 120, roll: 62 }, wF: { flap: -10, curl: -10 }, wB: { flap: 50, curl: 10 }, neck: { bow: 30, side: -10 }, head: { nod: 30 }, tail: { up: -10 } }), 35, null, 'Small crane · collapsed')
+          ] });
+      }
       const order = ['wake', 'look', 'prepfly', 'takeoff', 'recover', 'shake', 'scratch', 'dodge', 'deflate', 'longing', 'crushed'];
       const all = M.concat(rest);
-      all.forEach(m => { m.draft = false; });
-      return order.map(id => all.find(m => m.id === id));
+      all.forEach(m => { m.draft = false; m.group = 'library'; });
+      return SH.concat(order.map(id => all.find(m => m.id === id)));
     }
 
     // ---------- collision: triangle-triangle intersections between parts, plus the ledge ----------
-    const LEDGE = { x0: -3, x1: 3, z0: -1.4, z1: 0.55 };
+    const LEDGE = DESK;
     const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
     const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -1248,7 +1292,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       for (let i = 0; i < tris.length; i++) {
         const A = tris[i], fa = F[A.fi];
         if (only && fa.chain !== only) continue;
-        if (A.lo[1] < -0.004 && A.v.some(v => v[1] < -0.004 && v[0] > LEDGE.x0 && v[0] < LEDGE.x1 && v[2] > LEDGE.z0 && v[2] < LEDGE.z1)) floor.push(i);
+        if (A.v.some(v => v[1] < support(v) - 0.004)) floor.push(i);
         for (let j = 0; j < tris.length; j++) {
           if (j === i || (!only && j < i)) continue;
           const B = tris[j], fb = F[B.fi];
@@ -1318,12 +1362,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- state ----------
   let rig = R.build([]);
-  const fresh = () => ({ v: 5, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  const fresh = () => ({ v: 6, motions: R.presets(rig), creases: [], cur: 0, cam: null, nextCrease: 1 });
   let S;
   const undoStack = [], redoStack = [];
   try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
   if (!S || !S.motions) S = fresh();
-  const oldPresets = (S.v || 1) < 5;
+  const oldPresets = (S.v || 1) < 6;
   if (oldPresets) {
     undoStack.push(JSON.stringify(S));
     // wings used to hang from a lower hinge, folded downward: convert saved wing angles and wing creases
@@ -1343,6 +1387,12 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const np = R.presets(R.build(S.creases || []));
     S.motions = S.motions.map(m => (m.keys.length <= 1 ? (np.find(x => x.id === m.id) || m) : m));
     S.v = 5;
+  }
+  if ((S.v || 1) < 6) {
+    const np = R.presets(R.build(S.creases || []));
+    const shots = np.filter(m => m.group === 'shot' && !S.motions.some(x => x.id === m.id));
+    S.motions.forEach(m => { if (!m.group) m.group = 'library'; });
+    S.motions = shots.concat(S.motions); S.cur = 0; S.v = 6;
   }
   // built-in preset names and descriptions follow the current (English) presets, even in saved work
   { const names = R.presets(R.build([])); S.motions.forEach(m => { const p = names.find(x => x.id === m.id); if (p) { m.name = p.name; m.desc = p.desc; } }); }
@@ -1365,16 +1415,41 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
   const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 100);
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.1;
-  const DEFAULT_CAM = { p: [1.9, 1.25, 4.9], t: [-0.1, 0.3, 0.1] };
-  function applyCam(c) { camera.position.set(...c.p); controls.target.set(...c.t); controls.update(); }
-  applyCam(S.cam || DEFAULT_CAM);
+  const DEFAULT_CAM = { p: [1.9, 1.25, 4.9], t: [-0.1, 0.3, 0.1], lens: 35 };
+  const lensFov = mm => 2 * Math.atan(10.125 / mm) * 180 / Math.PI;
+  let lens = 35;
+  function setLens(mm) { lens = mm; camera.fov = lensFov(mm); camera.updateProjectionMatrix(); const sel = document.getElementById('lensSel'); if (sel) sel.value = String(mm); }
+  function applyCam(c) { if (c.lens) setLens(c.lens); camera.position.set(...c.p); controls.target.set(...c.t); controls.update(); }
+  const shotCam = () => (S.motions[S.cur] && S.motions[S.cur].cam) || S.cam || DEFAULT_CAM;
+  applyCam(shotCam());
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.75));
   const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(2, 4, 4); scene.add(key);
   const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(-3, 1, -3); scene.add(rim);
 
   // window-sill ledge the crane stands on; its front edge is where the takeoff fails
-  const ledge = new THREE.Mesh(new THREE.BoxGeometry(6, 0.12, 2.4), new THREE.MeshStandardMaterial({ color: new THREE.Color(css('--ledge')).convertSRGBToLinear(), roughness: 0.95 }));
-  ledge.position.set(0, -0.061, -0.2); scene.add(ledge);
+  // classroom set (1 unit ≈ 7.5 cm): black desk 120×60 cm, top 67 cm above the oak floor, closed window wall behind
+  const D = R.LEDGE, set = new THREE.Group(); scene.add(set);
+  const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
+  const deskMat = new THREE.MeshStandardMaterial({ color: lin('#1d1f22'), roughness: 0.55 });
+  const steel = new THREE.MeshStandardMaterial({ color: lin('#8d9196'), roughness: 0.35, metalness: 0.6 });
+  const top = new THREE.Mesh(new THREE.BoxGeometry(D.x1 - D.x0, 0.35, D.z1 - D.z0), deskMat);
+  top.position.set((D.x0 + D.x1) / 2, -0.175, (D.z0 + D.z1) / 2); set.add(top);
+  [[D.x0 + 0.4, D.z0 + 0.4], [D.x1 - 0.4, D.z0 + 0.4], [D.x0 + 0.4, D.z1 - 0.4], [D.x1 - 0.4, D.z1 - 0.4]].forEach(([x, z]) => {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.45, -D.floor - 1.05, 0.45), steel); leg.position.set(x, (D.floor + 0.7) / 2 - 0.175, z); set.add(leg);
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.3, 20), new THREE.MeshStandardMaterial({ color: lin('#2a2c2f'), roughness: 0.6 }));
+    wheel.rotation.z = Math.PI / 2; wheel.position.set(x, D.floor + 0.42, z); set.add(wheel);
+  });
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(D.x1 - D.x0 - 0.8, 0.35, 0.3), steel); rail.position.set(0, D.floor + 2.2, (D.z0 + D.z1) / 2); set.add(rail);
+  const oak = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 512; const g = c.getContext('2d'); let sd = 3; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 8; i++) { g.fillStyle = `hsl(34, ${22 + r() * 8}%, ${66 + r() * 7}%)`; g.fillRect(0, i * 64, 512, 64); g.fillStyle = 'rgba(70,45,20,0.25)'; g.fillRect(0, i * 64, 512, 2);
+      for (let k = 0; k < 40; k++) { g.strokeStyle = `rgba(90,60,30,${0.05 + r() * 0.08})`; g.beginPath(); const y = i * 64 + r() * 64; g.moveTo(0, y); g.bezierCurveTo(170, y + r() * 6 - 3, 340, y + r() * 6 - 3, 512, y); g.stroke(); } }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 9); return t; })();
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map: oak, roughness: 0.7 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = D.floor; set.add(floor);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshStandardMaterial({ color: lin('#59675f'), roughness: 0.9 }));
+  wall.position.set(0, D.floor + 20, -16); set.add(wall);
+  for (let i = -2; i <= 2; i++) { const w = new THREE.Mesh(new THREE.PlaneGeometry(9, 12), new THREE.MeshBasicMaterial({ color: lin('#dfe4e2') })); w.position.set(i * 11, 4, -15.95); set.add(w); }
+  const sill = new THREE.Mesh(new THREE.BoxGeometry(60, 0.6, 2.4), new THREE.MeshStandardMaterial({ color: lin('#b8a58a'), roughness: 0.8 })); sill.position.set(0, -2.4, -14.8); set.add(sill);
 
   function washi(hex) {
     const c = document.createElement('canvas'); c.width = c.height = 256;
@@ -1383,8 +1458,8 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     for (let i = 0; i < 400; i++) { const x = rnd() * 256, y = rnd() * 256, l = 4 + rnd() * 16, a = rnd() * Math.PI; g.strokeStyle = `rgba(255,255,255,${0.05 + rnd() * 0.08})`; g.lineWidth = 0.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
   }
-  const matF = new THREE.MeshStandardMaterial({ map: washi('#c4313b'), roughness: 0.85, side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
-  const matB = new THREE.MeshStandardMaterial({ map: washi('#f2eee6'), roughness: 0.9, side: THREE.BackSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const matF = new THREE.MeshStandardMaterial({ map: washi('#f3efe6'), roughness: 0.85, side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const matB = new THREE.MeshStandardMaterial({ map: washi('#ddd7cb'), roughness: 0.9, side: THREE.BackSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
   const ghostMat = c => new THREE.MeshBasicMaterial({ color: new THREE.Color(c), transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
   const ghostCols = [css('--ghost-prev'), css('--ghost-prev'), css('--ghost-next'), css('--ghost-next')];
 
@@ -1507,13 +1582,15 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- UI: presets ----------
   function renderPresets() {
-    const box = $('presetList'); box.querySelectorAll('.preset').forEach(n => n.remove());
+    const box = $('presetList'); box.querySelectorAll('.preset, .grp').forEach(n => n.remove());
     S.motions.forEach((m, i) => {
+      const grp = m.group || 'library';
+      if (i === 0 || (S.motions[i - 1].group || 'library') !== grp) { const h = document.createElement('div'); h.className = 'label grp'; h.textContent = grp === 'shot' ? 'Folded Wings · shots' : 'Motion library (not in the cut)'; box.appendChild(h); }
       const b = document.createElement('button'); b.className = 'preset'; b.setAttribute('aria-current', String(i === S.cur));
       const filled = m.keys.length > 1 || !m.draft;
-      b.innerHTML = `<span class="pc">Shot ${m.cut}${filled ? '' : ' · empty'}</span><span class="pn"></span><span class="pd"></span>`;
+      b.innerHTML = `<span class="pc">${m.group === 'shot' ? 'Shot ' + m.cut + ' · ' + (m.target / 12).toFixed(0) + ' s at 12 fps' : 'Library · old board ' + m.cut}${filled ? '' : ' · empty'}</span><span class="pn"></span><span class="pd"></span>`;
       b.querySelector('.pn').textContent = m.name; b.querySelector('.pd').textContent = m.desc;
-      b.onclick = () => { S.cur = i; frame = 0; setPlaying(false); refreshAll(); save(); };
+      b.onclick = () => { S.cur = i; frame = 0; setPlaying(false); refreshAll(); applyCam(shotCam()); save(); };
       box.appendChild(b);
     });
   }
@@ -1534,8 +1611,9 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
   }
   function refreshFrame() {
     const fr = curFrame(), m = motion(), k = m.keys[fr.key];
-    $('counter').textContent = `${String(frame + 1).padStart(3, '0')} / ${frames.length} · ${(frame / fps).toFixed(2)}s`;
-    $('hud').textContent = fr.kind === 'tween' ? `Between keys ${fr.key + 1}→${fr.key + 2}` : `Key ${fr.key + 1} · ${ROLE[k.role]}${fr.kind === 'hold' ? ' (hold)' : ''}`;
+    const uniq = frames.filter(f => f.kind !== 'hold').length, tgt = m.target;
+    $('counter').textContent = `${String(frame + 1).padStart(3, '0')} / ${frames.length}${tgt ? (frames.length === tgt ? ' ✓' : ` (target ${tgt})`) : ''} · ${uniq} poses · ${(frame / fps).toFixed(2)}s`;
+    $('hud').textContent = (fr.kind === 'tween' ? `Between keys ${fr.key + 1}→${fr.key + 2}` : `Key ${fr.key + 1} · ${ROLE[k.role]}${fr.kind === 'hold' ? ' (hold)' : ''}`) + (k.prop ? ` · ${k.prop}` : '') + ` · ${lens}mm`;
     document.querySelectorAll('#strip .cell').forEach((c, i) => { c.classList.toggle('cur', i === frame); c.setAttribute('aria-selected', String(i === frame)); });
     const cur = $('strip').children[frame]; if (cur) { const st = $('strip'); if (cur.offsetLeft < st.scrollLeft || cur.offsetLeft > st.scrollLeft + st.clientWidth - 20) st.scrollLeft = cur.offsetLeft - st.clientWidth / 2; }
     renderInspector();
@@ -1547,6 +1625,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const fr = curFrame(), m = motion(), k = m.keys[fr.key], last = fr.key === m.keys.length - 1;
     const tween = fr.kind === 'tween';
     $('keyTitle').textContent = tween ? `In-between (keys ${fr.key + 1}→${fr.key + 2})` : `Key ${fr.key + 1} / ${m.keys.length}`;
+    $('propIn').value = k.prop || ''; $('propIn').disabled = tween;
     $('roleSel').value = k.role; $('holdIn').value = k.hold || 0; $('holdSec').textContent = `${((k.hold || 0) / fps).toFixed(2)}s`;
     $('roleSel').disabled = $('holdIn').disabled = tween;
     $('makeKey').disabled = !tween; $('delKey').disabled = tween || m.keys.length < 2; $('dupKey').disabled = tween;
@@ -1582,7 +1661,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
   }
   function refreshAll() {
     reexpand(); renderPresets(); renderStrip();
-    $('cutLabel').textContent = `Shot ${motion().cut} · ${motion().name}`;
+    $('cutLabel').textContent = motion().group === 'shot' ? motion().desc : `Library · ${motion().name}`;
     refreshFrame();
   }
 
@@ -1592,6 +1671,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     const k = ensureKey(); fn(k);
     reexpand(); if (structural) renderStrip(); refreshFrame(); save();
   }
+  $('propIn').onchange = e => editKey(k => k.prop = e.target.value.trim(), false);
   $('roleSel').onchange = e => editKey(k => k.role = e.target.value, true);
   $('holdIn').onchange = e => { const keyIdx = curFrame().key; editKey(k => k.hold = Math.max(0, Math.min(96, +e.target.value || 0)), true); frame = frames.findIndex(f => f.key === keyIdx && f.kind === 'key'); refreshFrame(); };
   const trEdit = fn => { const keyIdx = curFrame().key; snapshot(); const k = motion().keys[keyIdx]; k.tr = Object.assign({ n: 3, ease: 'inout' }, k.tr || {}); fn(k.tr); reexpand(); renderStrip(); refreshFrame(); save(); };
@@ -1654,8 +1734,9 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
   $('groundOn').onchange = e => editKey(k => { k.pose.b = Object.assign({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }, k.pose.b || {}); k.pose.b.ground = e.target.checked ? 1 : 0; }, false);
   $('fpsSel').onchange = e => { fps = +e.target.value; refreshFrame(); };
   $('loopBtn').onclick = () => { loop = !loop; $('loopBtn').setAttribute('aria-pressed', String(loop)); };
-  $('camShot').onclick = () => applyCam(S.cam || DEFAULT_CAM);
-  $('camSave').onclick = () => { S.cam = { p: camera.position.toArray(), t: controls.target.toArray() }; save(); toast('Current view saved as the shooting camera'); };
+  $('camShot').onclick = () => applyCam(shotCam());
+  $('lensSel').onchange = e => { setLens(+e.target.value); dirty = true; };
+  $('camSave').onclick = () => { snapshot(); motion().cam = { p: camera.position.toArray(), t: controls.target.toArray(), lens }; save(); toast(`Current view saved as this shot's camera (${lens}mm)`); };
   $('guideSel').onchange = () => layoutGuide();
 
   // transport
@@ -1786,7 +1867,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- loop ----------
   rebuildScene(); refreshAll(); resize();
-  if (oldPresets) { save(); setTimeout(() => toast('All 11 motions are filled in. Undo restores your previous work'), 600); }
+  if (oldPresets) { save(); setTimeout(() => toast('Added the Folded Wings shots 02, 04, 05 and 06. Your earlier motions are under Motion library'), 600); }
   let acc = 0, last = performance.now();
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -1801,7 +1882,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     controls.update(); renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
-  window.__mo = { camF: (c, fov) => { camera.fov = fov; camera.updateProjectionMatrix(); applyCam(c); renderer.render(scene, camera); }, st: () => ({ tool, cs: !!creaseStart, ce: controls.enabled }), dbg: (x, y) => { setRay({ clientX: x, clientY: y }); const bs = G.geo.boundingSphere; return JSON.stringify({ bs: bs && [bs.center.toArray(), bs.radius], o: ray.ray.origin.toArray(), d: ray.ray.direction.toArray(), n: ray.intersectObjects([G.mF, G.mB], false).length, all: ray.intersectObjects(scene.children, true).map(h => h.object.type).slice(0, 5) }); }, hit: (x, y) => { const h = hitFacet({ clientX: x, clientY: y }); return h ? rig.facets[h.fi].chain + ':' + rig.facets[h.fi].depth : null; }, hs: id => { const h = handles.find(x => x.userData.id === id); const v = h.position.clone().project(camera), r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, cam: c => { applyCam(c); renderer.render(scene, camera); }, S: () => S, go: i => { frame = i; refreshFrame(); draw(); renderer.render(scene, camera); }, select: i => { S.cur = i; frame = 0; refreshAll(); draw(); renderer.render(scene, camera); }, frames: () => frames, rig: () => rig, R, renderNow: () => { draw(); renderer.render(scene, camera); }, setOnion: v => { onion = v; } };
+  window.__mo = { camF: (c, fov) => { camera.fov = fov; camera.updateProjectionMatrix(); applyCam(c); renderer.render(scene, camera); }, st: () => ({ tool, cs: !!creaseStart, ce: controls.enabled }), dbg: (x, y) => { setRay({ clientX: x, clientY: y }); const bs = G.geo.boundingSphere; return JSON.stringify({ bs: bs && [bs.center.toArray(), bs.radius], o: ray.ray.origin.toArray(), d: ray.ray.direction.toArray(), n: ray.intersectObjects([G.mF, G.mB], false).length, all: ray.intersectObjects(scene.children, true).map(h => h.object.type).slice(0, 5) }); }, hit: (x, y) => { const h = hitFacet({ clientX: x, clientY: y }); return h ? rig.facets[h.fi].chain + ':' + rig.facets[h.fi].depth : null; }, hs: id => { const h = handles.find(x => x.userData.id === id); const v = h.position.clone().project(camera), r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, cam: c => { applyCam(c); renderer.render(scene, camera); }, S: () => S, go: i => { frame = i; refreshFrame(); draw(); renderer.render(scene, camera); }, select: i => { S.cur = i; frame = 0; refreshAll(); applyCam(shotCam()); draw(); renderer.render(scene, camera); }, frames: () => frames, rig: () => rig, R, renderNow: () => { draw(); renderer.render(scene, camera); }, setOnion: v => { onion = v; } };
   requestAnimationFrame(tick);
 })();
 </script>
