@@ -136,6 +136,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
       <div class="row"><span>역할</span>
         <select id="roleSel"><option value="start">시작 포즈</option><option value="prep">준비 포즈</option><option value="core">핵심 동작</option><option value="end">끝 포즈</option></select></div>
       <div class="row"><span>정지 유지</span><span class="group"><input type="number" id="holdIn" min="0" max="96"> <small id="holdSec" class="subtle"></small></span></div>
+      <div class="group"><button id="fixKey" title="이 키에서 뚫고 지나간 부위만 관통이 없어질 때까지 되돌림">관통 고치기</button><button id="fixAll" title="이 모션의 모든 키를 고침">모든 키 고치기</button></div>
       <div class="group"><button id="makeKey" title="현재 중간 프레임을 키로 바꿔 직접 편집 (K)">이 프레임을 키로</button><button id="dupKey">키 복제</button><button id="delKey">키 삭제</button></div>
       <p class="subtle" id="keyNote"></p>
     </section>
@@ -216,15 +217,16 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- state ----------
   let rig = R.build([]);
-  const fresh = () => ({ v: 2, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
+  const fresh = () => ({ v: 3, motions: R.presets(rig), creases: [], cur: 3, cam: null, nextCrease: 1 });
   let S;
+  const undoStack = [], redoStack = [];
   try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
   if (!S || !S.motions) S = fresh();
-  const oldPresets = !S.v; S.v = 2;
+  const oldPresets = (S.v || 1) < 3;
+  if (oldPresets) { undoStack.push(JSON.stringify(S)); const np = R.presets(R.build(S.creases || [])); S.motions = S.motions.map(m => (['look', 'scratch', 'takeoff'].includes(m.id) ? np.find(x => x.id === m.id) : m)); S.v = 3; }
   rig = R.build(S.creases);
   let frame = 0, frames = [], playing = false, tool = 'drag', sym = false, onion = true, onionN = 1, fps = 12, loop = true, block = true;
   let hitCache = [], hitQueue = 0;
-  const undoStack = [], redoStack = [];
   const motion = () => S.motions[S.cur];
   function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { } }
   function snapshot() { undoStack.push(JSON.stringify(S)); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; }
@@ -490,6 +492,19 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
     };
     $(id).onchange = () => { bodyGesture = false; save(); };
   });
+  function fixOne(k) { const r = R.fixPose(rig, k.pose); k.pose = r.pose; return r.left; }
+  $('fixKey').onclick = () => {
+    if (!R.collisions(rig, curFrame().pose).n) { toast('이 프레임에는 관통이 없습니다'); return; }
+    snapshot(); const k = ensureKey(); const left = fixOne(k); reexpand(); renderStrip(); refreshFrame(); save();
+    toast(left ? '일부는 자동으로 못 고쳤습니다. 남은 빨간 부위를 직접 끌어 주세요' : '관통을 고쳤습니다 (되돌리기로 취소 가능)');
+  };
+  $('fixAll').onclick = () => {
+    snapshot(); let fixed = 0, left = 0;
+    motion().keys.forEach(k => { if (R.collisions(rig, k.pose).n) { fixed++; left += fixOne(k) ? 1 : 0; } });
+    reexpand(); renderStrip(); refreshFrame(); save();
+    const tw = frames.filter(f => f.kind === 'tween' && R.collisions(rig, f.pose).n).length;
+    toast(fixed ? `키 ${fixed}개를 고쳤습니다${left ? ` (${left}개는 일부 남음)` : ''}.` + (tw ? ` 중간 프레임 ${tw}장에 아직 관통이 있으면 그 프레임에서 ‘관통 고치기’를 누르세요` : '') : (tw ? `키에는 관통이 없고, 중간 프레임 ${tw}장에 있습니다. 그 프레임에서 ‘관통 고치기’를 누르세요` : '관통이 없습니다'));
+  };
   $('makeKey').onclick = () => { snapshot(); ensureKey(); renderStrip(); refreshFrame(); save(); toast('이 프레임을 키로 만들었습니다'); };
   $('dupKey').onclick = () => { snapshot(); const m = motion(), i = curFrame().key, k = clone(m.keys[i]); k.role = 'core'; m.keys.splice(i + 1, 0, k); m.keys[i].tr = Object.assign({ n: 3, ease: 'inout' }, m.keys[i].tr || {}); reexpand(); frame = frames.findIndex(f => f.key === i + 1 && f.kind === 'key'); renderStrip(); refreshFrame(); save(); };
   $('delKey').onclick = () => { const m = motion(); if (m.keys.length < 2) return; snapshot(); const i = curFrame().key; m.keys.splice(i, 1); reexpand(); frame = frames.findIndex(f => f.key === Math.max(0, i - 1) && f.kind === 'key'); renderStrip(); refreshFrame(); save(); };
@@ -649,7 +664,7 @@ footer { grid-column: 1 / -1; background: var(--panel); border-top: 1px solid va
 
   // ---------- loop ----------
   rebuildScene(); refreshAll(); resize();
-  if (oldPresets && S.motions.some(m => m.keys.length > 1)) setTimeout(() => toast('프리셋이 관통 없게 고쳐졌습니다. 저장된 작업은 그대로 두었으니, 새 버전을 쓰려면 ‘이 프리셋 초기화’를 누르세요'), 600);
+  if (oldPresets) { save(); setTimeout(() => toast('갸웃·머리 긁기·이륙 실패를 관통 없는 새 버전으로 바꿨습니다. 이전 작업은 ‘되돌리기’로 복원할 수 있습니다'), 600); }
   let acc = 0, last = performance.now();
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;

@@ -515,7 +515,32 @@
       return { pose: mix(lo), blocked: true };
     }
 
-    return { build, facetTransforms, pointPos, presets, collisions, blockAt, LEDGE, restPoint, handlePos, handleInfo, solveIK, mirrorWing, P, expand, lerpPose, EASE, HANDLES, EPS, FLOOR, PIVOT, jv, clone };
+    // pull the parts that pass through paper back toward the standing pose until they no longer do
+    function fixPose(rig, pose) {
+      const stand = P({});
+      let cur = clone(pose);
+      for (let pass = 0; pass < 4; pass++) {
+        const c = collisions(rig, cur);
+        if (!c.n) break;
+        const hit = new Set();
+        c.pairs.forEach(([a, b]) => { hit.add(rig.facets[c.tris[a].fi].chain); hit.add(rig.facets[c.tris[b].fi].chain); });
+        c.side.concat(c.floor).forEach(a => hit.add(rig.facets[c.tris[a].fi].chain));
+        hit.delete('body');
+        // move the smaller parts first: head/neck and tail, then wings
+        const order = ['tail', 'neck', 'wB', 'wF'].filter(k => hit.has(k));
+        if (!order.length) break;
+        for (const ch of order) {
+          const from = clone(cur);
+          rig.chains[ch].joints.forEach(j => { from.j[j.id] = clone(jv(stand, j.id)); });
+          if (collisions(rig, from, ch).n) continue;
+          cur = blockAt(rig, from, cur, ch).pose;
+          if (!collisions(rig, cur).n) break;
+        }
+      }
+      return { pose: cur, left: collisions(rig, cur).n };
+    }
+
+    return { build, facetTransforms, pointPos, presets, collisions, blockAt, fixPose, LEDGE, restPoint, handlePos, handleInfo, solveIK, mirrorWing, P, expand, lerpPose, EASE, HANDLES, EPS, FLOOR, PIVOT, jv, clone };
   }
 
   const api = { create };
