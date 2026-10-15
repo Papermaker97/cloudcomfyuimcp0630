@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="1000" height="700">
+  <title>Ppomo 2D — layered for After Effects</title>
+  <rect id="bg" width="1000" height="700" fill="#FBF3EA"/>
+  <g id="shadow">
+    <ellipse cx="530" cy="566" rx="420" ry="20" fill="#000000" fill-opacity="0.08" />
+  </g>
+  <g id="foot_back">
+    <ellipse cx="912" cy="540" rx="48" ry="27" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="paw_back">
+    <ellipse cx="142" cy="546" rx="46" ry="24" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="ear_L">
+    <path d="M 172 400 C 165 345, 190 305, 220 300 C 250 302, 280 330, 302 362 Z" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="ear_R">
+    <path d="M 392 345 C 392 290, 420 262, 448 264 C 478 267, 505 295, 518 322 Z" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="body">
+    <path d="M 175 560 C 130 560, 105 520, 105 470 C 105 400, 170 345, 250 345 C 330 345, 440 325, 520 315 C 600 305, 640 205, 720 205 C 780 205, 800 215, 812 232 C 830 212, 850 210, 880 212 C 940 216, 962 300, 962 380 C 962 470, 950 540, 900 550 C 870 558, 800 561, 760 561 Z" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="belly">
+    <path d="M 162 540 C 230 498, 330 488, 420 503 C 560 478, 720 468, 882 520 C 862 548, 820 556, 760 556 C 560 557, 360 557, 182 556 C 172 553, 165 548, 162 540 Z" fill="#FFF2D8" />
+  </g>
+  <g id="butt_line">
+    <path d="M 812 236 C 822 258, 824 285, 818 312" fill="none" stroke="#8A4B30" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="blush_L">
+    <ellipse cx="190" cy="502" rx="39" ry="23" fill="#F2A0A6" fill-opacity="0.45" />
+  </g>
+  <g id="blush_R">
+    <ellipse cx="420" cy="502" rx="39" ry="23" fill="#F2A0A6" fill-opacity="0.45" />
+  </g>
+  <g id="paw_front">
+    <ellipse cx="482" cy="548" rx="56" ry="27" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="eye_L">
+    <ellipse cx="226" cy="470" rx="14" ry="14" fill="#6E3B23" />
+  </g>
+  <g id="eye_R">
+    <ellipse cx="388" cy="470" rx="14" ry="14" fill="#6E3B23" />
+  </g>
+  <g id="mouth">
+    <path d="M 290 478 C 294 490, 302 490, 306 478 C 310 490, 318 490, 322 478" fill="none" stroke="#8A4B30" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
