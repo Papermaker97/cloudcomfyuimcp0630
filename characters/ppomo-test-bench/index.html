@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ppomo Test Bench</title>
+<style>
+  /* Layout: left = live sensor + controls + test protocol, right = the character reacting. */
+  :root {
+    --bg: #F6F4F1; --panel: #FFFFFF; --fg: #2E2B2A; --muted: #7A746F; --line: #E4DFD9;
+    --belly: #E2728A; --butt: #E59A5C; --accent: #2E2B2A; --ok: #2F8F5B; --bad: #C2413A;
+    --font: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1C1B1A; --panel: #262422; --fg: #EFEAE5; --muted: #A39C95; --line: #3A3633; --accent: #EFEAE5; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  @media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+  header { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  .status { font-size: 13px; color: var(--muted); }
+  .status b { color: var(--fg); }
+  .spacer { flex: 1; }
+  button { font: 600 13px var(--font); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--belly); outline-offset: 2px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .col { display: grid; gap: 16px; min-width: 0; align-content: start; }
+  canvas { width: 100%; height: 220px; display: block; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .readout div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+  .readout small { display: block; color: var(--muted); font-size: 11px; }
+  .readout span { font: 600 15px var(--mono); }
+  .sliders { display: grid; gap: 10px; }
+  .sliders label { display: grid; grid-template-columns: 120px minmax(0, 1fr) 52px; align-items: center; gap: 10px; font-size: 13px; }
+  .sliders output { font: 600 13px var(--mono); text-align: right; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .count { display: flex; align-items: baseline; gap: 10px; }
+  .count big { font: 700 56px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .count .src { color: var(--muted); }
+  .stage { color: var(--muted); font-size: 13px; }
+  #ppomo { width: 100%; height: auto; display: block; }
+  #ppomo .squish { transform-box: fill-box; transform-origin: 50% 100%; }
+  #ppomo .squish.go { animation: squish .38s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes squish { 0% { transform: scale(1,1); } 30% { transform: scale(1.08,.86); } 65% { transform: scale(.97,1.04); } 100% { transform: scale(1,1); } }
+  #ppomo .grow { transform-box: fill-box; transition: transform .6s cubic-bezier(.3,1.5,.5,1); }
+  #ppomo .jiggle { animation: jiggle 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+  @keyframes jiggle { 0%,100% { transform: scale(1,1); } 50% { transform: scale(1.03,.97); } }
+  @media (prefers-reduced-motion: reduce) { #ppomo .squish.go, #ppomo .jiggle { animation: none; } #ppomo .grow { transition: none; } }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); font-weight: 700; } .bad { color: var(--bad); font-weight: 700; }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  pre#log { margin: 0; max-height: 150px; overflow: auto; font: 12px/1.45 var(--mono); color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+  .kbd { font: 600 12px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>뽀모 테스트 벤치</h1>
+    <span class="status" id="status">연결 안 됨</span>
+    <span class="spacer"></span>
+    <button id="btnConnect" class="primary" type="button">기기 연결 (USB)</button>
+    <button id="btnDemo" type="button">데모 모드</button>
+  </header>
+
+  <div class="col">
+    <section class="panel">
+      <h2>센서 (최근 10초)</h2>
+      <canvas id="chart" width="1200" height="440" aria-label="센서 값 그래프"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--belly)"></i>배 센서 (A0)</span>
+        <span><i style="background:var(--butt)"></i>엉덩이 센서 (A1)</span>
+        <span>점선 = 기준값 · 진한 띠 = 쥠 판정(±누름) · 연한 띠 = 놓임 판정(±놓임)</span>
+      </div>
+      <div class="readout">
+        <div><small>배 현재</small><span id="vBelly">—</span></div>
+        <div><small>배 기준값</small><span id="vBellyBase">—</span></div>
+        <div><small>엉덩이 현재</small><span id="vButt">—</span></div>
+        <div><small>엉덩이 기준값</small><span id="vButtBase">—</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>감지 기준값 (바로 기기에 반영)</h2>
+      <div class="sliders">
+        <label for="press">누름 판정 (PRESS)<input id="press" type="range" min="40" max="1200" step="10" value="260"><output id="pressOut">260</output></label>
+        <label for="release">놓임 판정 (RELEASE)<input id="release" type="range" min="10" max="600" step="5" value="120"><output id="releaseOut">120</output></label>
+      </div>
+      <div class="row">
+        <button id="btnZero" type="button">기준값 다시 재기 (손 떼고)</button>
+        <button id="btnReset" type="button">횟수 0으로</button>
+      </div>
+      <p class="hint">팁: 가볍게 쥐었을 때 그래프가 움직이는 폭의 절반쯤을 누름 판정으로, 그 절반을 놓임 판정으로 두면 시작점으로 좋습니다.</p>
+    </section>
+
+    <section class="panel">
+      <h2>테스트 절차</h2>
+      <table>
+        <thead><tr><th>테스트</th><th>할 일</th><th>기대</th><th>결과</th><th></th></tr></thead>
+        <tbody id="tests"></tbody>
+      </table>
+      <div class="row"><button id="btnCopy" type="button">결과 복사</button></div>
+      <p class="hint">시작을 누르고 동작한 뒤 끝을 누르세요. 그 사이 센 횟수가 기대값과 같으면 통과입니다.</p>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel">
+      <div class="count"><big id="count">0</big><span class="src" id="src">회</span></div>
+      <div class="stage" id="stage">단계 0 · 다음 단계까지 5회</div>
+      <svg id="ppomo" viewBox="60 170 940 420" role="img" aria-label="뽀모 캐릭터">
+        <g class="squish" id="char">
+          <ellipse cx="530" cy="566" rx="420" ry="20" fill="#000" fill-opacity="0.08"/>
+          <g class="grow" id="buttPuff" style="transform-origin: 30% 80%">
+            <path d="M 760 380 C 760 270, 830 205, 900 215 C 965 225, 985 320, 975 420 C 968 500, 940 548, 880 552 C 800 556, 760 470, 760 380 Z" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6"/>
+          </g>
+          <ellipse cx="912" cy="540" rx="48" ry="27" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6"/>
+          <ellipse cx="142" cy="546" rx="46" ry="24" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6"/>
+          <path d="M 172 400 C 165 345, 190 305, 220 300 C 250 302, 280 330, 302 362 Z" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linejoin="round"/>
+          <path d="M 392 345 C 392 290, 420 262, 448 264 C 478 267, 505 295, 518 322 Z" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linejoin="round"/>
+          <g class="grow" id="bodyGrow" style="transform-origin: 50% 100%">
+            <path d="M 175 560 C 130 560, 105 520, 105 470 C 105 400, 170 345, 250 345 C 330 345, 440 325, 520 315 C 600 305, 640 205, 720 205 C 780 205, 800 215, 812 232 C 830 212, 850 210, 880 212 C 940 216, 962 300, 962 380 C 962 470, 950 540, 900 550 C 870 558, 800 561, 760 561 Z" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6" stroke-linejoin="round"/>
+            <g class="grow" id="bellyGrow" style="transform-origin: 50% 100%">
+              <path d="M 162 540 C 230 498, 330 488, 420 503 C 560 478, 720 468, 882 520 C 862 548, 820 556, 760 556 C 560 557, 360 557, 182 556 C 172 553, 165 548, 162 540 Z" fill="#FFF2D8"/>
+            </g>
+            <path d="M 812 236 C 822 258, 824 285, 818 312" fill="none" stroke="#8A4B30" stroke-width="6" stroke-linecap="round"/>
+            <g class="grow" id="cheekL" style="transform-origin: 50% 50%"><ellipse cx="190" cy="502" rx="39" ry="23" fill="#F2A0A6" fill-opacity="0.5"/></g>
+            <g class="grow" id="cheekR" style="transform-origin: 50% 50%"><ellipse cx="420" cy="502" rx="39" ry="23" fill="#F2A0A6" fill-opacity="0.5"/></g>
+            <ellipse cx="226" cy="470" rx="14" ry="14" fill="#6E3B23"/>
+            <ellipse cx="388" cy="470" rx="14" ry="14" fill="#6E3B23"/>
+            <path d="M 290 478 C 294 490, 302 490, 306 478 C 310 490, 318 490, 322 478" fill="none" stroke="#8A4B30" stroke-width="5" stroke-linecap="round"/>
+          </g>
+          <ellipse cx="482" cy="548" rx="56" ry="27" fill="#F7C3C6" stroke="#8A4B30" stroke-width="6"/>
+        </g>
+      </svg>
+      <div class="sliders" style="margin-top:8px">
+        <label for="perStage">단계당 횟수<input id="perStage" type="range" min="1" max="30" step="1" value="5"><output id="perStageOut">5</output></label>
+      </div>
+      <p class="hint">1단계 볼 ×1.3 → 2단계 배 ×1.25 → 3단계 엉덩이 ×1.25 → 그 뒤엔 출렁출렁.</p>
+    </section>
+
+    <section class="panel">
+      <h2>기기 메시지</h2>
+      <pre id="log" aria-live="polite"></pre>
+      <p class="hint" id="demoHint" hidden>데모 모드: <span class="kbd">B</span> 키를 누르고 있으면 배, <span class="kbd">N</span> 키는 엉덩이를 쥔 것처럼 움직입니다.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+// ---------- state ----------
+const $ = (id) => document.getElementById(id);
+const WINDOW_MS = 10000;
+const samples = [];          // {t, belly, butt, bb, bt, p, r}
+const events = [];           // {t, source}
+let count = 0, lastSource = '', port = null, writer = null, demo = null;
+
+// ---------- character ----------
+function updateCharacter() {
+  const per = +$('perStage').value, stage = Math.min(3, Math.floor(count / per));
+  $('cheekL').style.transform = $('cheekR').style.transform = `scale(${stage >= 1 ? 1.3 : 1})`;
+  $('bellyGrow').style.transform = `scale(${stage >= 2 ? 1.12 : 1}, ${stage >= 2 ? 1.25 : 1})`;
+  $('buttPuff').style.transform = `scale(${stage >= 3 ? 1.25 : 1})`;
+  $('bodyGrow').classList.toggle('jiggle', count >= per * 4);
+  const next = stage < 3 ? `다음 단계까지 ${per * (stage + 1) - count}회` : (count >= per * 4 ? '최대: 출렁출렁' : `출렁출렁까지 ${per * 4 - count}회`);
+  $('stage').textContent = `단계 ${stage} · ${next}`;
+  $('count').textContent = count;
+  $('src').textContent = lastSource ? `회 · 방금: ${{ belly: '배', butt: '엉덩이', both: '둘 다' }[lastSource] || lastSource}` : '회';
+}
+function squish() { const c = $('char'); c.classList.remove('go'); void c.getBBox(); c.classList.add('go'); }
+
+// ---------- messages from the device ----------
+function log(line) {
+  const el = $('log');
+  el.textContent = (line + '\n' + el.textContent).slice(0, 4000);
+}
+function handleLine(line) {
+  line = line.trim(); if (!line) return;
+  let m; try { m = JSON.parse(line); } catch { log('? ' + line); return; }
+  if (m.type === 'raw') {
+    samples.push({ t: performance.now(), ...m });
+    while (samples.length && performance.now() - samples[0].t > WINDOW_MS + 500) samples.shift();
+    $('vBelly').textContent = m.belly; $('vButt').textContent = m.butt;
+    $('vBellyBase').textContent = m.bb; $('vButtBase').textContent = m.bt;
+    return;
+  }
+  log(line);
+  if (m.type === 'ready') { count = m.count || 0; updateCharacter(); }
+  if (m.type === 'squeeze') {
+    count = m.count; lastSource = m.source; events.push({ t: performance.now(), source: m.source });
+    if (activeTest) activeTest.got++;
+    renderTests(); squish(); updateCharacter();
+  }
+}
+
+// ---------- Web Serial ----------
+async function connect() {
+  if (!('serial' in navigator)) { alert('이 브라우저는 USB 시리얼을 지원하지 않습니다. 데스크톱 크롬이나 엣지에서 열어주세요.'); return; }
+  try {
+    stopDemo();
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    writer = port.writable.getWriter();
+    $('status').innerHTML = '<b>연결됨</b> · Nano 33 IoT';
+    $('btnConnect').disabled = true;
+    sendCmd('P' + $('press').value); sendCmd('R' + $('release').value);
+    const decoder = new TextDecoderStream(); port.readable.pipeTo(decoder.writable);
+    const reader = decoder.readable.getReader(); let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += value; let i;
+      while ((i = buf.indexOf('\n')) >= 0) { handleLine(buf.slice(0, i)); buf = buf.slice(i + 1); }
+    }
+  } catch (e) { $('status').textContent = '연결 끊김: ' + e.message; $('btnConnect').disabled = false; }
+}
+function sendCmd(c) {
+  if (demo) { demo.command(c); return; }
+  if (writer) writer.write(new TextEncoder().encode(c + '\n'));
+}
+
+// ---------- demo: the same counting logic as the firmware, driven by the keyboard ----------
+function startDemo() {
+  if (demo) { stopDemo(); return; }
+  const keys = { b: false, n: false };
+  const st = { bend: { belly: 0, butt: 0 }, base: { belly: 2000, butt: 1990 }, dir: { belly: 0, butt: 0 }, p: +$('press').value, r: +$('release').value,
+    squeezed: false, pressAt: 0, relAt: 0, sqAt: 0, count: 0 };
+  const onKey = (down) => (e) => { const k = e.key.toLowerCase(); if (k in keys) { keys[k] = down; e.preventDefault(); } };
+  const kd = onKey(true), ku = onKey(false);
+  addEventListener('keydown', kd); addEventListener('keyup', ku);
+  let t = 0;
+  const timer = setInterval(() => {
+    t += 20;
+    for (const [k, part] of [['b', 'belly'], ['n', 'butt']]) st.bend[part] += ((keys[k] ? 1 : 0) - st.bend[part]) * 0.18;
+    const noise = () => (Math.random() - 0.5) * 30;
+    const v = { belly: Math.round(2000 + st.bend.belly * 650 + noise()), butt: Math.round(1990 - st.bend.butt * 600 + noise()) };
+    const depth = (part) => st.dir[part] === 0 ? Math.abs(v[part] - st.base[part]) : st.dir[part] * (v[part] - st.base[part]);
+    const on = { belly: depth('belly') >= st.p, butt: depth('butt') >= st.p };
+    const released = depth('belly') <= st.r && depth('butt') <= st.r;
+    if (!st.squeezed) {
+      for (const part of ['belly', 'butt']) {
+        const d = v[part] - st.base[part];
+        if (st.dir[part] && st.dir[part] * d < 0) st.base[part] += d * 0.1; else if (Math.abs(d) <= st.r) st.base[part] += d * 0.001;
+      }
+      if (on.belly || on.butt) {
+        if (!st.pressAt) st.pressAt = t;
+        if (t - st.pressAt >= 40) {
+          st.squeezed = true; st.sqAt = t; st.pressAt = 0; st.count++;
+          for (const part of ['belly', 'butt']) if (on[part] && !st.dir[part]) st.dir[part] = Math.sign(v[part] - st.base[part]);
+          handleLine(JSON.stringify({ type: 'squeeze', count: st.count, source: on.belly ? (on.butt ? 'both' : 'belly') : 'butt' }));
+        }
+      } else st.pressAt = 0;
+    } else if (released) { if (!st.relAt) st.relAt = t; if (t - st.relAt >= 120) { st.squeezed = false; st.relAt = 0; } }
+    else { st.relAt = 0; if (t - st.sqAt >= 4000) { st.base = { ...v }; st.squeezed = false; } }
+    handleLine(JSON.stringify({ type: 'raw', t, belly: v.belly, butt: v.butt, bb: Math.round(st.base.belly), bt: Math.round(st.base.butt), p: st.p, r: st.r }));
+  }, 20);
+  demo = {
+    stop() { clearInterval(timer); removeEventListener('keydown', kd); removeEventListener('keyup', ku); },
+    command(c) { const k = c[0], n = +c.slice(1);
+      if (k === 'P') st.p = n; if (k === 'R') st.r = n; if (k === 'C') { st.count = 0; handleLine('{"type":"ready","count":0}'); }
+      if (k === 'Z') { st.base = { belly: 2000, butt: 1990 }; st.dir = { belly: 0, butt: 0 }; st.squeezed = false; } },
+  };
+  handleLine('{"type":"ready","count":0}');
+  $('status').innerHTML = '<b>데모 모드</b> · B = 배, N = 엉덩이';
+  $('btnDemo').textContent = '데모 끄기'; $('demoHint').hidden = false;
+}
+function stopDemo() { if (!demo) return; demo.stop(); demo = null; $('btnDemo').textContent = '데모 모드'; $('demoHint').hidden = true; $('status').textContent = '연결 안 됨'; }
+
+// ---------- chart ----------
+const cv = $('chart'), ctx = cv.getContext('2d');
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function draw() {
+  const W = cv.width, H = cv.height, now = performance.now();
+  ctx.clearRect(0, 0, W, H);
+  if (samples.length > 1) {
+    let lo = Infinity, hi = -Infinity;
+    for (const s of samples) for (const [v, b] of [[s.belly, s.bb], [s.butt, s.bt]]) { lo = Math.min(lo, v, b - s.p); hi = Math.max(hi, v, b + s.p); }
+    const pad = (hi - lo) * 0.08 + 20; lo -= pad; hi += pad;
+    const X = (t) => W - (now - t) / WINDOW_MS * W, Y = (v) => H - (v - lo) / (hi - lo) * H;
+    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+    for (let i = 1; i < 10; i++) { const x = W * i / 10; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    const last = samples[samples.length - 1];
+    for (const [key, base, col] of [['belly', 'bb', css('--belly')], ['butt', 'bt', css('--butt')]]) {
+      const b = last[base];
+      ctx.fillStyle = col + '14'; ctx.fillRect(0, Y(b + last.r), W, Y(b - last.r) - Y(b + last.r));
+      ctx.fillStyle = col + '0d'; ctx.fillRect(0, Y(b + last.p), W, Y(b + last.r) - Y(b + last.p)); ctx.fillRect(0, Y(b - last.r), W, Y(b - last.p) - Y(b - last.r));
+      ctx.setLineDash([6, 6]); ctx.strokeStyle = col; ctx.globalAlpha = .6; ctx.beginPath();
+      samples.forEach((s, i) => { const x = X(s.t), y = Y(s[base]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.lineWidth = 3; ctx.beginPath();
+      samples.forEach((s, i) => { const x = X(s.t), y = Y(s[key]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.lineWidth = 1;
+    }
+    for (const e of events) { const x = X(e.t); if (x < 0) continue; ctx.strokeStyle = css('--fg'); ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); ctx.globalAlpha = 1; }
+  } else {
+    ctx.fillStyle = css('--muted'); ctx.font = '28px ' + css('--font'); ctx.textAlign = 'center';
+    ctx.fillText('기기를 연결하거나 데모 모드를 켜면 센서 값이 여기 그려집니다', W / 2, H / 2);
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---------- test protocol ----------
+const TESTS = [
+  { name: '20번 쥐기', todo: '보통 세기로 20번 쥐었다 놓기', expected: 20 },
+  { name: '꾹 쥐고 있기', todo: '10초 동안 꾹 쥐고 있다가 놓기', expected: 1 },
+  { name: '빠른 연타', todo: '1초에 3~4번 빠르게 8번', expected: 8 },
+  { name: '천천히 쥐기', todo: '2~3초에 걸쳐 천천히 쥐었다 놓기', expected: 1 },
+  { name: '그냥 두기', todo: '30초 동안 손대지 않기', expected: 0 },
+  { name: '세게 쥐기', todo: '가장 세게 5번', expected: 5 },
+  { name: '살짝 쥐기', todo: '아주 살짝 5번', expected: 5 },
+];
+let activeTest = null; const results = TESTS.map(() => null);
+function renderTests() {
+  $('tests').innerHTML = TESTS.map((t, i) => {
+    const running = activeTest && activeTest.i === i, r = results[i];
+    const res = running ? `<span class="num">${activeTest.got}</span> …` : r == null ? '—' : `<span class="num">${r}</span> <span class="${r === t.expected ? 'ok' : 'bad'}">${r === t.expected ? '통과' : '확인'}</span>`;
+    return `<tr><td>${t.name}</td><td>${t.todo}</td><td class="num">${t.expected}</td><td>${res}</td>
+      <td><button type="button" data-i="${i}" ${activeTest && !running ? 'disabled' : ''}>${running ? '끝' : '시작'}</button></td></tr>`;
+  }).join('');
+}
+$('tests').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return; const i = +b.dataset.i;
+  if (activeTest && activeTest.i === i) { results[i] = activeTest.got; activeTest = null; } else activeTest = { i, got: 0 };
+  renderTests();
+});
+$('btnCopy').addEventListener('click', async () => {
+  const text = [`뽀모 테스트 결과 (누름 ${$('press').value} / 놓임 ${$('release').value})`,
+    ...TESTS.map((t, i) => `${t.name}: 기대 ${t.expected}, 결과 ${results[i] ?? '-'}`)].join('\n');
+  try { await navigator.clipboard.writeText(text); $('btnCopy').textContent = '복사됨'; setTimeout(() => ($('btnCopy').textContent = '결과 복사'), 1500); }
+  catch { log(text); }
+});
+
+// ---------- controls ----------
+for (const [id, cmd] of [['press', 'P'], ['release', 'R']]) {
+  $(id).addEventListener('input', () => { $(id + 'Out').textContent = $(id).value; });
+  $(id).addEventListener('change', () => sendCmd(cmd + $(id).value));
+}
+$('perStage').addEventListener('input', () => { $('perStageOut').textContent = $('perStage').value; updateCharacter(); });
+$('btnZero').addEventListener('click', () => sendCmd('Z'));
+$('btnReset').addEventListener('click', () => { sendCmd('C'); count = 0; lastSource = ''; updateCharacter(); });
+$('btnConnect').addEventListener('click', connect);
+$('btnDemo').addEventListener('click', startDemo);
+renderTests(); updateCharacter();
+if (location.hash === '#demo') startDemo();
+</script>
+</body>
+</html>
