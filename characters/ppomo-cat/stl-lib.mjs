@@ -1,5 +1,5 @@
 // Shared helpers for the Ppomo print exports (export-stl.mjs, export-shell.mjs).
-// The shape is read straight from ppomo-cat-3d.html so prints always match the web preview.
+// The shape is read straight from the page (ppomo-cat-3d.html or ppomo-sit-3d.html) so prints always match the web preview.
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -8,8 +8,8 @@ export const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / 
 export const smax = (a, b, k) => -smin(-a, -b, k);
 
 // ---- model ----
-export function loadModel(dir) {
-  const html = readFileSync(path.join(dir, 'ppomo-cat-3d.html'), 'utf8');
+export function loadModel(dir, file = 'ppomo-cat-3d.html') {
+  const html = readFileSync(path.join(dir, file), 'utf8');
   const grab = (start, end) => { const a = html.indexOf(start); const b = html.indexOf(end, a); if (a < 0 || b < 0) throw new Error(`missing ${start}`); return html.slice(a, b); };
   const shapeSrc = grab('const SHAPE = {', '\nconst PAL');
   const fieldSrc = grab('const SCALE = {', '// ---------- surface extraction');
