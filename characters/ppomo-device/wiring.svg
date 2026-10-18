@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 700" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="1100" height="700" fill="#FBFAF8"/>
+  <text x="30" y="40" font-size="22" font-weight="700" fill="#2E2B2A">Ppomo device v1: wiring</text>
+  <text x="30" y="62" fill="#7A746F">All modules on one I2C bus (3.3 V). Dashed = optional. Everything sits in a sealed pod inside the body; the pressure sensor's port faces the body's air.</text>
+
+  <!-- legend -->
+  <g transform="translate(760,90)">
+    <line x1="0" y1="0" x2="30" y2="0" stroke="#D9534F" stroke-width="3"/><text x="38" y="4">3V3</text>
+    <line x1="80" y1="0" x2="110" y2="0" stroke="#2E2B2A" stroke-width="3"/><text x="118" y="4">GND</text>
+    <line x1="160" y1="0" x2="190" y2="0" stroke="#3B7DD8" stroke-width="3"/><text x="198" y="4">SDA</text>
+    <line x1="240" y1="0" x2="270" y2="0" stroke="#E0A030" stroke-width="3"/><text x="278" y="4">SCL</text>
+  </g>
+
+  <!-- MCU -->
+  <g>
+    <rect x="400" y="170" width="230" height="330" rx="10" fill="#E9EEF7" stroke="#5B6B8C" stroke-width="2"/>
+    <rect x="485" y="150" width="60" height="26" rx="6" fill="#C9CCD6" stroke="#5B6B8C"/>
+    <text x="515" y="168" text-anchor="middle" font-size="12">USB-C</text>
+    <text x="515" y="205" text-anchor="middle" font-size="16" font-weight="700">Seeed XIAO ESP32-C3</text>
+    <text x="515" y="224" text-anchor="middle" fill="#5B6B8C">Wi-Fi + BLE · LiPo charger on board</text>
+    <!-- left pins -->
+    <g font-family="Menlo, monospace" font-size="13">
+      <text x="410" y="275">D0  batt sense</text>
+      <text x="410" y="315">D1  FSR belly</text>
+      <text x="410" y="355">D2  FSR butt</text>
+      <text x="410" y="395">D3  BMP581 INT</text>
+      <text x="620" y="275" text-anchor="end">D4 SDA</text>
+      <text x="620" y="315" text-anchor="end">D5 SCL</text>
+      <text x="620" y="355" text-anchor="end">3V3</text>
+      <text x="620" y="395" text-anchor="end">GND</text>
+      <text x="470" y="485" text-anchor="middle">BAT+</text>
+      <text x="560" y="485" text-anchor="middle">BAT−</text>
+    </g>
+    <circle cx="400" cy="271" r="4" fill="#5B6B8C"/><circle cx="400" cy="311" r="4" fill="#5B6B8C"/><circle cx="400" cy="351" r="4" fill="#5B6B8C"/><circle cx="400" cy="391" r="4" fill="#5B6B8C"/>
+    <circle cx="630" cy="271" r="4" fill="#3B7DD8"/><circle cx="630" cy="311" r="4" fill="#E0A030"/><circle cx="630" cy="351" r="4" fill="#D9534F"/><circle cx="630" cy="391" r="4" fill="#2E2B2A"/>
+    <circle cx="470" cy="500" r="4" fill="#D9534F"/><circle cx="560" cy="500" r="4" fill="#2E2B2A"/>
+  </g>
+
+  <!-- I2C bus -->
+  <g fill="none" stroke-width="3">
+    <path d="M630 271 H700 V150 M700 271 V560" stroke="#3B7DD8"/>
+    <path d="M630 311 H715 V165 M715 311 V575" stroke="#E0A030"/>
+    <path d="M630 351 H730 V180 M730 351 V590" stroke="#D9534F"/>
+    <path d="M630 391 H745 V195 M745 391 V605" stroke="#2E2B2A"/>
+  </g>
+  <!-- drops to devices -->
+  <g fill="none" stroke-width="3">
+    <path d="M700 150 H800" stroke="#3B7DD8"/><path d="M715 165 H800" stroke="#E0A030"/><path d="M730 180 H800" stroke="#D9534F"/><path d="M745 195 H800" stroke="#2E2B2A"/>
+    <path d="M700 330 H800" stroke="#3B7DD8"/><path d="M715 345 H800" stroke="#E0A030"/><path d="M730 360 H800" stroke="#D9534F"/><path d="M745 375 H800" stroke="#2E2B2A"/>
+    <path d="M700 560 H800" stroke="#3B7DD8"/><path d="M715 575 H800" stroke="#E0A030"/><path d="M730 590 H800" stroke="#D9534F"/><path d="M745 605 H800" stroke="#2E2B2A"/>
+  </g>
+  <g fill="#3B7DD8"><circle cx="700" cy="271" r="4"/><circle cx="700" cy="330" r="4"/></g>
+  <g fill="#E0A030"><circle cx="715" cy="311" r="4"/><circle cx="715" cy="345" r="4"/></g>
+  <g fill="#D9534F"><circle cx="730" cy="351" r="4"/><circle cx="730" cy="360" r="4"/></g>
+  <g fill="#2E2B2A"><circle cx="745" cy="391" r="4"/><circle cx="745" cy="375" r="4"/></g>
+
+  <!-- BMP581 -->
+  <rect x="800" y="125" width="285" height="95" rx="10" fill="#FCE8EC" stroke="#C46B7E" stroke-width="2"/>
+  <text x="815" y="150" font-weight="700" font-size="15">BMP581 pressure sensor · 0x47</text>
+  <text x="815" y="170">Squeeze = pressure rise in the sealed body</text>
+  <text x="815" y="188" fill="#7A746F">0.1 Pa noise, up to 240 Hz, OOR interrupt</text>
+  <text x="815" y="206" fill="#7A746F">INT → D3 (wake from deep sleep, phase 2)</text>
+  <path d="M800 212 H785 V655 H385 V391 H400" fill="none" stroke="#5B6B8C" stroke-width="1.5" stroke-dasharray="5 4"/>
+
+  <!-- DS3231 -->
+  <rect x="800" y="305" width="285" height="95" rx="10" fill="#EEF4EA" stroke="#6E9A5B" stroke-width="2"/>
+  <text x="815" y="330" font-weight="700" font-size="15">DS3231 RTC · 0x68</text>
+  <text x="815" y="350">+ CR1220 coin cell: date/time with no Wi-Fi</text>
+  <text x="815" y="368" fill="#7A746F">±2 ppm (≈1 min/yr), re-set by NTP</text>
+  <text x="815" y="386" fill="#7A746F">Alt: RV-3028-C7 (smaller, 45 nA)</text>
+
+  <!-- DRV2605L + motor -->
+  <rect x="800" y="535" width="285" height="95" rx="10" fill="#F3EEF8" stroke="#8A6BB0" stroke-width="2"/>
+  <text x="815" y="560" font-weight="700" font-size="15">DRV2605L haptic driver · 0x5A</text>
+  <text x="815" y="580">"tick" on every counted squeeze</text>
+  <text x="815" y="598" fill="#7A746F">OUT+/OUT− → 10 mm coin LRA</text>
+  <text x="815" y="616" fill="#7A746F">(an ERM coin motor also works)</text>
+  <circle cx="1060" cy="608" r="16" fill="#D8CDE6" stroke="#8A6BB0"/><text x="1060" y="612" text-anchor="middle" font-size="10">LRA</text>
+
+  <!-- battery -->
+  <g>
+    <rect x="70" y="545" width="200" height="80" rx="10" fill="#FFF4E0" stroke="#C99A3B" stroke-width="2"/>
+    <text x="85" y="570" font-weight="700" font-size="15">LiPo 3.7 V 400 mAh</text>
+    <text x="85" y="590">502535 + protection, JST-PH</text>
+    <text x="85" y="608" fill="#7A746F">charges from USB-C via XIAO</text>
+    <rect x="320" y="560" width="70" height="30" rx="5" fill="#fff" stroke="#2E2B2A"/>
+    <text x="355" y="580" text-anchor="middle" font-size="12">switch</text>
+    <path d="M270 575 H320 M390 575 H470 V500" fill="none" stroke="#D9534F" stroke-width="3"/>
+    <path d="M270 605 H560 V500" fill="none" stroke="#2E2B2A" stroke-width="3"/>
+    <text x="290" y="568" font-size="12" fill="#D9534F">+</text><text x="290" y="620" font-size="12">−</text>
+  </g>
+
+  <!-- battery divider -->
+  <g>
+    <path d="M430 575 V530 H22 V310 H170 V300" fill="none" stroke="#D9534F" stroke-width="2"/>
+    <rect x="160" y="250" width="20" height="50" fill="#fff" stroke="#2E2B2A"/><text x="150" y="280" text-anchor="end" font-size="12">220k</text>
+    <path d="M170 250 V230" stroke="#2E2B2A" stroke-width="2"/>
+    <rect x="160" y="180" width="20" height="50" fill="#fff" stroke="#2E2B2A"/><text x="150" y="210" text-anchor="end" font-size="12">220k</text>
+    <path d="M170 180 V160 H150" stroke="#2E2B2A" stroke-width="2" fill="none"/><text x="145" y="164" text-anchor="end" font-size="12">GND</text>
+    <path d="M170 240 H300 V271 H400" fill="none" stroke="#5B6B8C" stroke-width="2"/>
+    <circle cx="170" cy="240" r="4" fill="#5B6B8C"/>
+    <text x="40" y="128" font-weight="700" font-size="14">Battery sense</text>
+    <text x="40" y="146" font-size="12" fill="#7A746F">VBAT/2 → D0 (≈1 µA draw)</text>
+  </g>
+
+  <!-- optional FSRs -->
+  <g>
+    <rect x="40" y="320" width="300" height="150" rx="10" fill="none" stroke="#9A948E" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <text x="55" y="345" font-weight="700" font-size="14">Optional: where was it squeezed?</text>
+    <text x="55" y="365" font-size="12" fill="#7A746F">FSR 402 under a foam puck, belly + butt</text>
+    <text x="55" y="390" font-family="Menlo, monospace" font-size="12">3V3 ─ FSR ─┬─ D1 (belly)</text>
+    <text x="55" y="408" font-family="Menlo, monospace" font-size="12">            └─ 10k ─ GND</text>
+    <text x="55" y="432" font-family="Menlo, monospace" font-size="12">3V3 ─ FSR ─┬─ D2 (butt)</text>
+    <text x="55" y="450" font-family="Menlo, monospace" font-size="12">            └─ 10k ─ GND</text>
+    <path d="M340 390 H370 V311 H400 M340 432 H385 V351 H400" fill="none" stroke="#5B6B8C" stroke-width="1.5" stroke-dasharray="5 4"/>
+  </g>
+</svg>

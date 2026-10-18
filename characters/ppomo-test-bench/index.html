@@ -151,6 +151,24 @@
     </section>
 
     <section class="panel">
+      <h2>쥔 기록 (날짜 · 시간)</h2>
+      <div class="readout" style="grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 10px">
+        <div><small>오늘</small><span id="today">0</span></div>
+        <div><small>전체 기록</small><span id="total">0</span></div>
+        <div><small>마지막</small><span id="lastAt">—</span></div>
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>날짜</th><th>시간</th><th>위치</th></tr></thead>
+        <tbody id="history"></tbody>
+      </table>
+      <div class="row">
+        <button id="btnCsv" type="button">CSV 저장</button>
+        <button id="btnClearLog" type="button">기록 지우기</button>
+      </div>
+      <p class="hint">쥘 때마다 이 컴퓨터의 시계로 날짜·시간을 찍어 브라우저에 저장합니다 (새로고침해도 남음). 최종 버전에서는 기기가 직접 시간을 찍어 웹 서버로 보냅니다.</p>
+    </section>
+
+    <section class="panel">
       <h2>기기 메시지</h2>
       <pre id="log" aria-live="polite"></pre>
       <p class="hint" id="demoHint" hidden>데모 모드: <span class="kbd">B</span> 키를 누르고 있으면 배, <span class="kbd">N</span> 키는 엉덩이를 쥔 것처럼 움직입니다.</p>
@@ -199,10 +217,44 @@ function handleLine(line) {
   if (m.type === 'ready') { count = m.count || 0; updateCharacter(); }
   if (m.type === 'squeeze') {
     count = m.count; lastSource = m.source; events.push({ t: performance.now(), source: m.source });
+    addHistory(m.source);
     if (activeTest) activeTest.got++;
     renderTests(); squish(); updateCharacter();
   }
 }
+
+// ---------- squeeze history with date + time ----------
+const HISTORY_KEY = 'ppomo-bench-history';
+const SOURCE_KO = { belly: '배', butt: '엉덩이', both: '둘 다' };
+let history = [];
+try { history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { history = []; }
+const pad = (n) => String(n).padStart(2, '0');
+const dateOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const timeOf = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+function saveHistory() { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch {} }
+function addHistory(source) {
+  history.push({ at: new Date().toISOString(), source, demo: !!demo });
+  saveHistory(); renderHistory();
+}
+function renderHistory() {
+  const today = dateOf(new Date());
+  $('today').textContent = history.filter((h) => dateOf(new Date(h.at)) === today).length;
+  $('total').textContent = history.length;
+  $('lastAt').textContent = history.length ? timeOf(new Date(history[history.length - 1].at)) : '—';
+  $('history').innerHTML = history.slice(-8).reverse().map((h, i) => {
+    const d = new Date(h.at);
+    return `<tr><td>${history.length - i}</td><td>${dateOf(d)}</td><td>${timeOf(d)}</td><td>${SOURCE_KO[h.source] || h.source}${h.demo ? ' (데모)' : ''}</td></tr>`;
+  }).join('');
+}
+$('btnCsv').addEventListener('click', () => {
+  const rows = ['n,iso_time,date,time,source,demo', ...history.map((h, i) => { const d = new Date(h.at); return [i + 1, h.at, dateOf(d), timeOf(d), h.source, h.demo ? 1 : 0].join(','); })];
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([rows.join('\n') + '\n'], { type: 'text/csv' }));
+  a.download = `ppomo-squeezes-${dateOf(new Date())}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$('btnClearLog').addEventListener('click', () => { if (confirm('저장된 쥔 기록을 모두 지울까요?')) { history = []; saveHistory(); renderHistory(); } });
+renderHistory();
 
 // ---------- Web Serial ----------
 async function connect() {

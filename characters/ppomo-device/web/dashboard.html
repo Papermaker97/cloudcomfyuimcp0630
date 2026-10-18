@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ppomo Squeeze Log</title>
+<style>
+  :root {
+    --bg: #F6F4F1; --panel: #FFFFFF; --fg: #2E2B2A; --muted: #7A746F; --line: #E4DFD9; --accent: #E58FA0; --bar: #C9CCD6;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #1C1B1A; --panel: #262422; --fg: #EFEAE5; --muted: #A39C95; --line: #3A3633; --bar: #55545C; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #1C1B1A; --panel: #262422; --fg: #EFEAE5; --muted: #A39C95; --line: #3A3633; --bar: #55545C; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  h1 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+  .status { color: var(--muted); font-size: 13px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .stats div { min-width: 0; }
+  .stats small { display: block; color: var(--muted); font-size: 12px; }
+  .stats b { font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 1rem; font-variant-numeric: tabular-nums; }
+  svg { width: 100%; height: auto; display: block; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  form { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 700px) { form { grid-template-columns: 2fr 2fr 1fr auto; align-items: end; } }
+  label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  input { font: 13px var(--mono); padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); min-width: 0; }
+  button { font: 600 13px var(--font); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--fg); color: var(--bg); cursor: pointer; }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ppomo squeeze log</h1>
+    <span class="status" id="status">demo data</span>
+  </header>
+
+  <section class="panel stats" aria-label="Totals">
+    <div><small>Today</small><b id="today">0</b></div>
+    <div><small>All time</small><b id="total">0</b></div>
+    <div><small>Last squeeze</small><span id="last">—</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Last 14 days</h2>
+    <svg id="days" viewBox="0 0 700 180" role="img" aria-label="Squeezes per day"></svg>
+  </section>
+
+  <section class="panel">
+    <h2>Today by hour</h2>
+    <svg id="hours" viewBox="0 0 700 140" role="img" aria-label="Squeezes per hour today"></svg>
+  </section>
+
+  <section class="panel">
+    <h2>Recent squeezes</h2>
+    <table>
+      <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Where</th><th>Strength</th></tr></thead>
+      <tbody id="recent"></tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Connect</h2>
+    <form id="cfg">
+      <label>Supabase URL<input id="url" placeholder="https://xxxx.supabase.co" autocomplete="off"></label>
+      <label>Anon key<input id="key" placeholder="eyJ..." autocomplete="off"></label>
+      <label>Device<input id="device" value="ppomo-01" autocomplete="off"></label>
+      <button type="submit">Load</button>
+    </form>
+    <p class="hint">Leave empty to see demo data. Reads the <code>squeezes</code> table from <code>schema.sql</code> and refreshes every 5 s. Times are shown in this computer's time zone.</p>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const pad = (n) => String(n).padStart(2, '0');
+const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+// ---------- data ----------
+let rows = [];            // [{seq, at: Date, source, peak_pa}] newest first
+function demoRows() {
+  const out = [], now = Date.now();
+  let seq = 0;
+  for (let day = 13; day >= 0; day--) {
+    const n = 8 + Math.round(12 * Math.abs(Math.sin(day * 1.7)));
+    for (let i = 0; i < n; i++) {
+      const t = new Date(now - day * 864e5);
+      t.setHours(9 + ((i * 5 + day) % 13), (i * 17 + day * 7) % 60, (i * 13) % 60, 0);
+      if (t.getTime() > now) continue;
+      out.push({ at: t, source: ['body', 'belly', 'butt'][(i + day) % 3], peak_pa: 600 + ((i * 397 + day * 131) % 2400) });
+    }
+  }
+  out.sort((a, b) => a.at - b.at).forEach((r) => { r.seq = ++seq; });
+  return out.reverse();
+}
+async function load() {
+  const url = store.get('ppomo-url'), key = store.get('ppomo-key'), device = store.get('ppomo-device') || 'ppomo-01';
+  if (!url || !key) { rows = demoRows(); $('status').textContent = 'demo data'; render(); return; }
+  try {
+    const q = `${url.replace(/\/$/, '')}/rest/v1/squeezes?select=seq,ts,received_at,source,peak_pa&device_id=eq.${encodeURIComponent(device)}&order=seq.desc&limit=5000`;
+    const res = await fetch(q, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    rows = (await res.json()).map((r) => ({ ...r, at: new Date(r.ts || r.received_at) }));
+    $('status').textContent = `${device} · updated ${new Date().toLocaleTimeString()}`;
+  } catch (e) {
+    $('status').textContent = `could not load: ${e.message}`;
+  }
+  render();
+}
+
+// ---------- drawing ----------
+function bars(svg, values, labels, w, h, labelEvery = 1) {
+  const max = Math.max(1, ...values), n = values.length, gap = 4, bw = (w - gap * (n - 1)) / n, top = 18, base = h - 22;
+  let s = '';
+  values.forEach((v, i) => {
+    const x = i * (bw + gap), bh = (base - top) * v / max;
+    const last = i === n - 1;
+    s += `<rect x="${x}" y="${base - bh}" width="${bw}" height="${Math.max(bh, v ? 1 : 0)}" rx="3" fill="${last ? css('--accent') : css('--bar')}"/>`;
+    if (v) s += `<text x="${x + bw / 2}" y="${base - bh - 4}" text-anchor="middle" font-size="11" fill="${css('--muted')}">${v}</text>`;
+    if (i % labelEvery === 0 || last) s += `<text x="${x + bw / 2}" y="${h - 6}" text-anchor="middle" font-size="11" fill="${css('--muted')}">${labels[i]}</text>`;
+  });
+  svg.innerHTML = s;
+}
+function render() {
+  const now = new Date(), today = dayKey(now);
+  const todayRows = rows.filter((r) => dayKey(r.at) === today);
+  $('today').textContent = todayRows.length;
+  $('total').textContent = rows.length ? Math.max(...rows.map((r) => r.seq)) : 0;
+  $('last').textContent = rows.length ? rows[0].at.toLocaleString() : '—';
+
+  const days = [], dayLabels = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const k = dayKey(d);
+    days.push(rows.filter((r) => dayKey(r.at) === k).length);
+    dayLabels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+  }
+  bars($('days'), days, dayLabels, 700, 180);
+  const hours = Array(24).fill(0);
+  todayRows.forEach((r) => hours[r.at.getHours()]++);
+  bars($('hours'), hours, hours.map((_, h) => `${h}`), 700, 140, 3);
+
+  $('recent').innerHTML = rows.slice(0, 10).map((r) =>
+    `<tr><td>${r.seq}</td><td>${dayKey(r.at)}</td><td>${r.at.toLocaleTimeString()}</td><td>${r.source}</td><td>${r.peak_pa ? (r.peak_pa / 1000).toFixed(1) + ' kPa' : '—'}</td></tr>`).join('');
+}
+
+$('url').value = store.get('ppomo-url'); $('key').value = store.get('ppomo-key'); $('device').value = store.get('ppomo-device') || 'ppomo-01';
+$('cfg').addEventListener('submit', (e) => {
+  e.preventDefault();
+  store.set('ppomo-url', $('url').value.trim()); store.set('ppomo-key', $('key').value.trim()); store.set('ppomo-device', $('device').value.trim());
+  load();
+});
+load();
+setInterval(load, 5000);
+</script>
+</body>
+</html>
