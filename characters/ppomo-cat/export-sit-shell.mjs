@@ -22,7 +22,7 @@ const FLOOR_MM = +(process.env.FLOOR_MM || 5);
 const GROOVE_W_MM = +(process.env.GROOVE_W_MM || 7);
 const GROOVE_D_MM = +(process.env.GROOVE_D_MM || 3);
 const MIN_CAVITY_MM = 3.0;
-const STEP = +(process.env.STEP || 0.012);   // 0.012 and 0.0127 mesh with no non-manifold edges at 95 mm
+const STEP = +(process.env.STEP || 0.0127);   // grid step that meshes with no non-manifold edges for the current shape at 95 mm; re-check after shape edits
 const tag = `${HEIGHT_MM}mm`;
 
 const model = loadModel(dir, 'ppomo-sit-3d.html');
