@@ -1,0 +1,160 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "face_01.png"
+    },
+    "_meta": {
+      "title": "Ref Face 1"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "face_02.png"
+    },
+    "_meta": {
+      "title": "Ref Face 2"
+    }
+  },
+  "3": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "face_03.png"
+    },
+    "_meta": {
+      "title": "Ref Face 3"
+    }
+  },
+  "4": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "face_04.png"
+    },
+    "_meta": {
+      "title": "Ref Face 4"
+    }
+  },
+  "5": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "face_05.png"
+    },
+    "_meta": {
+      "title": "Ref Face 5"
+    }
+  },
+  "6": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "body_01.png"
+    },
+    "_meta": {
+      "title": "Ref Body 1"
+    }
+  },
+  "7": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "body_02.png"
+    },
+    "_meta": {
+      "title": "Ref Body 2"
+    }
+  },
+  "8": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "body_03.png"
+    },
+    "_meta": {
+      "title": "Ref Body 3"
+    }
+  },
+  "9": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "body_04.png"
+    },
+    "_meta": {
+      "title": "Ref Body 4"
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "body_05.png"
+    },
+    "_meta": {
+      "title": "Ref Body 5"
+    }
+  },
+  "20": {
+    "class_type": "OpenAIGPTImageNodeV2",
+    "inputs": {
+      "prompt": "Create a professional character reference sheet of the SAME person shown in the reference images.\nReference images 1-5 are face photos, reference images 6-10 are body shots. Preserve this exact person's identity: face shape, facial features, eyes, nose, lips, skin tone, hairstyle and hair color, and real body proportions (height-to-head ratio, shoulder width, waist, hips, leg length). Do not beautify, slim down or stylize the person.\n\nLAYOUT: one 16:9 landscape image divided into FIVE equal-width vertical panels side by side, separated by thin white gutters, left to right:\nPanel 1 - Front close-up portrait: head and shoulders, facing the camera straight on, neutral expression, eyes looking at the camera.\nPanel 2 - Front full-body shot: standing straight facing the camera, arms relaxed slightly away from the body, feet shoulder-width apart, head to toe fully visible.\nPanel 3 - Left side full-body shot: true 90-degree profile, the person's left side facing the camera, same standing pose, head to toe visible.\nPanel 4 - Right side full-body shot: true 90-degree profile, the person's right side facing the camera, same standing pose, head to toe visible.\nPanel 5 - Back full-body shot: facing directly away from the camera, same standing pose, head to toe visible, hairstyle visible from behind.\n\nOUTFIT (default, identical in all panels): plain black long-sleeve form-fitting bodysuit with full-length black leggings / tights, matte fabric, no logos, no patterns, no accessories, barefoot. The outfit must be fitted so the body silhouette and proportions are clearly readable.\n\nCONSISTENCY: same person, same hairstyle, same outfit, same scale and same camera height across all four full-body panels; feet aligned on the same ground line and the top of the head at the same height in panels 2-5. Orthographic, eye-level camera, no perspective distortion.\n\nSTYLE: photorealistic studio photography, plain seamless light gray background, soft even diffused lighting, no harsh shadows, sharp focus, high detail skin texture, natural colors. No text, no labels, no watermark, no extra people, no props.",
+      "model": "gpt-image-2.5-sunburst",
+      "model.size": "3840x2160",
+      "model.background": "opaque",
+      "model.quality": "high",
+      "n": 1,
+      "seed": 0,
+      "model.images.image_1": [
+        "1",
+        0
+      ],
+      "model.images.image_2": [
+        "2",
+        0
+      ],
+      "model.images.image_3": [
+        "3",
+        0
+      ],
+      "model.images.image_4": [
+        "4",
+        0
+      ],
+      "model.images.image_5": [
+        "5",
+        0
+      ],
+      "model.images.image_6": [
+        "6",
+        0
+      ],
+      "model.images.image_7": [
+        "7",
+        0
+      ],
+      "model.images.image_8": [
+        "8",
+        0
+      ],
+      "model.images.image_9": [
+        "9",
+        0
+      ],
+      "model.images.image_10": [
+        "10",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GPT Image 2.5 - Character Sheet"
+    }
+  },
+  "30": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "20",
+        0
+      ],
+      "filename_prefix": "character_sheet/sheet"
+    },
+    "_meta": {
+      "title": "Save Character Sheet"
+    }
+  }
+}
