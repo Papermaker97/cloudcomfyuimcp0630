@@ -1,37 +1,37 @@
-// 뽀모 — FOMO가 쌓인다 (ICM Week 6, 진행 중)
-// 화면을 누를 때마다(= 뽀모를 쥘 때마다) 뽀모가 한 마리씩 위에서 떨어져 바닥에 쌓인다.
-// 누른 위치의 칸으로 떨어지고, 그 칸에 이미 있는 뽀모 위에 올라간다.
-// Backspace: 마지막으로 떨어진 뽀모를 뺀다.
+// Ppomo — FOMO piles up (ICM Week 6, work in progress)
+// Every press of the screen (= every squeeze of Ppomo) drops one Ppomo from the top onto the floor.
+// It falls into the column you pressed and lands on top of the Ppomos already there.
+// Backspace removes the Ppomo that fell last.
 
 const W = 360;
 const H = 640;
-const SIZE = 60;              // 뽀모 한 마리 크기 = 칸 너비
-const COLS = W / SIZE;        // 칸 수 (6칸)
-const STACK_STEP = SIZE * 0.8; // 쌓일 때 조금씩 겹쳐서 말랑하게
-const GROUND = H - 40;        // 바닥 선
+const SIZE = 60;              // size of one Ppomo = column width
+const COLS = W / SIZE;        // number of columns (6)
+const STACK_STEP = SIZE * 0.8; // overlap a little when stacking so the pile looks squishy
+const GROUND = H - 40;        // floor line
 const GRAVITY = 0.6;
 
-// 마리마다 다른 파스텔 색 (#4 기획서 구상)
+// a different pastel color for each Ppomo (from my #4 proposal)
 const PASTELS = ['#F6C9D3', '#C9DDF6', '#D7F0C9', '#F6E3B8', '#E2D2F4', '#BFE8E4'];
 
-let ppomos = [];   // 쌓인 뽀모들 (객체 배열)
-let log = [];      // 사용자 행동 기록: { action, time }
+let ppomos = [];   // the Ppomos on screen (array of objects)
+let log = [];      // record of user actions: { action, time }
 
 class Ppomo {
   constructor(col, stackIndex) {
     this.col = col;
     this.x = col * SIZE + SIZE / 2;
-    this.y = -SIZE;                                   // 화면 위에서 시작
-    this.targetY = GROUND - SIZE / 2 - stackIndex * STACK_STEP;   // 착지할 높이
+    this.y = -SIZE;                                   // start above the screen
+    this.targetY = GROUND - SIZE / 2 - stackIndex * STACK_STEP;   // landing height
     this.speed = 0;
     this.landed = false;
-    this.squash = 0;                                  // 착지할 때 찌그러짐 (1 → 0)
+    this.squash = 0;                                  // squash on landing (1 → 0)
     this.color = random(PASTELS);
   }
 
   fall() {
     if (this.landed) {
-      this.squash *= 0.85;                            // 찌그러짐이 천천히 풀린다
+      this.squash *= 0.85;                            // the squash slowly relaxes
       return;
     }
     this.speed += GRAVITY;
@@ -45,25 +45,25 @@ class Ppomo {
 
   show() {
     push();
-    translate(this.x, this.y + (SIZE / 2) * 0.2 * this.squash);   // 찌그러질 때 바닥에 붙어 있게
+    translate(this.x, this.y + (SIZE / 2) * 0.2 * this.squash);   // keep the bottom on the ground while squashed
     scale(1 + 0.2 * this.squash, 1 - 0.2 * this.squash);
     noStroke();
 
-    // 귀
+    // ears
     fill(this.color);
     circle(-SIZE * 0.28, -SIZE * 0.36, SIZE * 0.26);
     circle(SIZE * 0.28, -SIZE * 0.36, SIZE * 0.26);
-    // 몸
+    // body
     ellipse(0, 0, SIZE, SIZE * 0.9);
-    // 볼
+    // cheeks
     fill(244, 150, 170, 150);
     ellipse(-SIZE * 0.25, SIZE * 0.08, SIZE * 0.26, SIZE * 0.17);
     ellipse(SIZE * 0.25, SIZE * 0.08, SIZE * 0.26, SIZE * 0.17);
-    // 눈
+    // eyes
     fill(58, 58, 62);
     circle(-SIZE * 0.12, -SIZE * 0.04, SIZE * 0.07);
     circle(SIZE * 0.12, -SIZE * 0.04, SIZE * 0.07);
-    // 입 (ω)
+    // mouth (ω)
     noFill();
     stroke(58, 58, 62);
     strokeWeight(1.5);
@@ -81,7 +81,7 @@ function setup() {
 function draw() {
   background(250, 247, 243);
 
-  // 바닥
+  // floor
   stroke(228, 223, 217);
   strokeWeight(2);
   line(0, GROUND, W, GROUND);
@@ -94,7 +94,7 @@ function draw() {
   drawInfo();
 }
 
-// 그 칸에 몇 마리가 있는지 센다
+// count how many Ppomos are in a column
 function countInColumn(col) {
   let n = 0;
   for (let i = 0; i < ppomos.length; i++) {
@@ -103,12 +103,12 @@ function countInColumn(col) {
   return n;
 }
 
-// 뽀모를 한 번 쥐었다 = 뽀모 한 마리 추가
+// one squeeze = add one Ppomo
 function squeeze(x) {
   let col = constrain(floor(x / SIZE), 0, COLS - 1);
   let n = countInColumn(col);
   let topY = GROUND - SIZE / 2 - n * STACK_STEP;
-  if (topY < SIZE) {                       // 이 칸은 꽉 찼다
+  if (topY < SIZE) {                       // this column is full
     log.push({ action: 'full', time: millis() });
     return;
   }
@@ -122,14 +122,14 @@ function mousePressed() {
 
 function keyPressed() {
   if (key === ' ') {
-    squeeze(random(W));                    // 스페이스: 아무 칸에나 떨어뜨리기
+    squeeze(random(W));                    // space: drop into a random column
   } else if (keyCode === BACKSPACE && ppomos.length > 0) {
-    ppomos.pop();                          // 마지막 뽀모 빼기 (가장 위에 있으니 다른 뽀모는 그대로)
+    ppomos.pop();                          // remove the last Ppomo (it's on top, so nothing else moves)
     log.push({ action: 'remove', time: millis() });
   }
 }
 
-// 기록 배열로 횟수를 세서 보여준다
+// count squeezes from the log array and show them
 function drawInfo() {
   let squeezes = 0;
   for (let i = 0; i < log.length; i++) {
@@ -139,10 +139,10 @@ function drawInfo() {
   fill(46, 43, 42);
   textSize(16);
   textAlign(LEFT, TOP);
-  text('뽀모 ' + ppomos.length + '마리', 16, 16);
+  text(ppomos.length + ' Ppomo' + (ppomos.length === 1 ? '' : 's'), 16, 16);
   fill(122, 116, 111);
   textSize(12);
-  text('쥔 횟수 ' + squeezes, 16, 40);
+  text('squeezes: ' + squeezes, 16, 40);
   textAlign(CENTER, BOTTOM);
-  text('눌러서 뽀모 쥐기 · Backspace 빼기', W / 2, H - 12);
+  text('click to squeeze · Backspace to remove', W / 2, H - 12);
 }
