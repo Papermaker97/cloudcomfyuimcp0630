@@ -123,7 +123,7 @@ function mousePressed() {
 function keyPressed() {
   if (key === ' ') {
     squeeze(random(W));                    // space: drop into a random column
-  } else if (keyCode === BACKSPACE && ppomos.length > 0) {
+  } else if ((key === 'Backspace' || keyCode === 8) && ppomos.length > 0) {
     ppomos.pop();                          // remove the last Ppomo (it's on top, so nothing else moves)
     log.push({ action: 'remove', time: millis() });
   }

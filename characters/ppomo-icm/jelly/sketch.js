@@ -21,13 +21,6 @@ let ppomos = [];             // every Ppomo on screen (array of objects)
 let log = [];                // what the user did: { action, time }
 let full = false;
 
-function preload() {
-  for (let pose of ['front', 'butt', 'side', 'peek']) {
-    for (let color of ['grey', 'pink', 'cream', 'peach', 'lilac', 'sky']) {
-      sprites[pose + '-' + color] = loadImage('sprites/' + pose + '-' + color + '.png');
-    }
-  }
-}
 
 class Ppomo {
   constructor(x) {
@@ -103,9 +96,15 @@ class Ppomo {
   }
 }
 
-function setup() {
+// p5.js 2.x has no preload(), so the pictures load in setup() with await (this also works in 1.x)
+async function setup() {
   createCanvas(W, H);
   textFont('sans-serif');
+  for (let pose of ['front', 'butt', 'side', 'peek']) {
+    for (let color of ['grey', 'pink', 'cream', 'peach', 'lilac', 'sky']) {
+      sprites[pose + '-' + color] = await loadImage('sprites/' + pose + '-' + color + '.png');
+    }
+  }
 }
 
 function draw() {
@@ -134,7 +133,7 @@ function mousePressed() {
 function keyPressed() {
   if (key === ' ') {
     squeeze(random(W));
-  } else if (keyCode === BACKSPACE && ppomos.length > 0) {
+  } else if ((key === 'Backspace' || keyCode === 8) && ppomos.length > 0) {
     ppomos.pop();
     full = false;
     log.push({ action: 'remove', time: millis() });
