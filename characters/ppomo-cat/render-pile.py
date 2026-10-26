@@ -1,8 +1,8 @@
-# Renders a pile of sitting Ppomos from ppomo-sit-3d.html: python3 render-pile.py render-pile.json out.html, then screenshot out.html.
-# Layout (positions, tilts, colors) and camera live in render-pile.json.
-import os, sys, json
-src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ppomo-sit-3d.html')).read()
+# Renders a pile of Ppomos from one of the 3D pages: python3 render-pile.py <layout.json> out.html, then screenshot out.html.
+# The layout file names the source page ("source"), the camera, and each Ppomo's position, tilt and color.
+import os, re, sys, json
 layout = json.load(open(sys.argv[1]))
+src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), layout.get('source', 'ppomo-sit-3d.html'))).read()
 pile = """
 // ---------- pile render (scratch) ----------
 {
@@ -28,8 +28,8 @@ pile = """
 marker = '// ---------- camera & controls ----------'
 out = src.replace(marker, pile + marker)
 cam = layout['camera']
-out = out.replace("const TARGET = new THREE.Vector3(0, 0.98, 0);", "const TARGET = new THREE.Vector3(%s);" % ', '.join(map(str, cam['target'])))
-out = out.replace("camera.position.set(4.4, 2.6, 5.2);       // 3/4 front view", "camera.position.set(%s);" % ', '.join(map(str, cam['pos'])))
+out = re.sub(r"const TARGET = new THREE\.Vector3\([^)]*\);", "const TARGET = new THREE.Vector3(%s);" % ', '.join(map(str, cam['target'])), out, count=1)
+out = re.sub(r"(const controls = new OrbitControls)", "camera.position.set(%s);\n\\1" % ', '.join(map(str, cam['pos'])), out, count=1)
 out = out.replace("controls.minDistance = 4;", "controls.minDistance = 1;").replace("controls.maxDistance = 13;", "controls.maxDistance = 60;")
 out = out.replace("controls.autoRotate = !SHEET", "controls.autoRotate = false && !SHEET")
 out = out.replace("renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });", "controls.update(); renderer.render(scene, camera);")
