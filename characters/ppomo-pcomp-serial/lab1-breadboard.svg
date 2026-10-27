@@ -455,6 +455,8 @@
 <text x="310" y="44" text-anchor="middle" font-size="11" fill="#777">i</text>
 <text x="330" y="44" text-anchor="middle" font-size="11" fill="#777">j</text>
 <rect x="158" y="28" width="144" height="325" rx="6" fill="#127C8C"/>
+<rect x="168" y="350" width="124" height="36" rx="3" fill="#B8BCC0" stroke="#7d8287"/>
+<text x="230" y="370" text-anchor="middle" font-size="10" fill="#333">antenna tab (no pins)</text>
 <rect x="212" y="18" width="36" height="26" rx="3" fill="#BFC4C8" stroke="#8a8f93"/>
 <text x="230" y="190" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" transform="rotate(-90 230 190)">Arduino Nano 33 IoT</text>
 <circle cx="170" cy="60" r="5" fill="#E8C25A" stroke="#9b7a1e"/>
@@ -531,79 +533,79 @@
 <path d="M60 640 Q230.0 700.0 400 640" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round"/>
 <circle cx="60" cy="640" r="3.5" fill="#222"/>
 <circle cx="400" cy="640" r="3.5" fill="#222"/>
-<circle cx="230" cy="694" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="230" y="698" text-anchor="middle" font-size="11" font-weight="700">3</text>
-<rect x="178" y="368" width="84" height="64" rx="4" fill="#3a3a3a"/>
-<circle cx="220" cy="400" r="16" fill="#8B5A3C" stroke="#222"/>
-<circle cx="190" cy="380" r="4" fill="#bbb" stroke="#222"/>
-<circle cx="250" cy="380" r="4" fill="#bbb" stroke="#222"/>
+<circle cx="330" cy="690" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="330" y="694" text-anchor="middle" font-size="11" font-weight="700">3</text>
+<rect x="178" y="406" width="96" height="68" rx="4" fill="#3a3a3a"/>
+<circle cx="220" cy="440" r="22" fill="#2E9E4F" stroke="#222"/>
 <circle cx="190" cy="420" r="4" fill="#bbb" stroke="#222"/>
 <circle cx="250" cy="420" r="4" fill="#bbb" stroke="#222"/>
-<circle cx="220" cy="434" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="220" y="438" text-anchor="middle" font-size="11" font-weight="700">4</text>
-<path d="M110 380 Q75.0 370.0 40 380" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
-<path d="M110 380 Q75.0 370.0 40 380" fill="none" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
-<circle cx="110" cy="380" r="3.5" fill="#222"/>
-<circle cx="40" cy="380" r="3.5" fill="#222"/>
-<circle cx="88" cy="396" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="88" y="400" text-anchor="middle" font-size="11" font-weight="700">5</text>
-<path d="M310 260 Q328.0 340.0 310 420" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
-<path d="M310 260 Q328.0 340.0 310 420" fill="none" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
+<circle cx="190" cy="460" r="4" fill="#bbb" stroke="#222"/>
+<circle cx="250" cy="460" r="4" fill="#bbb" stroke="#222"/>
+<circle cx="286" cy="440" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="286" y="444" text-anchor="middle" font-size="11" font-weight="700">4</text>
+<path d="M110 420 Q75.0 410.0 40 420" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+<path d="M110 420 Q75.0 410.0 40 420" fill="none" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
+<circle cx="110" cy="420" r="3.5" fill="#222"/>
+<circle cx="40" cy="420" r="3.5" fill="#222"/>
+<circle cx="88" cy="436" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="88" y="440" text-anchor="middle" font-size="11" font-weight="700">5</text>
+<path d="M310 260 Q328.0 360.0 310 460" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+<path d="M310 260 Q328.0 360.0 310 460" fill="none" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
 <circle cx="310" cy="260" r="3.5" fill="#222"/>
-<circle cx="310" cy="420" r="3.5" fill="#222"/>
+<circle cx="310" cy="460" r="3.5" fill="#222"/>
 <circle cx="328" cy="340" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="328" y="344" text-anchor="middle" font-size="11" font-weight="700">6</text>
-<line x1="330" y1="420" x2="400" y2="420" stroke="#999" stroke-width="2.5"/>
-<rect x="349.0" y="414" width="32" height="12" rx="5" fill="#E2C48F" stroke="#8a6a3b"/>
-<rect x="353.5" y="414" width="3" height="12" fill="#7B4A1E"/>
-<rect x="359.5" y="414" width="3" height="12" fill="#111"/>
-<rect x="365.5" y="414" width="3" height="12" fill="#F08A00"/>
-<rect x="373.5" y="414" width="3" height="12" fill="#C9A227"/>
-<circle cx="330" cy="420" r="3.5" fill="#222"/>
-<circle cx="400" cy="420" r="3.5" fill="#222"/>
-<circle cx="365" cy="402" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="365" y="406" text-anchor="middle" font-size="11" font-weight="700">7</text>
-<rect x="196" y="466" width="72" height="68" rx="8" fill="#2b2b2b"/>
-<circle cx="236" cy="500" r="22" fill="#6d6d6d" stroke="#111"/><rect x="232" y="480" width="8" height="20" fill="#222"/>
-<line x1="190" y1="480" x2="198" y2="480" stroke="#bbb" stroke-width="3"/><circle cx="190" cy="480" r="4" fill="#bbb" stroke="#222"/>
-<line x1="190" y1="500" x2="198" y2="500" stroke="#bbb" stroke-width="3"/><circle cx="190" cy="500" r="4" fill="#bbb" stroke="#222"/>
+<line x1="330" y1="460" x2="400" y2="460" stroke="#999" stroke-width="2.5"/>
+<rect x="349.0" y="454" width="32" height="12" rx="5" fill="#E2C48F" stroke="#8a6a3b"/>
+<rect x="353.5" y="454" width="3" height="12" fill="#7B4A1E"/>
+<rect x="359.5" y="454" width="3" height="12" fill="#111"/>
+<rect x="365.5" y="454" width="3" height="12" fill="#F08A00"/>
+<rect x="373.5" y="454" width="3" height="12" fill="#C9A227"/>
+<circle cx="330" cy="460" r="3.5" fill="#222"/>
+<circle cx="400" cy="460" r="3.5" fill="#222"/>
+<circle cx="365" cy="442" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="365" y="446" text-anchor="middle" font-size="11" font-weight="700">7</text>
+<rect x="196" y="506" width="72" height="68" rx="8" fill="#2b2b2b"/>
+<circle cx="236" cy="540" r="22" fill="#6d6d6d" stroke="#111"/><rect x="232" y="520" width="8" height="20" fill="#222"/>
 <line x1="190" y1="520" x2="198" y2="520" stroke="#bbb" stroke-width="3"/><circle cx="190" cy="520" r="4" fill="#bbb" stroke="#222"/>
-<circle cx="284" cy="500" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="284" y="504" text-anchor="middle" font-size="11" font-weight="700">8</text>
-<path d="M110 480 Q75.0 470.0 40 480" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
-<path d="M110 480 Q75.0 470.0 40 480" fill="none" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
-<circle cx="110" cy="480" r="3.5" fill="#222"/>
-<circle cx="40" cy="480" r="3.5" fill="#222"/>
-<path d="M110 520 Q85.0 528.0 60 520" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
-<path d="M110 520 Q85.0 528.0 60 520" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+<line x1="190" y1="540" x2="198" y2="540" stroke="#bbb" stroke-width="3"/><circle cx="190" cy="540" r="4" fill="#bbb" stroke="#222"/>
+<line x1="190" y1="560" x2="198" y2="560" stroke="#bbb" stroke-width="3"/><circle cx="190" cy="560" r="4" fill="#bbb" stroke="#222"/>
+<circle cx="284" cy="540" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="284" y="544" text-anchor="middle" font-size="11" font-weight="700">8</text>
+<path d="M110 520 Q75.0 510.0 40 520" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+<path d="M110 520 Q75.0 510.0 40 520" fill="none" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
 <circle cx="110" cy="520" r="3.5" fill="#222"/>
-<circle cx="60" cy="520" r="3.5" fill="#222"/>
-<circle cx="86" cy="500" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="86" y="504" text-anchor="middle" font-size="11" font-weight="700">9</text>
-<path d="M150 140 L150 500" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
-<path d="M150 140 L150 500" fill="none" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
+<circle cx="40" cy="520" r="3.5" fill="#222"/>
+<path d="M110 560 Q85.0 568.0 60 560" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+<path d="M110 560 Q85.0 568.0 60 560" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+<circle cx="110" cy="560" r="3.5" fill="#222"/>
+<circle cx="60" cy="560" r="3.5" fill="#222"/>
+<circle cx="86" cy="540" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="86" y="544" text-anchor="middle" font-size="11" font-weight="700">9</text>
+<path d="M150 140 L150 540" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+<path d="M150 140 L150 540" fill="none" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
 <circle cx="150" cy="140" r="3.5" fill="#222"/>
-<circle cx="150" cy="500" r="3.5" fill="#222"/>
+<circle cx="150" cy="540" r="3.5" fill="#222"/>
 <circle cx="150" cy="220" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="150" y="224" text-anchor="middle" font-size="11" font-weight="700">10</text>
-<rect x="188" y="574" width="70" height="32" rx="4" fill="#C7A46A" stroke="#8a6a3b"/>
-<circle cx="282" cy="590.0" r="28" fill="#E8D3A6" stroke="#8a6a3b" stroke-width="2"/>
-<text x="282" y="595.0" text-anchor="middle" font-size="13" font-weight="700" fill="#5b4522">FSR</text>
-<circle cx="190" cy="580" r="4" fill="#bbb" stroke="#222"/>
+<rect x="188" y="594" width="70" height="32" rx="4" fill="#C7A46A" stroke="#8a6a3b"/>
+<circle cx="282" cy="610.0" r="28" fill="#E8D3A6" stroke="#8a6a3b" stroke-width="2"/>
+<text x="282" y="615.0" text-anchor="middle" font-size="13" font-weight="700" fill="#5b4522">FSR</text>
 <circle cx="190" cy="600" r="4" fill="#bbb" stroke="#222"/>
-<circle cx="282" cy="632.0" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="282" y="636.0" text-anchor="middle" font-size="11" font-weight="700">11</text>
-<path d="M110 580 Q75.0 570.0 40 580" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
-<path d="M110 580 Q75.0 570.0 40 580" fill="none" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
-<circle cx="110" cy="580" r="3.5" fill="#222"/>
-<circle cx="40" cy="580" r="3.5" fill="#222"/>
-<circle cx="86" cy="558" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="86" y="562" text-anchor="middle" font-size="11" font-weight="700">12</text>
-<line x1="110" y1="600" x2="60" y2="600" stroke="#999" stroke-width="2.5"/>
-<rect x="69.0" y="594" width="32" height="12" rx="5" fill="#E2C48F" stroke="#8a6a3b"/>
-<rect x="73.5" y="594" width="3" height="12" fill="#7B4A1E"/>
-<rect x="79.5" y="594" width="3" height="12" fill="#111"/>
-<rect x="85.5" y="594" width="3" height="12" fill="#F08A00"/>
-<rect x="93.5" y="594" width="3" height="12" fill="#C9A227"/>
+<circle cx="190" cy="620" r="4" fill="#bbb" stroke="#222"/>
+<circle cx="322" cy="580.0" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="322" y="584.0" text-anchor="middle" font-size="11" font-weight="700">11</text>
+<path d="M110 600 Q75.0 590.0 40 600" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+<path d="M110 600 Q75.0 590.0 40 600" fill="none" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
 <circle cx="110" cy="600" r="3.5" fill="#222"/>
-<circle cx="60" cy="600" r="3.5" fill="#222"/>
-<circle cx="86" cy="626" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="86" y="630" text-anchor="middle" font-size="11" font-weight="700">13</text>
-<path d="M130 120 L130 600" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
-<path d="M130 120 L130 600" fill="none" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
+<circle cx="40" cy="600" r="3.5" fill="#222"/>
+<circle cx="86" cy="580" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="86" y="584" text-anchor="middle" font-size="11" font-weight="700">12</text>
+<line x1="110" y1="620" x2="60" y2="620" stroke="#999" stroke-width="2.5"/>
+<rect x="69.0" y="614" width="32" height="12" rx="5" fill="#E2C48F" stroke="#8a6a3b"/>
+<rect x="73.5" y="614" width="3" height="12" fill="#7B4A1E"/>
+<rect x="79.5" y="614" width="3" height="12" fill="#111"/>
+<rect x="85.5" y="614" width="3" height="12" fill="#F08A00"/>
+<rect x="93.5" y="614" width="3" height="12" fill="#C9A227"/>
+<circle cx="110" cy="620" r="3.5" fill="#222"/>
+<circle cx="60" cy="620" r="3.5" fill="#222"/>
+<circle cx="150" cy="654" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="150" y="658" text-anchor="middle" font-size="11" font-weight="700">13</text>
+<path d="M130 120 L130 620" fill="none" stroke="#333" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+<path d="M130 120 L130 620" fill="none" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
 <circle cx="130" cy="120" r="3.5" fill="#222"/>
-<circle cx="130" cy="600" r="3.5" fill="#222"/>
-<circle cx="130" cy="440" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="130" y="444" text-anchor="middle" font-size="11" font-weight="700">14</text>
-<text x="455" y="40" font-size="20" font-weight="700" fill="#222">Lab 1 · Ppomo version</text>
+<circle cx="130" cy="620" r="3.5" fill="#222"/>
+<circle cx="130" cy="480" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="130" y="484" text-anchor="middle" font-size="11" font-weight="700">14</text>
+<text x="455" y="40" font-size="20" font-weight="700" fill="#222">Lab 1 · Ppomo version (v2)</text>
 <text x="455" y="62" font-size="13" fill="#666">Figure 11과 같은 배선, 위쪽 포텐셔미터(A0)만 FSR + 10kΩ로 바꿈</text>
 <circle cx="465" cy="95" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="99" text-anchor="middle" font-size="11" font-weight="700">1</text>
 <line x1="483" y1="95" x2="509" y2="95" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
@@ -619,48 +621,48 @@
 <text x="605" y="162" font-size="14" fill="#222">왼쪽 − 레일 → 오른쪽 − 레일 (맨 아래)</text>
 <circle cx="465" cy="188" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="192" text-anchor="middle" font-size="11" font-weight="700">4</text>
 <text x="517" y="193" font-size="14" font-weight="700" fill="#222">버튼</text>
-<text x="605" y="193" font-size="14" fill="#222">e17 · f17 · e19 · f19 (가운데 홈에 걸치기)</text>
+<text x="605" y="193" font-size="14" fill="#222">19번 · 21번 줄, 가운데 홈에 걸치기</text>
 <circle cx="465" cy="219" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="223" text-anchor="middle" font-size="11" font-weight="700">5</text>
 <line x1="483" y1="219" x2="509" y2="219" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
 <text x="517" y="224" font-size="14" font-weight="700" fill="#222">빨강선</text>
-<text x="605" y="224" font-size="14" fill="#222">a17 → 왼쪽 + 레일</text>
+<text x="605" y="224" font-size="14" fill="#222">a19 → 왼쪽 + 레일</text>
 <circle cx="465" cy="250" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="254" text-anchor="middle" font-size="11" font-weight="700">6</text>
 <line x1="483" y1="250" x2="509" y2="250" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
 <text x="517" y="255" font-size="14" font-weight="700" fill="#222">파랑선</text>
-<text x="605" y="255" font-size="14" fill="#222">i11 (D2) → i19</text>
+<text x="605" y="255" font-size="14" fill="#222">i11 (D2) → i21</text>
 <circle cx="465" cy="281" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="285" text-anchor="middle" font-size="11" font-weight="700">7</text>
 <rect x="483" y="275" width="26" height="11" rx="4" fill="#E2C48F" stroke="#8a6a3b"/>
 <text x="517" y="286" font-size="14" font-weight="700" fill="#222">10kΩ</text>
-<text x="605" y="286" font-size="14" fill="#222">j19 → 오른쪽 − 레일</text>
+<text x="605" y="286" font-size="14" fill="#222">j21 → 오른쪽 − 레일</text>
 <circle cx="465" cy="312" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="316" text-anchor="middle" font-size="11" font-weight="700">8</text>
 <text x="517" y="317" font-size="14" font-weight="700" fill="#222">포텐셔미터</text>
-<text x="605" y="317" font-size="14" fill="#222">다리 3개: e22 · e23 · e24</text>
+<text x="605" y="317" font-size="14" fill="#222">다리 3개: e24 · e25 · e26</text>
 <circle cx="465" cy="343" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="347" text-anchor="middle" font-size="11" font-weight="700">9</text>
 <text x="517" y="348" font-size="14" font-weight="700" fill="#222">빨강 + 검정</text>
-<text x="605" y="348" font-size="14" fill="#222">a22 → + 레일,  a24 → − 레일</text>
+<text x="605" y="348" font-size="14" fill="#222">a24 → + 레일,  a26 → − 레일</text>
 <circle cx="465" cy="374" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="378" text-anchor="middle" font-size="11" font-weight="700">10</text>
 <line x1="483" y1="374" x2="509" y2="374" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
 <text x="517" y="379" font-size="14" font-weight="700" fill="#222">파랑선</text>
-<text x="605" y="379" font-size="14" fill="#222">c5 (A1) → c23 (포텐셔미터 가운데 다리)</text>
+<text x="605" y="379" font-size="14" fill="#222">c5 (A1) → c25 (포텐셔미터 가운데 다리)</text>
 <circle cx="465" cy="405" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="409" text-anchor="middle" font-size="11" font-weight="700">11</text>
 <text x="517" y="410" font-size="14" font-weight="700" fill="#222">FSR</text>
-<text x="605" y="410" font-size="14" fill="#222">다리 2개: e27 · e28</text>
+<text x="605" y="410" font-size="14" fill="#222">다리 2개: e28 · e29</text>
 <circle cx="465" cy="436" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="440" text-anchor="middle" font-size="11" font-weight="700">12</text>
 <line x1="483" y1="436" x2="509" y2="436" stroke="#D9312B" stroke-width="5" stroke-linecap="round"/>
 <text x="517" y="441" font-size="14" font-weight="700" fill="#222">빨강선</text>
-<text x="605" y="441" font-size="14" fill="#222">a27 → 왼쪽 + 레일</text>
+<text x="605" y="441" font-size="14" fill="#222">a28 → 왼쪽 + 레일</text>
 <circle cx="465" cy="467" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="471" text-anchor="middle" font-size="11" font-weight="700">13</text>
 <rect x="483" y="461" width="26" height="11" rx="4" fill="#E2C48F" stroke="#8a6a3b"/>
 <text x="517" y="472" font-size="14" font-weight="700" fill="#222">10kΩ</text>
-<text x="605" y="472" font-size="14" fill="#222">a28 → 왼쪽 − 레일</text>
+<text x="605" y="472" font-size="14" fill="#222">a29 → 왼쪽 − 레일</text>
 <circle cx="465" cy="498" r="10" fill="#FFD43B" stroke="#333" stroke-width="1.5"/><text x="465" y="502" text-anchor="middle" font-size="11" font-weight="700">14</text>
 <line x1="483" y1="498" x2="509" y2="498" stroke="#2E5BD8" stroke-width="5" stroke-linecap="round"/>
 <text x="517" y="503" font-size="14" font-weight="700" fill="#222">파랑선</text>
-<text x="605" y="503" font-size="14" fill="#222">b4 (A0) → b28</text>
+<text x="605" y="503" font-size="14" fill="#222">b4 (A0) → b29</text>
 <text x="455" y="542" font-size="13" fill="#444">• 숫자 = 줄(row), 글자 = 칸(a~j). 같은 줄 a~e는 서로 연결, f~j도 서로 연결.</text>
 <text x="455" y="564" font-size="13" fill="#444">• ⚠ 3V3만 사용. VUSB(5V)에는 아무것도 꽂지 마.</text>
 <text x="455" y="586" font-size="13" fill="#444">• 10kΩ = 갈색-검정-주황 띠.  FSR, 저항은 방향 상관없음.</text>
-<text x="455" y="608" font-size="13" fill="#444">• 포텐셔미터 다리 간격이 넓으면 e22·e24·e26에 꽂고</text>
-<text x="455" y="630" font-size="13" fill="#444">    → 9번 선은 a22·a26, 10번 선은 c24로 옮기면 돼.</text>
-<text x="455" y="652" font-size="13" fill="#444">• 버튼이 홈에 안 걸치면 90° 돌려서 꽂아.</text>
+<text x="455" y="608" font-size="13" fill="#444">• Nano 아래 안테나 판 때문에 16~17번 줄은 비워둠.</text>
+<text x="455" y="630" font-size="13" fill="#444">• 줄 번호는 다 같이 밀려도 OK. 같은 줄끼리만 맞으면 돼.</text>
+<text x="455" y="652" font-size="13" fill="#444">• 큰 버튼(12mm)은 다리가 c·f처럼 더 벌어져도 줄만 19·21이면 OK.</text>
 </svg>
