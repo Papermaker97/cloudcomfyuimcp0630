@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" font-family="Helvetica, Arial, sans-serif">
+<rect width="900" height="470" fill="#fff"/>
+<defs><marker id="ar" markerUnits="userSpaceOnUse" markerWidth="18" markerHeight="18" refX="15" refY="9" orient="auto"><path d="M0,0 L18,9 L0,18 z" fill="#D9312B"/></marker></defs>
+<!-- panel 1 -->
+<text x="220" y="34" text-anchor="middle" font-size="20" font-weight="700">① 가만히 있을 때</text>
+<path d="M120 330 C 80 250, 90 130, 220 110 C 350 130, 360 250, 320 330 Z" fill="#E9E6E1" stroke="#8a847c" stroke-width="3"/>
+<text x="220" y="100" text-anchor="middle" font-size="14" fill="#6b655e">뽀모 몸 (3D 프린트)</text>
+<ellipse cx="220" cy="225" rx="62" ry="48" fill="#F6C1C9" stroke="#C9566A" stroke-width="3"/>
+<text x="220" y="222" text-anchor="middle" font-size="14" font-weight="700" fill="#8E2A3C">공기주머니</text>
+<text x="220" y="240" text-anchor="middle" font-size="12" fill="#8E2A3C">(작은 풍선)</text>
+<path d="M220 273 V 390" stroke="#4E8FD6" stroke-width="8" fill="none"/>
+<text x="232" y="345" font-size="13" fill="#2E5BA8">튜브 (빨대)</text>
+<rect x="170" y="390" width="100" height="44" rx="6" fill="#127C8C"/>
+<rect x="208" y="384" width="24" height="16" fill="#333"/>
+<text x="220" y="422" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">기압 센서</text>
+<text x="220" y="456" text-anchor="middle" font-size="15">센서 값: <tspan font-weight="700">101,300</tspan> (평소)</text>
+<!-- panel 2 -->
+<text x="660" y="34" text-anchor="middle" font-size="20" font-weight="700">② 쥘 때</text>
+<path d="M590 330 C 575 250, 590 130, 660 110 C 730 130, 745 250, 730 330 Z" fill="#E9E6E1" stroke="#8a847c" stroke-width="3"/>
+<ellipse cx="660" cy="225" rx="38" ry="48" fill="#F6C1C9" stroke="#C9566A" stroke-width="3"/>
+<text x="660" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="#8E2A3C">눌림</text>
+<path d="M500 225 H 570" stroke="#D9312B" stroke-width="6" marker-end="url(#ar)"/>
+<path d="M820 225 H 750" stroke="#D9312B" stroke-width="6" marker-end="url(#ar)"/>
+<text x="500" y="210" font-size="14" fill="#D9312B" font-weight="700">손</text>
+<text x="805" y="210" font-size="14" fill="#D9312B" font-weight="700">손</text>
+<path d="M660 273 V 390" stroke="#4E8FD6" stroke-width="8" fill="none"/>
+<path d="M676 300 V 370" stroke="#D9312B" stroke-width="3" marker-end="url(#ar)"/>
+<text x="745" y="360" font-size="13" fill="#D9312B">공기가 밀려 내려감</text>
+<rect x="610" y="390" width="100" height="44" rx="6" fill="#127C8C"/>
+<rect x="648" y="384" width="24" height="16" fill="#333"/>
+<text x="660" y="422" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">기압 센서</text>
+<text x="660" y="456" text-anchor="middle" font-size="15">센서 값: <tspan font-weight="700" fill="#D9312B">106,000 ↑</tspan> → "1번 쥠!"</text>
+</svg>
