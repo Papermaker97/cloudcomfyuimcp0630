@@ -123,9 +123,10 @@ FSR pressed → `analogRead` ≈ 860 → `map` ≈ 214 → `Serial.write(214)` s
 ---
 
 ## Connection to Ppomo
-- This is the first working version of Ppomo's data path: **squeeze → microcontroller → computer → screen.**
-- The FSR reads 0 at rest and rises clearly when squeezed. The next step is to pick a threshold and count one squeeze each time the value crosses it.
-- In the final device, each counted squeeze will drop a Ppomo character on screen (my ICM sketch).
+- This is the first working piece of Ppomo's data path: **squeeze → microcontroller → computer → screen.**
+- **Winter Show goal:** when a person stands in front of the camera, a digital Ppomo appears perched on their head or belly. I plan to use body tracking such as ml5.js BodyPose for this. Each time they squeeze the physical Ppomo, the on-screen Ppomo's **cheeks, belly, or butt puff up.**
+- **How this lab connects:** the FSR value tells p5.js when and how hard Ppomo is squeezed. Next, I'll set a threshold so that each time the value crosses it, one squeeze is counted. That count (or the pressure itself) will control how much the character inflates.
+- In Lab 2's terms, the `inData` value I displayed today is the number that will eventually drive the size of Ppomo's cheeks and belly.
 
 ## Still to do
 - **Lab 1:**
