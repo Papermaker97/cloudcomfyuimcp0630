@@ -663,6 +663,7 @@ window.ppomoJelly = {
   setFirmness(v) { firm.value = v; readSliders(); },
   setDamping(v) { damp.value = v; readSliders(); },
   updateMesh() { applyEmbedding(surfEmb, surfNow); posAttr.needsUpdate = true; surface.computeVertexNormals(); updateFace(); },
+  recolor(hex) { PAL.body = hex; colorize(surface); },
 };
 if (new URLSearchParams(location.search).has('bake')) {
   document.body.dataset.bake = '1';

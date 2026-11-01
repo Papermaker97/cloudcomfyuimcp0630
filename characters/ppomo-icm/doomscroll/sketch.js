@@ -14,7 +14,8 @@
   DOM controls under the canvas change how much scrolling makes one Ppomo, their size, and more.
 
   Credits
-    - Ppomo pictures: renders of my 3D Ppomo model (made for this project with help from Claude).
+    - Ppomo pictures: renders of my round sitting 3D Ppomo (front, back, side, 3/4 views in six colours),
+      made for this project with help from Claude.
     - Physics: Matter.js 0.20.0 (https://brm.io/matter-js/), Engine / Bodies / Composite as in its docs.
     - p5.js reference for mouseWheel(), loadImage(), createSlider() etc.: https://p5js.org/reference/
     - The sketch code was written with help from Claude.
@@ -28,9 +29,9 @@ const Composite = Matter.Composite;  // adds shapes to the world and removes the
 // ---------- settings ----------
 const W = 360;                       // phone-shaped canvas (9:16)
 const H = 640;
-const POSES = ['front', 'front', 'front', 'front', 'butt', 'side', 'peek'];
+const POSES = ['front', 'front', 'front', 'peek', 'peek', 'butt', 'side'];   // views of the round sitting Ppomo
 const COLORS = ['grey', 'grey', 'grey', 'pink', 'cream', 'peach', 'lilac', 'sky'];
-const HIT = { front: 0.27, butt: 0.27, side: 0.31, peek: 0.29 };   // body radius as a fraction of the sprite size
+const HIT = { front: 0.29, butt: 0.29, side: 0.27, peek: 0.29 };   // body radius as a fraction of the sprite size
 const PX_TO_M = 0.0254 / 96;         // one CSS pixel is about 0.26 mm
 
 // ---------- global variables ----------
