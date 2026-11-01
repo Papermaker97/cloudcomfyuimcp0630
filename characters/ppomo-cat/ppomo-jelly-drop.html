@@ -1,0 +1,664 @@
+<title>Ppomo Jelly Drop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gothic+A1:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen studio — the stage fills the screen, a slim control column sits right (stacks below on phones). */
+:root {
+  --bg: #EEEDF1;          /* studio sweep, cool grey leaning to Ppomo's fur */
+  --panel: #F8F7FA;
+  --ink: #2B2A33;
+  --muted: #6C6A78;
+  --line: #D9D7E0;
+  --accent: #E8899F;      /* cheek-pouch pink */
+  --accent-ink: #5A1F2C;
+  --track: #DCDAE3;
+  --font-display: "Jua", "Gothic A1", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-body: "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1E1D24; --panel: #26252E; --ink: #ECEAF2; --muted: #A4A1B3; --line: #393845;
+  --accent: #F09AAE; --accent-ink: #2A0E15; --track: #3A3946; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #1E1D24; --panel: #26252E; --ink: #ECEAF2; --muted: #A4A1B3; --line: #393845;
+  --accent: #F09AAE; --accent-ink: #2A0E15; --track: #3A3946; color-scheme: dark; }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5; }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+#stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; }
+#stage.grabbing { cursor: grabbing; }
+#stage canvas { display: block; }
+.title {
+  position: absolute; top: 18px; left: max(18px, env(safe-area-inset-left, 0px)); pointer-events: none;
+}
+.title h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.1; text-wrap: balance; }
+.title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; max-width: 34ch; }
+.panel {
+  background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto;
+  padding-block: 20px 24px; padding-left: 20px; padding-right: max(20px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px;
+}
+.group { display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+button {
+  font: inherit; font-weight: 600; color: var(--ink); background: transparent; border: 1px solid var(--line);
+  border-radius: 999px; padding: 9px 14px; cursor: pointer; transition: background .15s, border-color .15s;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-weight: 400; font-size: 17px; padding: 11px 16px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.row button { flex: 1 1 auto; }
+kbd { font-family: var(--font-data); font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.slider { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+.slider label { font-weight: 600; }
+.slider output { font-family: var(--font-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.slider small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+.puff { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: center; font-variant-numeric: tabular-nums; }
+.puff span { font-size: 13px; }
+.puff .bar { height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.puff .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; }
+.puff output { font-family: var(--font-data); font-size: 12px; color: var(--muted); min-width: 4ch; text-align: right; }
+.stats { font-family: var(--font-data); font-size: 11px; color: var(--muted); line-height: 1.7; font-variant-numeric: tabular-nums; }
+.hint { color: var(--muted); font-size: 12px; }
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: minmax(320px, 58%) auto; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .title h1 { font-size: 24px; }
+}
+</style>
+
+<div class="app">
+  <div id="stage">
+    <div class="title">
+      <h1>뽀모 젤리 드롭</h1>
+      <p>떨어뜨리고, 잡아당기고, 꾹 눌러 보세요. 뽀모 안은 말랑한 격자로 채워져 있어요.</p>
+    </div>
+  </div>
+  <aside class="panel" aria-label="조작 패널">
+    <div class="group">
+      <button class="primary" id="drop" type="button">떨어뜨리기 <kbd>Space</kbd></button>
+      <div class="slider">
+        <label for="height">높이</label><output id="heightOut" for="height"></output>
+        <input id="height" type="range" min="1" max="6" step="0.5" value="3.5">
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="label">꾹 누르기 = 부풀기</span>
+      <div class="row">
+        <button type="button" data-puff="cheek">볼<kbd>1</kbd></button>
+        <button type="button" data-puff="belly">배<kbd>2</kbd></button>
+        <button type="button" data-puff="butt">엉덩이<kbd>3</kbd></button>
+      </div>
+      <div class="puff" id="puffMeters"></div>
+      <button type="button" id="deflate">바람 빼기 <kbd>0</kbd></button>
+    </div>
+
+    <div class="group">
+      <span class="label">젤리 느낌</span>
+      <div class="slider">
+        <label for="firm">단단함</label><output id="firmOut" for="firm"></output>
+        <input id="firm" type="range" min="0" max="100" step="1" value="55">
+        <small><span>흐물흐물</span><span>탱탱</span></small>
+      </div>
+      <div class="slider">
+        <label for="damp">출렁임</label><output id="dampOut" for="damp"></output>
+        <input id="damp" type="range" min="0" max="100" step="1" value="35">
+        <small><span>오래 출렁</span><span>금방 멈춤</span></small>
+      </div>
+      <div class="row">
+        <button type="button" id="slow" aria-pressed="false">¼ 속도</button>
+        <button type="button" id="reset">처음으로</button>
+      </div>
+    </div>
+
+    <p class="hint">뽀모를 드래그하면 잡아당기거나 던질 수 있어요. 빈 곳을 드래그하면 카메라가 돌아가요.</p>
+    <div class="stats" id="stats"></div>
+  </aside>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ---------- the sitting Ppomo (same shape table as ppomo-sit-3d.html) ----------
+const SHAPE = {
+  head:  { x: 0, y: 1.30, z: 0.04, r: 0.62, sx: 1.08, sy: 0.9 },
+  torso: { x: 0, y: 0.74, z: 0.02, rx: 0.68, ry: 0.6, rz: 0.6 },
+  rump:  { x: 0, y: 0.52, z: -0.08, r: 0.72 },
+  cheek: { x: 0.41, y: 1.10, z: 0.40, r: 0.31 },
+  ear:   { x: 0.38, y: 1.78, z: -0.02, r: 0.19 },
+  eye:   { x: 0.14, y: 1.32, r: 0.038 },
+  mouth: { y: 1.19 },
+  belly: { x: 0, y: 0.56, z: 0.40, rx: 0.46, ry: 0.42, rz: 0.36 },
+  paw:   { x: 0.70, y: 0.68, z: 0.30, r: 0.16 },
+  foot:  { x: 0.46, y: 0.13, z: 0.58, r: 0.15 },
+  butt:  { x: 0.28, y: 0.40, z: -0.36, r: 0.34 },
+};
+const PAL = { body: '#B9BDC7', cheek: '#F4B3C2', belly: '#F6E8D2', butt: '#F6B9A3', ink: '#3A3A3E' };
+const BLEND = { body: 0.2, rump: 0.35, cheek: 0.1, ear: 0.07, leg: 0.11, belly: 0.12, butt: 0.12, floor: 0.12 };
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const smax = (a, b, k) => -smin(-a, -b, k);
+const ell = (x, y, z, cx, cy, cz, rx, ry, rz) => (Math.hypot((x - cx) / rx, (y - cy) / ry, (z - cz) / rz) - 1) * Math.min(rx, ry, rz);
+const sph = (x, y, z, cx, cy, cz, r) => Math.hypot(x - cx, y - cy, z - cz) - r;
+function modelSDF(x, y, z) {
+  const H = SHAPE.head, T = SHAPE.torso, Rm = SHAPE.rump, C = SHAPE.cheek, E = SHAPE.ear;
+  const P = SHAPE.paw, F = SHAPE.foot, B = SHAPE.butt, Be = SHAPE.belly;
+  let d = smin(ell(x, y, z, H.x, H.y, H.z, H.r * H.sx, H.r * H.sy, H.r),
+    smin(ell(x, y, z, T.x, T.y, T.z, T.rx, T.ry, T.rz), sph(x, y, z, Rm.x, Rm.y, Rm.z, Rm.r), BLEND.rump), BLEND.body);
+  d = smin(d, ell(x, y, z, Be.x, Be.y, Be.z, Be.rx, Be.ry, Be.rz), BLEND.belly);
+  for (const s of [-1, 1]) {
+    d = smin(d, sph(x, y, z, C.x * s, C.y, C.z, C.r), BLEND.cheek);
+    d = smin(d, sph(x, y, z, E.x * s, E.y, E.z, E.r), BLEND.ear);
+    d = smin(d, sph(x, y, z, P.x * s, P.y, P.z, P.r), BLEND.leg);
+    d = smin(d, sph(x, y, z, F.x * s, F.y, F.z, F.r), BLEND.leg);
+    d = smin(d, sph(x, y, z, B.x * s, B.y, B.z, B.r), BLEND.butt);
+  }
+  return smax(d, -(y - 0.035), BLEND.floor);
+}
+const BOUNDS = { min: [-1.15, -0.02, -1.25], max: [1.15, 2.2, 1.25] };
+
+// ---------- surface mesh (naive surface nets, projected onto the field) ----------
+function meshField(f, min, max, h) {
+  const nx = Math.ceil((max[0] - min[0]) / h), ny = Math.ceil((max[1] - min[1]) / h), nz = Math.ceil((max[2] - min[2]) / h);
+  const sx = nx + 1, sxy = (nx + 1) * (ny + 1);
+  const val = new Float32Array(sxy * (nz + 1));
+  for (let k = 0; k <= nz; k++) for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++)
+    val[i + sx * j + sxy * k] = f(min[0] + i * h, min[1] + j * h, min[2] + k * h);
+  const cellV = new Int32Array(nx * ny * nz).fill(-1);
+  const cellIdx = (i, j, k) => i + nx * (j + ny * k);
+  const pos = [], EDGES = [], cv = new Float32Array(8);
+  for (let a = 0; a < 8; a++) for (const bit of [1, 2, 4]) if (!(a & bit)) EDGES.push([a, a | bit]);
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    let mask = 0;
+    for (let c = 0; c < 8; c++) { const v = val[(i + (c & 1)) + sx * (j + ((c >> 1) & 1)) + sxy * (k + ((c >> 2) & 1))]; cv[c] = v; if (v < 0) mask |= 1 << c; }
+    if (mask === 0 || mask === 255) continue;
+    let px = 0, py = 0, pz = 0, n = 0;
+    for (const [a, b] of EDGES) {
+      if ((cv[a] < 0) === (cv[b] < 0)) continue;
+      const t = cv[a] / (cv[a] - cv[b]);
+      px += (a & 1) + t * ((b & 1) - (a & 1)); py += ((a >> 1) & 1) + t * (((b >> 1) & 1) - ((a >> 1) & 1)); pz += ((a >> 2) & 1) + t * (((b >> 2) & 1) - ((a >> 2) & 1)); n++;
+    }
+    cellV[cellIdx(i, j, k)] = pos.length / 3;
+    pos.push(min[0] + (i + px / n) * h, min[1] + (j + py / n) * h, min[2] + (k + pz / n) * h);
+  }
+  const idx = [], dims = [nx, ny, nz];
+  for (let k = 0; k <= nz; k++) for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) {
+    const g = [i, j, k], v0 = val[i + sx * j + sxy * k];
+    for (let ax = 0; ax < 3; ax++) {
+      const u = (ax + 1) % 3, w = (ax + 2) % 3;
+      if (g[ax] >= dims[ax] || g[u] < 1 || g[w] < 1 || g[u] >= dims[u] || g[w] >= dims[w]) continue;
+      const g2 = g.slice(); g2[ax]++;
+      const v1 = val[g2[0] + sx * g2[1] + sxy * g2[2]];
+      if ((v0 < 0) === (v1 < 0)) continue;
+      const cell = (du, dw) => { const c = g.slice(); c[u] -= du; c[w] -= dw; return cellV[cellIdx(c[0], c[1], c[2])]; };
+      const a = cell(1, 1), b = cell(0, 1), c = cell(0, 0), d = cell(1, 0);
+      if (a < 0 || b < 0 || c < 0 || d < 0) continue;
+      if (v0 < 0) idx.push(a, b, c, a, c, d); else idx.push(a, c, b, a, d, c);
+    }
+  }
+  const e = h * 0.25;
+  for (let q = 0; q < pos.length; q += 3) {
+    let x = pos[q], y = pos[q + 1], z = pos[q + 2];
+    for (let it = 0; it < 3; it++) {
+      const d = f(x, y, z);
+      let gx = f(x + e, y, z) - f(x - e, y, z), gy = f(x, y + e, z) - f(x, y - e, z), gz = f(x, y, z + e) - f(x, y, z - e);
+      const gl = Math.hypot(gx, gy, gz) || 1; x -= d * gx / gl; y -= d * gy / gl; z -= d * gz / gl;
+    }
+    pos[q] = x; pos[q + 1] = y; pos[q + 2] = z;
+  }
+  // outward winding: the first triangle's normal should point away from the inside
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const A = new THREE.Vector3().fromArray(pos, idx[0] * 3), B = new THREE.Vector3().fromArray(pos, idx[1] * 3), C = new THREE.Vector3().fromArray(pos, idx[2] * 3);
+  const fn = B.clone().sub(A).cross(C.clone().sub(A)), mid = A.clone().add(B).add(C).divideScalar(3);
+  const out = new THREE.Vector3(f(mid.x + e, mid.y, mid.z) - f(mid.x - e, mid.y, mid.z), f(mid.x, mid.y + e, mid.z) - f(mid.x, mid.y - e, mid.z), f(mid.x, mid.y, mid.z + e) - f(mid.x, mid.y, mid.z - e));
+  if (fn.dot(out) < 0) for (let t = 0; t < idx.length; t += 3) { const tmp = idx[t + 1]; idx[t + 1] = idx[t + 2]; idx[t + 2] = tmp; }
+  geo.setIndex(idx);
+  return geo;
+}
+
+// ---------- colour blooms (cheek pink, butt peach, cream belly), fixed in the rest pose ----------
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+function colorize(geo) {
+  const H = SHAPE.head, C = SHAPE.cheek, Bt = SHAPE.butt, Be = SHAPE.belly;
+  const headC = new THREE.Vector3(H.x, H.y, H.z), blooms = [];
+  const add = (color, center, outward, r, inner, outer, push) =>
+    blooms.push({ color: new THREE.Color(color), at: center.clone().addScaledVector(outward.normalize(), r * push), r, inner, outer });
+  for (const s of [-1, 1]) {
+    const c = new THREE.Vector3(C.x * s, C.y, C.z);
+    add(PAL.cheek, c, c.clone().sub(headC).normalize().add(new THREE.Vector3(0, 0, 1.2)), C.r, 0.55, 1.55, 0.35);
+    add(PAL.butt, new THREE.Vector3(Bt.x * s, Bt.y, Bt.z), new THREE.Vector3(s * 0.5, -0.1, -1), Bt.r, 0.5, 1.5, 0.4);
+  }
+  const base = new THREE.Color(PAL.body), cream = new THREE.Color(PAL.belly), c = new THREE.Color(), p = new THREE.Vector3();
+  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i); c.copy(base);
+    for (const b of blooms) { const w = 1 - smooth(b.inner * b.r, b.outer * b.r, p.distanceTo(b.at)); if (w > 0) c.lerp(b.color, w); }
+    const d = Math.hypot((p.x - Be.x) / Be.rx, (p.y - Be.y) / Be.ry, (p.z - Be.z) / Be.rz);
+    const w = 1 - smooth(0.85, 1.25, d); if (w > 0) c.lerp(cream, w);
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+}
+
+// ---------- soft body: hex lattice inside the shape, 5 tets per cell, XPBD edges + volumes ----------
+const LH = 0.15;                       // lattice spacing (model units; the 2.2-unit Ppomo is 95 mm tall)
+function buildLattice() {
+  const [x0, y0, z0] = BOUNDS.min;
+  const nx = Math.ceil((BOUNDS.max[0] - x0) / LH), ny = Math.ceil((BOUNDS.max[1] - y0) / LH), nz = Math.ceil((BOUNDS.max[2] - z0) / LH);
+  const nodeId = new Map(), P = [], tets = [], cellTets = new Map();
+  const node = (i, j, k) => {
+    const key = i + (nx + 1) * (j + (ny + 1) * k);
+    let id = nodeId.get(key);
+    if (id === undefined) { id = P.length / 3; nodeId.set(key, id); P.push(x0 + i * LH, y0 + j * LH, z0 + k * LH); }
+    return id;
+  };
+  const ODD = [[1, 2, 4, 7], [0, 1, 2, 4], [3, 1, 2, 7], [5, 1, 4, 7], [6, 2, 4, 7]];
+  const EVEN = [[0, 3, 5, 6], [1, 0, 3, 5], [2, 0, 3, 6], [4, 0, 5, 6], [7, 3, 5, 6]];
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const cx = x0 + (i + 0.5) * LH, cy = y0 + (j + 0.5) * LH, cz = z0 + (k + 0.5) * LH;
+    if (modelSDF(cx, cy, cz) > LH * 0.45) continue;
+    const corner = (c) => node(i + (c & 1), j + ((c >> 1) & 1), k + ((c >> 2) & 1));
+    const list = [];
+    for (const t of ((i + j + k) & 1) ? ODD : EVEN) { list.push(tets.length / 4); tets.push(corner(t[0]), corner(t[1]), corner(t[2]), corner(t[3])); }
+    cellTets.set(i + nx * (j + ny * k), list);
+  }
+  return { P: new Float32Array(P), T: new Uint32Array(tets), cellTets, grid: { nx, ny, nz, x0, y0, z0 } };
+}
+
+const lat = buildLattice();
+const NP = lat.P.length / 3, NT = lat.T.length / 4;
+const rest = lat.P, T = lat.T;
+const pos = new Float32Array(rest), prev = new Float32Array(rest), vel = new Float32Array(NP * 3);
+const invMass = new Float32Array(NP), baseInvMass = new Float32Array(NP);
+const tetVol = (a, b, c, d, X) => {
+  const ax = X[a * 3], ay = X[a * 3 + 1], az = X[a * 3 + 2];
+  const ux = X[b * 3] - ax, uy = X[b * 3 + 1] - ay, uz = X[b * 3 + 2] - az;
+  const vx = X[c * 3] - ax, vy = X[c * 3 + 1] - ay, vz = X[c * 3 + 2] - az;
+  const wx = X[d * 3] - ax, wy = X[d * 3 + 1] - ay, wz = X[d * 3 + 2] - az;
+  return ((uy * vz - uz * vy) * wx + (uz * vx - ux * vz) * wy + (ux * vy - uy * vx) * wz) / 6;
+};
+const baseVol = new Float32Array(NT), restVol = new Float32Array(NT);
+for (let t = 0; t < NT; t++) {
+  let v = tetVol(T[t * 4], T[t * 4 + 1], T[t * 4 + 2], T[t * 4 + 3], rest);
+  if (v < 0) { const s = T[t * 4 + 2]; T[t * 4 + 2] = T[t * 4 + 3]; T[t * 4 + 3] = s; v = -v; }
+  baseVol[t] = restVol[t] = v;
+  for (let q = 0; q < 4; q++) invMass[T[t * 4 + q]] += v / 4;
+}
+for (let i = 0; i < NP; i++) baseInvMass[i] = invMass[i] = invMass[i] > 0 ? 1 / invMass[i] : 0;
+// unique edges
+const edgeSet = new Set(), E = [];
+for (let t = 0; t < NT; t++) for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) {
+  let p = T[t * 4 + a], q = T[t * 4 + b]; if (p > q) [p, q] = [q, p];
+  const key = p * NP + q; if (!edgeSet.has(key)) { edgeSet.add(key); E.push(p, q); }
+}
+const NE = E.length / 2, EI = new Uint32Array(E);
+const baseLen = new Float32Array(NE), restLen = new Float32Array(NE);
+for (let e = 0; e < NE; e++) {
+  const a = EI[e * 2] * 3, b = EI[e * 2 + 1] * 3;
+  baseLen[e] = restLen[e] = Math.hypot(rest[a] - rest[b], rest[a + 1] - rest[b + 1], rest[a + 2] - rest[b + 2]);
+}
+
+// ---------- embed the render surface (and face anchors) in the tets ----------
+function embedPoints(pts) {   // pts: Float32Array xyz → { tet: Int32Array, bary: Float32Array(4 per point) }
+  const n = pts.length / 3, tet = new Int32Array(n), bary = new Float32Array(n * 4);
+  const { nx, ny, nz, x0, y0, z0 } = lat.grid;
+  const M = new THREE.Matrix3(), v = new THREE.Vector3();
+  const tetInv = new Float32Array(NT * 9);
+  for (let t = 0; t < NT; t++) {
+    const d = T[t * 4 + 3] * 3;
+    const col = (q) => { const a = T[t * 4 + q] * 3; return [rest[a] - rest[d], rest[a + 1] - rest[d + 1], rest[a + 2] - rest[d + 2]]; };
+    const c0 = col(0), c1 = col(1), c2 = col(2);
+    M.set(c0[0], c1[0], c2[0], c0[1], c1[1], c2[1], c0[2], c1[2], c2[2]).invert();
+    tetInv.set(M.elements, t * 9);
+  }
+  const b = [0, 0, 0, 0];
+  const baryOf = (t, x, y, z) => {
+    const d = T[t * 4 + 3] * 3, m = tetInv.subarray(t * 9, t * 9 + 9);
+    v.set(x - rest[d], y - rest[d + 1], z - rest[d + 2]);
+    b[0] = m[0] * v.x + m[3] * v.y + m[6] * v.z; b[1] = m[1] * v.x + m[4] * v.y + m[7] * v.z; b[2] = m[2] * v.x + m[5] * v.y + m[8] * v.z;
+    b[3] = 1 - b[0] - b[1] - b[2];
+    return Math.min(b[0], b[1], b[2], b[3]);
+  };
+  for (let p = 0; p < n; p++) {
+    const x = pts[p * 3], y = pts[p * 3 + 1], z = pts[p * 3 + 2];
+    const ci = Math.floor((x - x0) / LH), cj = Math.floor((y - y0) / LH), ck = Math.floor((z - z0) / LH);
+    let best = -1, bestScore = -Infinity, bestB = [0.25, 0.25, 0.25, 0.25];
+    for (let r = 1; r <= 3 && best < 0; r++)
+      for (let dk = -r; dk <= r; dk++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+        const i = ci + di, j = cj + dj, k = ck + dk;
+        if (i < 0 || j < 0 || k < 0 || i >= nx || j >= ny || k >= nz) continue;
+        const list = lat.cellTets.get(i + nx * (j + ny * k)); if (!list) continue;
+        for (const t of list) { const s = baryOf(t, x, y, z); if (s > bestScore) { bestScore = s; best = t; bestB = b.slice(); } }
+      }
+    tet[p] = best; bary.set(bestB, p * 4);
+  }
+  return { tet, bary };
+}
+function applyEmbedding(emb, out) {
+  const { tet, bary } = emb;
+  for (let p = 0; p < tet.length; p++) {
+    const t = tet[p] * 4; let x = 0, y = 0, z = 0;
+    for (let q = 0; q < 4; q++) { const w = bary[p * 4 + q], a = T[t + q] * 3; x += w * pos[a]; y += w * pos[a + 1]; z += w * pos[a + 2]; }
+    out[p * 3] = x; out[p * 3 + 1] = y; out[p * 3 + 2] = z;
+  }
+}
+
+// ---------- scene ----------
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environmentIntensity = 0.35;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xdfe1e7, 0.8));
+const sun = new THREE.DirectionalLight(0xfffaf5, 1.05);
+sun.position.set(-1.6, 6, 2.6); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 12; sun.shadow.blurSamples = 16; sun.shadow.bias = -0.002;
+Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 0.5, far: 20 });
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.16 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+const surface = meshField(modelSDF, BOUNDS.min, BOUNDS.max, 0.03);
+colorize(surface);
+const surfRest = new Float32Array(surface.attributes.position.array);
+const surfEmb = embedPoints(surfRest);
+surface.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 100);
+const furMat = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.55, sheen: 0.35, sheenRoughness: 0.8, sheenColor: new THREE.Color(0xffffff) });
+const bodyMesh = new THREE.Mesh(surface, furMat);
+bodyMesh.castShadow = true; bodyMesh.receiveShadow = true; bodyMesh.frustumCulled = false;
+scene.add(bodyMesh);
+
+// face: eyes and mouth ride embedded anchor points; their turn follows a small frame embedded in the head
+const inkMat = new THREE.MeshPhysicalMaterial({ color: PAL.ink, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.3 });
+const frontZ = (x, y) => { let z = 3; while (z > -3 && modelSDF(x, y, z) > 0) z -= 0.004; return z; };
+const H = SHAPE.head;
+const facePts = [], faceObjs = [];
+for (const s of [-1, 1]) {
+  const x = SHAPE.eye.x * s, y = SHAPE.eye.y, z = frontZ(x, y) - 0.008;
+  const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), inkMat);
+  m.scale.set(SHAPE.eye.r, SHAPE.eye.r * 1.1, SHAPE.eye.r * 0.5);
+  const g = new THREE.Group(); g.add(m); g.position.set(x, y, z); g.lookAt(x * 3, y, z + 3);
+  faceObjs.push({ obj: g, restQ: g.quaternion.clone() }); facePts.push(x, y, z);
+}
+{
+  const g = new THREE.Group();
+  for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.006, 8, 24, Math.PI), inkMat); a.rotation.z = Math.PI; a.position.x = s * 0.024; g.add(a); }
+  const y = SHAPE.mouth.y, z = frontZ(0, y) + 0.003;
+  g.position.set(0, y, z); faceObjs.push({ obj: g, restQ: g.quaternion.clone() }); facePts.push(0, y, z);
+}
+faceObjs.forEach((f) => scene.add(f.obj));
+facePts.push(H.x, H.y, H.z, H.x + 0.3, H.y, H.z, H.x, H.y, H.z + 0.3);   // frame: origin, +x, +z
+const faceEmb = embedPoints(new Float32Array(facePts));
+const faceNow = new Float32Array(facePts.length);
+const fx = new THREE.Vector3(), fy = new THREE.Vector3(), fz = new THREE.Vector3(), fm = new THREE.Matrix4(), fq = new THREE.Quaternion();
+function updateFace() {
+  applyEmbedding(faceEmb, faceNow);
+  const o = 3 * 3;
+  fx.set(faceNow[o + 3] - faceNow[o], faceNow[o + 4] - faceNow[o + 1], faceNow[o + 5] - faceNow[o + 2]).normalize();
+  fz.set(faceNow[o + 6] - faceNow[o], faceNow[o + 7] - faceNow[o + 1], faceNow[o + 8] - faceNow[o + 2]);
+  fy.crossVectors(fz, fx).normalize(); fz.crossVectors(fx, fy);
+  fq.setFromRotationMatrix(fm.makeBasis(fx, fy, fz));
+  faceObjs.forEach((f, i) => { f.obj.position.fromArray(faceNow, i * 3); f.obj.quaternion.copy(fq).multiply(f.restQ); });
+}
+
+// ---------- puff regions (squeeze → that part's rest size grows, so it swells and wobbles) ----------
+const C = SHAPE.cheek, Bt = SHAPE.butt, Be = SHAPE.belly;
+const REGIONS = {
+  cheek: { name: '볼', centers: [[-C.x, C.y, C.z], [C.x, C.y, C.z]], r: C.r * 1.3, value: 0, target: 0 },
+  belly: { name: '배', centers: [[Be.x, Be.y, Be.z]], r: 0.5, value: 0, target: 0 },
+  butt:  { name: '엉덩이', centers: [[-Bt.x, Bt.y, Bt.z], [Bt.x, Bt.y, Bt.z]], r: Bt.r * 1.3, value: 0, target: 0 },
+};
+const PUFF_MAX = 1.6;   // full puff = rest volume ×(1+1.6) at the centre of the part
+function puffWeight(x, y, z, R) {
+  let w = 0;
+  for (const c of R.centers) w = Math.max(w, 1 - smooth(0.35 * R.r, 1.2 * R.r, Math.hypot(x - c[0], y - c[1], z - c[2])));
+  return w;
+}
+const tetW = {}, edgeW = {};
+for (const key in REGIONS) {
+  tetW[key] = new Float32Array(NT); edgeW[key] = new Float32Array(NE);
+  for (let t = 0; t < NT; t++) {
+    let x = 0, y = 0, z = 0; for (let q = 0; q < 4; q++) { const a = T[t * 4 + q] * 3; x += rest[a] / 4; y += rest[a + 1] / 4; z += rest[a + 2] / 4; }
+    tetW[key][t] = puffWeight(x, y, z, REGIONS[key]);
+  }
+  for (let e = 0; e < NE; e++) {
+    const a = EI[e * 2] * 3, b = EI[e * 2 + 1] * 3;
+    edgeW[key][e] = puffWeight((rest[a] + rest[b]) / 2, (rest[a + 1] + rest[b + 1]) / 2, (rest[a + 2] + rest[b + 2]) / 2, REGIONS[key]);
+  }
+}
+function applyPuff() {
+  for (let t = 0; t < NT; t++) {
+    let s = 1; for (const key in REGIONS) s += PUFF_MAX * REGIONS[key].value * tetW[key][t];
+    restVol[t] = baseVol[t] * s;
+  }
+  for (let e = 0; e < NE; e++) {
+    let s = 1; for (const key in REGIONS) s += PUFF_MAX * REGIONS[key].value * edgeW[key][e];
+    restLen[e] = baseLen[e] * Math.cbrt(s);
+  }
+}
+
+// ---------- XPBD step ----------
+const SUBSTEPS = 12, GRAVITY = -12, FRICTION = 0.55, MAXV = 25;
+const ORDER = [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
+let edgeCompliance = 0, damping = 0;
+const grab = { ids: [], offsets: [], target: new THREE.Vector3(), active: false };
+function substep(dt) {
+  for (let i = 0; i < NP; i++) {
+    if (invMass[i] === 0) continue;
+    const i3 = i * 3;
+    vel[i3 + 1] += GRAVITY * dt;
+    const k = Math.max(0, 1 - damping * dt);
+    vel[i3] *= k; vel[i3 + 1] *= k; vel[i3 + 2] *= k;
+    prev[i3] = pos[i3]; prev[i3 + 1] = pos[i3 + 1]; prev[i3 + 2] = pos[i3 + 2];
+    pos[i3] += vel[i3] * dt; pos[i3 + 1] += vel[i3 + 1] * dt; pos[i3 + 2] += vel[i3 + 2] * dt;
+  }
+  if (grab.active) grab.ids.forEach((id, n) => {
+    const o = grab.offsets[n], i3 = id * 3;
+    prev[i3] = pos[i3]; prev[i3 + 1] = pos[i3 + 1]; prev[i3 + 2] = pos[i3 + 2];
+    pos[i3] += (grab.target.x + o.x - pos[i3]) * 0.35; pos[i3 + 1] += (grab.target.y + o.y - pos[i3 + 1]) * 0.35; pos[i3 + 2] += (grab.target.z + o.z - pos[i3 + 2]) * 0.35;
+  });
+  // edges
+  const aE = edgeCompliance / (dt * dt);
+  for (let e = 0; e < NE; e++) {
+    const a = EI[e * 2], b = EI[e * 2 + 1], wa = invMass[a], wb = invMass[b], w = wa + wb;
+    if (w === 0) continue;
+    const a3 = a * 3, b3 = b * 3;
+    let dx = pos[a3] - pos[b3], dy = pos[a3 + 1] - pos[b3 + 1], dz = pos[a3 + 2] - pos[b3 + 2];
+    const len = Math.hypot(dx, dy, dz); if (len === 0) continue;
+    dx /= len; dy /= len; dz /= len;
+    const s = -(len - restLen[e]) / (w + aE);
+    pos[a3] += s * wa * dx; pos[a3 + 1] += s * wa * dy; pos[a3 + 2] += s * wa * dz;
+    pos[b3] -= s * wb * dx; pos[b3 + 1] -= s * wb * dy; pos[b3 + 2] -= s * wb * dz;
+  }
+  // volumes (incompressible jelly)
+  const g = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  for (let t = 0; t < NT; t++) {
+    let w = 0;
+    for (let j = 0; j < 4; j++) {
+      const o = ORDER[j], i0 = T[t * 4 + o[0]] * 3, i1 = T[t * 4 + o[1]] * 3, i2 = T[t * 4 + o[2]] * 3;
+      const ux = pos[i1] - pos[i0], uy = pos[i1 + 1] - pos[i0 + 1], uz = pos[i1 + 2] - pos[i0 + 2];
+      const vx = pos[i2] - pos[i0], vy = pos[i2 + 1] - pos[i0 + 1], vz = pos[i2 + 2] - pos[i0 + 2];
+      const gx = (uy * vz - uz * vy) / 6, gy = (uz * vx - ux * vz) / 6, gz = (ux * vy - uy * vx) / 6;
+      g[j * 3] = gx; g[j * 3 + 1] = gy; g[j * 3 + 2] = gz;
+      w += invMass[T[t * 4 + j]] * (gx * gx + gy * gy + gz * gz);
+    }
+    if (w === 0) continue;
+    const s = -(tetVol(T[t * 4], T[t * 4 + 1], T[t * 4 + 2], T[t * 4 + 3], pos) - restVol[t]) / w;
+    for (let j = 0; j < 4; j++) {
+      const id = T[t * 4 + j], k = s * invMass[id], i3 = id * 3;
+      pos[i3] += k * g[j * 3]; pos[i3 + 1] += k * g[j * 3 + 1]; pos[i3 + 2] += k * g[j * 3 + 2];
+    }
+  }
+  // floor with friction, then velocities
+  for (let i = 0; i < NP; i++) {
+    const i3 = i * 3;
+    if (pos[i3 + 1] < 0) {
+      pos[i3 + 1] = 0;
+      pos[i3] = prev[i3] + (pos[i3] - prev[i3]) * (1 - FRICTION);
+      pos[i3 + 2] = prev[i3 + 2] + (pos[i3 + 2] - prev[i3 + 2]) * (1 - FRICTION);
+    }
+    if (invMass[i] === 0 && !grab.active) continue;
+    vel[i3] = (pos[i3] - prev[i3]) / dt; vel[i3 + 1] = (pos[i3 + 1] - prev[i3 + 1]) / dt; vel[i3 + 2] = (pos[i3 + 2] - prev[i3 + 2]) / dt;
+    const sp = Math.hypot(vel[i3], vel[i3 + 1], vel[i3 + 2]);
+    if (sp > MAXV) { const k = MAXV / sp; vel[i3] *= k; vel[i3 + 1] *= k; vel[i3 + 2] *= k; }
+  }
+}
+
+// ---------- controls ----------
+const $ = (id) => document.getElementById(id);
+const firm = $('firm'), damp = $('damp'), heightIn = $('height');
+function readSliders() {
+  // firmness 0..100 → edge compliance 3e-2 (floppy) .. 2.5e-4 (taut), on a log scale
+  edgeCompliance = Math.pow(10, -1.5 - 2.1 * (firm.value / 100));
+  damping = 0.2 + 12 * Math.pow(damp.value / 100, 1.5);
+  $('firmOut').textContent = `${firm.value}`;
+  $('dampOut').textContent = `${damp.value}`;
+  $('heightOut').textContent = `${Math.round(heightIn.value * 95 / 2.2)} mm 위에서`;
+}
+[firm, damp, heightIn].forEach((el) => el.addEventListener('input', readSliders));
+readSliders();
+
+const tmpQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), CENTER = new THREE.Vector3(0, 0.95, 0);
+function drop() {
+  const h = Number(heightIn.value);
+  tmpQ.setFromEuler(new THREE.Euler((Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.35));
+  for (let i = 0; i < NP; i++) {
+    tmpV.fromArray(rest, i * 3).sub(CENTER).applyQuaternion(tmpQ).add(CENTER);
+    pos[i * 3] = tmpV.x; pos[i * 3 + 1] = tmpV.y + h; pos[i * 3 + 2] = tmpV.z;
+  }
+  prev.set(pos); vel.fill(0);
+}
+function resetAll() {
+  for (const key in REGIONS) REGIONS[key].value = REGIONS[key].target = 0;
+  applyPuff(); pos.set(rest); prev.set(rest); vel.fill(0);
+  firm.value = 55; damp.value = 35; heightIn.value = 3.5; readSliders();
+}
+const meters = $('puffMeters');
+for (const key in REGIONS) {
+  meters.insertAdjacentHTML('beforeend', `<span>${REGIONS[key].name}</span><div class="bar"><i id="bar-${key}"></i></div><output id="pct-${key}">+0%</output>`);
+}
+function squeeze(key) { const R = REGIONS[key]; R.target = Math.min(1, R.target + 0.2); }
+function deflate() { for (const key in REGIONS) REGIONS[key].target = 0; }
+document.querySelectorAll('[data-puff]').forEach((b) => b.addEventListener('click', () => squeeze(b.dataset.puff)));
+$('deflate').addEventListener('click', deflate);
+$('drop').addEventListener('click', drop);
+$('reset').addEventListener('click', resetAll);
+let slow = false;
+$('slow').addEventListener('click', (e) => { slow = !slow; e.currentTarget.setAttribute('aria-pressed', String(slow)); e.currentTarget.textContent = slow ? '보통 속도' : '¼ 속도'; });
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); drop(); }
+  else if (e.key === '1') squeeze('cheek'); else if (e.key === '2') squeeze('belly'); else if (e.key === '3') squeeze('butt');
+  else if (e.key === '0') deflate();
+});
+
+// camera
+const camera = new THREE.PerspectiveCamera(32, stage.clientWidth / stage.clientHeight, 0.1, 80);
+camera.position.set(5.2, 3.6, 7.4);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.4, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 4; controls.maxDistance = 16; controls.maxPolarAngle = Math.PI * 0.49;
+controls.update();
+
+// grab: press on Ppomo → hold the nearby lattice nodes and drag them in a camera-facing plane
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(), hit = new THREE.Vector3();
+function setNdc(e) { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); }
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  setNdc(e); ray.setFromCamera(ndc, camera);
+  const h = ray.intersectObject(bodyMesh, false)[0];
+  if (!h) return;
+  controls.enabled = false; stage.classList.add('grabbing');
+  renderer.domElement.setPointerCapture(e.pointerId);
+  grab.ids = []; grab.offsets = [];
+  for (let i = 0; i < NP; i++) {
+    const d = Math.hypot(pos[i * 3] - h.point.x, pos[i * 3 + 1] - h.point.y, pos[i * 3 + 2] - h.point.z);
+    if (d < 0.28) { grab.ids.push(i); grab.offsets.push(new THREE.Vector3(pos[i * 3] - h.point.x, pos[i * 3 + 1] - h.point.y, pos[i * 3 + 2] - h.point.z)); }
+  }
+  grab.ids.forEach((id) => { invMass[id] = 0; });
+  grab.target.copy(h.point);
+  plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(tmpV).negate(), h.point);
+  grab.active = true;
+});
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!grab.active) return;
+  setNdc(e); ray.setFromCamera(ndc, camera);
+  if (ray.ray.intersectPlane(plane, hit)) { grab.target.copy(hit); grab.target.y = Math.max(grab.target.y, 0.05); }
+});
+const release = () => {
+  if (!grab.active) return;
+  grab.ids.forEach((id) => { invMass[id] = baseInvMass[id]; });
+  grab.active = false; grab.ids = []; controls.enabled = true; stage.classList.remove('grabbing');
+};
+renderer.domElement.addEventListener('pointerup', release);
+renderer.domElement.addEventListener('pointercancel', release);
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+
+// ---------- loop ----------
+const posAttr = surface.attributes.position, surfNow = posAttr.array;
+const stats = $('stats');
+let last = performance.now(), simMs = 0, frames = 0;
+function frame(now) {
+  const dtFrame = Math.min(1 / 30, (now - last) / 1000); last = now;
+  // ease each part toward its puff target
+  let changed = false;
+  for (const key in REGIONS) {
+    const R = REGIONS[key], d = R.target - R.value;
+    if (Math.abs(d) > 1e-4) { R.value += d * Math.min(1, dtFrame * 5); changed = true; }
+    $(`bar-${key}`).style.width = `${R.value * 100}%`;
+    $(`pct-${key}`).textContent = `+${Math.round((Math.cbrt(1 + PUFF_MAX * R.value) - 1) * 100)}%`;
+  }
+  if (changed) applyPuff();
+  const t0 = performance.now();
+  const step = (slow ? 0.25 : 1) / 60 / SUBSTEPS;
+  for (let s = 0; s < SUBSTEPS; s++) substep(step);
+  simMs = simMs * 0.9 + (performance.now() - t0) * 0.1;
+  applyEmbedding(surfEmb, surfNow);
+  posAttr.needsUpdate = true;
+  surface.computeVertexNormals();
+  updateFace();
+  controls.update();
+  renderer.render(scene, camera);
+  if (++frames % 15 === 0) stats.textContent = `격자 점 ${NP} · 사면체 ${NT} · 연결 ${NE}\n시뮬레이션 ${simMs.toFixed(1)} ms/프레임`;
+  requestAnimationFrame(frame);
+}
+stats.style.whiteSpace = 'pre-line';
+window.ppomoJelly = {
+  NP, NT, NE, pos, rest, REGIONS, squeeze, drop, get simMs() { return simMs; },
+  advance(seconds) {   // test hook: run the physics without rendering
+    for (let f = 0; f < seconds * 60; f++) {
+      for (const key in REGIONS) { const R = REGIONS[key]; R.value += (R.target - R.value) * (5 / 60); }
+      applyPuff();
+      for (let s = 0; s < SUBSTEPS; s++) substep(1 / 60 / SUBSTEPS);
+    }
+  },
+};
+drop();
+requestAnimationFrame(frame);
+</script>
