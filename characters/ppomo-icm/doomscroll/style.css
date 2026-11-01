@@ -1,0 +1,9 @@
+html, body { margin: 0; padding: 0; background: #E9E6EE; font-family: system-ui, sans-serif; color: #3C3A46; }
+main { display: flex; justify-content: center; padding-top: 16px; }
+canvas { display: block; border-radius: 28px; box-shadow: 0 10px 40px rgba(60, 50, 90, 0.18); }
+#panel { width: 360px; margin: 16px auto 40px; display: grid; grid-template-columns: 130px 1fr; gap: 8px 12px; align-items: center; font-size: 13px; }
+#panel .wide { grid-column: 1 / -1; }
+#panel .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+#panel button { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid #C9C5D4; background: #fff; cursor: pointer; }
+#panel input[type=range] { width: 100%; accent-color: #E8899F; }
+#log { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #6C6A78; line-height: 1.6; }
