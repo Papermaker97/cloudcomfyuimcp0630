@@ -1,0 +1,8 @@
+html, body { margin: 0; padding: 0; background: #EEECF2; font-family: system-ui, sans-serif; color: #3C3A46; }
+main { display: flex; justify-content: center; }
+canvas { display: block; margin: 0 auto; }
+#panel { width: 540px; margin: 12px auto 40px; display: grid; grid-template-columns: 150px 1fr; gap: 8px 12px; align-items: center; font-size: 14px; }
+#panel .buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+#panel button { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid #C9C5D4; background: #fff; cursor: pointer; }
+#panel p, #log { grid-column: 1 / -1; margin: 0; }
+#log { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #6C6A78; line-height: 1.6; }

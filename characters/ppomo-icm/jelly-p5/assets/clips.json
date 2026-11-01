@@ -1,0 +1,43 @@
+{
+  "cell": 240,
+  "cols": 8,
+  "fps": 30,
+  "clips": {
+    "land": {
+      "file": "ppomo-land.png",
+      "frames": 48,
+      "rows": 6,
+      "from": 0,
+      "to": 0
+    },
+    "puff1": {
+      "file": "ppomo-puff1.png",
+      "frames": 42,
+      "rows": 6,
+      "from": 0,
+      "to": 1
+    },
+    "puff2": {
+      "file": "ppomo-puff2.png",
+      "frames": 42,
+      "rows": 6,
+      "from": 1,
+      "to": 2
+    },
+    "puff3": {
+      "file": "ppomo-puff3.png",
+      "frames": 42,
+      "rows": 6,
+      "from": 2,
+      "to": 3
+    },
+    "deflate": {
+      "file": "ppomo-deflate.png",
+      "frames": 48,
+      "rows": 6,
+      "from": 3,
+      "to": 0
+    }
+  },
+  "groundY": 204
+}

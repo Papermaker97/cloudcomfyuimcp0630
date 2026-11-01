@@ -658,7 +658,16 @@ window.ppomoJelly = {
       for (let s = 0; s < SUBSTEPS; s++) substep(1 / 60 / SUBSTEPS);
     }
   },
+  // bake hooks (used by bake-jelly-sprites.mjs to render sprite sheets for p5.js)
+  THREE, vel, scene, renderer, ground, applyPuff,
+  setFirmness(v) { firm.value = v; readSliders(); },
+  setDamping(v) { damp.value = v; readSliders(); },
+  updateMesh() { applyEmbedding(surfEmb, surfNow); posAttr.needsUpdate = true; surface.computeVertexNormals(); updateFace(); },
 };
-drop();
-requestAnimationFrame(frame);
+if (new URLSearchParams(location.search).has('bake')) {
+  document.body.dataset.bake = '1';
+} else {
+  drop();
+  requestAnimationFrame(frame);
+}
 </script>
