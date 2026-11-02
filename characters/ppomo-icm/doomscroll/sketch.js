@@ -13,9 +13,13 @@
     Space                                                      → drop one Ppomo at a random spot
   DOM controls under the canvas change how much scrolling makes one Ppomo, their size, and more.
 
+  Feed video: put a screen recording of your own feed next to sketch.js as feed.mp4 (under 5 MB for the p5 editor).
+  It only plays while you scroll, faster when you scroll faster. Without feed.mp4 the sketch draws grey cards instead.
+
   Credits
     - Ppomo pictures: renders of my round sitting 3D Ppomo (front, back, side, 3/4 views in six colours),
       made for this project with help from Claude.
+    - Feed video: my own screen recording of scrolling my feed.
     - Physics: Matter.js 0.20.0 (https://brm.io/matter-js/), Engine / Bodies / Composite as in its docs.
     - p5.js reference for mouseWheel(), loadImage(), createSlider() etc.: https://p5js.org/reference/
     - The sketch code was written with help from Claude.
@@ -47,6 +51,11 @@ let sessionStart = 0;
 let full = false;
 
 let perPpomoSlider, sizeSlider, feedCheckbox, logBox;
+
+// the real feed: a screen recording of scrolling Instagram (feed.mp4), played only while you scroll
+let feedVideo;
+let lastScrollMs = -9999;            // when the last scroll happened
+let scrollSpeed = 0;                 // smoothed scroll amount per event, sets the playback speed
 
 // ---------- the Ppomo class ----------
 class Ppomo {
@@ -104,6 +113,14 @@ async function setup() {
     }
   }
 
+  // the feed video. If feed.mp4 is missing, the drawn grey feed is used instead.
+  feedVideo = createVideo('feed.mp4');
+  feedVideo.hide();                   // we draw it on the canvas ourselves
+  feedVideo.volume(0);
+  feedVideo.elt.muted = true;         // browsers only let silent videos play on their own
+  feedVideo.elt.loop = true;
+  feedVideo.elt.playsInline = true;
+
   engine = Engine.create();
   const wall = { isStatic: true };
   Composite.add(engine.world, [
@@ -157,8 +174,30 @@ function draw() {
   drawHud();
 }
 
-// a fake social feed: cards that move up as you scroll
+// the feed: the real recording if it loaded, otherwise drawn grey cards
 function drawFeed() {
+  if (feedVideo && feedVideo.elt.readyState >= 2 && feedVideo.elt.videoWidth > 0) drawVideoFeed();
+  else drawCardFeed();
+}
+
+// the video only moves while you are scrolling, faster when you scroll faster
+function drawVideoFeed() {
+  const scrolling = millis() - lastScrollMs < 250;
+  if (scrolling) {
+    feedVideo.speed(constrain(map(scrollSpeed, 0, 200, 0.6, 3), 0.6, 3));
+    if (feedVideo.elt.paused) feedVideo.play();
+  } else if (!feedVideo.elt.paused) {
+    feedVideo.pause();
+  }
+  scrollSpeed *= 0.9;
+  // cover the whole canvas, keeping the video's shape (cropped at the edges if needed)
+  const vw = feedVideo.elt.videoWidth, vh = feedVideo.elt.videoHeight;
+  const k = max(W / vw, H / vh);
+  image(feedVideo, (W - vw * k) / 2, (H - vh * k) / 2, vw * k, vh * k);
+}
+
+// a fake social feed: cards that move up as you scroll
+function drawCardFeed() {
   const cardH = 300;
   const first = floor(feedOffset / cardH);
   noStroke();
@@ -204,6 +243,8 @@ function drawHud() {
 // ---------- scrolling = the recorded behaviour ----------
 function scrollBy(amount) {
   const d = abs(amount);
+  lastScrollMs = millis();
+  scrollSpeed = lerp(scrollSpeed, d, 0.5);
   feedOffset = max(0, feedOffset + amount);
   scrolledPx += d;
   scrollBank += d;
