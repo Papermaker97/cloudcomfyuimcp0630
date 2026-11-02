@@ -11,7 +11,7 @@
     Click a Ppomo                                              → pop it (it disappears)
     Backspace                                                  → remove the last Ppomo
     Space                                                      → drop one Ppomo at a random spot
-  DOM controls under the canvas change how much scrolling makes one Ppomo, their size, and more.
+  DOM controls under the canvas: Ppomo rate (right = more Ppomos per scroll), Ppomo size, and more.
 
   Feed video: put a screen recording of your own feed next to sketch.js as feed.mp4 (under 5 MB for the p5 editor).
   It only plays while you scroll, faster when you scroll faster. Without feed.mp4 the sketch draws grey cards instead.
@@ -50,7 +50,7 @@ let scrollBank = 0;                  // scrolled distance not yet turned into a 
 let sessionStart = 0;
 let full = false;
 
-let perPpomoSlider, sizeSlider, feedCheckbox, logBox;
+let rateSlider, sizeSlider, feedCheckbox, logBox;
 
 // the real feed: a screen recording of scrolling Instagram (feed.mp4), played only while you scroll
 let feedVideo;
@@ -131,8 +131,8 @@ async function setup() {
 
   // DOM controls
   const panel = createDiv().id('panel');
-  createSpan('Scroll per Ppomo').parent(panel);
-  perPpomoSlider = createSlider(40, 600, 160, 10).parent(panel);
+  createSpan('Ppomo rate').parent(panel);
+  rateSlider = createSlider(1, 10, 4, 1).parent(panel);     // right = more Ppomos for the same scrolling
   createSpan('Ppomo size').parent(panel);
   sizeSlider = createSlider(100, 240, 160, 10).parent(panel);
   feedCheckbox = createCheckbox(' show the feed', true).parent(panel).class('wide');
@@ -248,9 +248,10 @@ function scrollBy(amount) {
   feedOffset = max(0, feedOffset + amount);
   scrolledPx += d;
   scrollBank += d;
-  // every "Scroll per Ppomo" pixels of scrolling drops one Ppomo
-  while (scrollBank >= perPpomoSlider.value()) {
-    scrollBank -= perPpomoSlider.value();
+  // how many pixels of scrolling make one Ppomo: rate 1 → 600 px (few Ppomos), rate 10 → 60 px (lots)
+  const pxPerPpomo = 600 / rateSlider.value();
+  while (scrollBank >= pxPerPpomo) {
+    scrollBank -= pxPerPpomo;
     dropPpomo(random(40, W - 40), 'scroll-drop');
   }
 }
