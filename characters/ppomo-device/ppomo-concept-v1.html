@@ -1,0 +1,511 @@
+<title>Ppomo Prototype v1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a two-pane bench — the physical device on the left, the screen it drives on the right, controls and the decision note beneath. */
+:root {
+  --bg: #F3F1F5;
+  --panel: #FFFFFF;
+  --ink: #26242C;
+  --muted: #6B6876;
+  --line: #DEDAE5;
+  --accent: #D9718A;        /* Ppomo cheek pink, used for actions and the sensor zone */
+  --accent-ink: #FFFFFF;
+  --electronics: #3E7CB1;   /* protected electronics zone */
+  --wire: #C98A2B;          /* wire path */
+  --open: #8A5BB0;          /* unresolved parts */
+  --ok: #3F8F5F;
+  --warn: #B7791F;
+  --stage: #ECEAF0;
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1B1A20; --panel: #24232B; --ink: #ECEAF1; --muted: #A5A2B2; --line: #36343F;
+  --accent: #EE8FA6; --accent-ink: #2A0E16; --electronics: #6FA6D6; --wire: #E0A84E; --open: #B58BDA;
+  --ok: #6CC08C; --warn: #E2A84A; --stage: #2A2931; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #1B1A20; --panel: #24232B; --ink: #ECEAF1; --muted: #A5A2B2; --line: #36343F;
+  --accent: #EE8FA6; --accent-ink: #2A0E16; --electronics: #6FA6D6; --wire: #E0A84E; --open: #B58BDA;
+  --ok: #6CC08C; --warn: #E2A84A; --stage: #2A2931; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.1; text-wrap: balance; }
+.sub { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+.tag { font-family: var(--font-data); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--open); border: 1px solid var(--open); border-radius: 4px; padding: 3px 8px; white-space: nowrap; }
+.panes { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 16px; }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.pane-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.pane-head h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 16px; }
+.pane-head small { color: var(--muted); font-size: 12px; }
+.stage { position: relative; height: 470px; background: var(--stage); touch-action: none; }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.leaders { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.leaders line { stroke-width: 1.2; }
+.leaders circle { stroke: var(--panel); stroke-width: 1.5; }
+@media (max-width: 520px) { .lab { font-size: 10.5px; max-width: 128px; } .lab span { display: none; } }
+.lab { position: absolute; transform: translateY(-50%); font-size: 11.5px; line-height: 1.3; padding: 4px 7px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c, var(--muted)); max-width: 190px; white-space: normal; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.lab b { display: block; font-weight: 600; }
+.lab span { color: var(--muted); }
+.readouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.readouts div { padding: 10px 14px; border-right: 1px solid var(--line); min-width: 0; }
+.readouts div:last-child { border-right: 0; }
+.readouts .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.readouts .v { font-family: var(--font-data); font-size: 20px; font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font-family: var(--font-data); font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); }
+.controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.ctl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ctl > span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: inherit; font-weight: 500; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-weight: 700; font-size: 16px; padding: 10px 16px; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+label.check { display: flex; align-items: center; gap: 8px; }
+.note { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.card h3 { margin: 0 0 6px; font-family: var(--font-display); font-weight: 500; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.card h3::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c, var(--muted)); flex: none; }
+.card p { margin: 0 0 6px; }
+.card .status { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.card ul { margin: 6px 0 0; padding-left: 18px; }
+footer { color: var(--muted); font-size: 12px; max-width: 80ch; }
+@media (max-width: 860px) {
+  .panes, .note { grid-template-columns: 1fr; }
+  .controls { grid-template-columns: 1fr 1fr; }
+  .stage { height: 380px; }
+}
+@media (max-width: 480px) { .controls { grid-template-columns: 1fr; } h1 { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Ppomo Prototype v1</h1>
+      <p class="sub">One squeeze, one event. The device counts squeezes locally. The screen shows an on-screen Ppomo that grows with the count. Nothing on this page is a measurement.</p>
+    </div>
+    <span class="tag">Concept model · not fabrication CAD</span>
+  </header>
+
+  <div class="panes">
+    <section class="pane" aria-label="Physical device">
+      <div class="pane-head"><h2>Physical device</h2><small>Drag to rotate · click the body to squeeze</small></div>
+      <div class="stage" id="deviceStage"><svg class="leaders" id="leaders" aria-hidden="true"></svg><div class="labels" id="deviceLabels"></div></div>
+      <div class="readouts">
+        <div><div class="k">Local count (device)</div><div class="v" id="localCount">0</div></div>
+        <div><div class="k">Last event</div><div class="v" id="lastEvent" style="font-size:14px">—</div></div>
+        <div><div class="k">Haptic pulse</div><div class="v" id="hapticState" style="font-size:14px">idle</div></div>
+      </div>
+    </section>
+
+    <section class="pane" aria-label="Screen interaction">
+      <div class="pane-head"><h2>Screen interaction</h2><small>Ppomo on the visitor's head or shoulder</small></div>
+      <div class="stage" id="screenStage"><canvas id="screen"></canvas></div>
+      <div class="readouts">
+        <div><div class="k">Screen count</div><div class="v" id="screenCount">0</div></div>
+        <div><div class="k">Sync</div><div class="v" id="syncState" style="font-size:14px"></div></div>
+        <div><div class="k">Perch</div><div class="v" style="font-size:14px"><span class="seg"><button type="button" id="perchHead" aria-pressed="true">Head</button><button type="button" id="perchShoulder" aria-pressed="false">Shoulder</button></span></div></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <span>Interaction</span>
+      <div class="seg"><button type="button" class="primary" id="squeeze">Squeeze</button><button type="button" id="reset">Reset</button></div>
+      <label class="check"><input type="checkbox" id="connected" checked> Screen app connected</label>
+    </div>
+    <div class="ctl">
+      <span>View</span>
+      <div class="seg" id="viewSeg">
+        <button type="button" data-view="exterior" aria-pressed="false">Exterior</button>
+        <button type="button" data-view="cutaway" aria-pressed="true">Cutaway</button>
+        <button type="button" data-view="exploded" aria-pressed="false">Exploded</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Sensor option</span>
+      <div class="seg" id="sensorSeg">
+        <button type="button" data-sensor="fsr" aria-pressed="true">FSR</button>
+        <button type="button" data-sensor="flex" aria-pressed="false">Flex</button>
+        <button type="button" data-sensor="air" aria-pressed="false">Air pressure</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Body option</span>
+      <div class="seg" id="bodySeg">
+        <button type="button" data-body="cast" aria-pressed="true">Silicone casting</button>
+        <button type="button" data-body="print" aria-pressed="false">Rubber-like print</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="card" style="--c: var(--accent)">
+      <h3 id="sensorTitle"></h3>
+      <p id="sensorText"></p>
+      <p class="status" id="sensorStatus"></p>
+    </div>
+    <div class="card" style="--c: var(--electronics)">
+      <h3 id="bodyTitle"></h3>
+      <p id="bodyText"></p>
+      <p class="status" id="bodyStatus"></p>
+    </div>
+    <div class="card" style="--c: var(--open)">
+      <h3>Still open in v1</h3>
+      <ul>
+        <li>Wire between butt sensor and head electronics: candidates are silicone-insulated stranded wire or Qwiic. None tested for repeated flexing.</li>
+        <li>Haptic: DRV2605L is a candidate driver. No motor chosen or tested.</li>
+        <li>Count storage: onboard flash vs. microSD, and whether an RTC is needed at all.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    Layout follows Tom Igoe's earlier feedback: fragile electronics in the head, which is not squeezed; the sensor in the butt; the connecting wire settled by experiment. Counts here are simulated by the buttons on this page. Squeezes less than 300 ms apart are ignored, to show one squeeze = one event.
+  </footer>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// ---------- option text: only what is actually known ----------
+const SENSORS = {
+  fsr: {
+    title: 'Sensor: FSR (force-sensing resistor)',
+    text: 'A flat pad under the butt. Pressing it lowers its resistance, read through a voltage divider on an analog pin.',
+    status: 'Status: used by hand in the serial labs (0 at rest, rising with pressure). Not yet tested inside a soft body.',
+    label: 'FSR pad (butt)',
+  },
+  flex: {
+    title: 'Sensor: flex sensor',
+    text: 'A strip along the butt that bends when the body is squeezed. Its resistance rises as it bends.',
+    status: 'Status: the professor-recommended direction (Oct 6). Not yet tested side by side with the FSR inside the body.',
+    label: 'Flex strip (butt)',
+  },
+  air: {
+    title: 'Sensor: air pressure in a bulb',
+    text: 'A sealed bulb in the butt, a tube to a pressure sensor on the board in the head. Squeezing raises the air pressure in the bulb.',
+    status: 'Status: researched alternative only (precedents: Martin Vigorimeter, TakkTile). Not built or tested.',
+    label: 'Air bulb + tube (butt)',
+  },
+};
+const BODIES = {
+  cast: {
+    title: 'Body: silicone casting',
+    text: 'Pour soft silicone into a mold made from the 3D model. The route used by silicone art-toy makers in my references.',
+    status: 'Status: reference route only. No silicone chosen, no sample cast, no hardness tested.',
+    label: 'Body: cast silicone (untested)',
+  },
+  print: {
+    title: 'Body: rubber-like 3D print',
+    text: 'Print the body directly in a flexible, rubber-like material at the shop I visited.',
+    status: 'Status: shop visited Oct 9 and a prototype printed. Shop name, material name and Shore hardness not confirmed.',
+    label: 'Body: rubber-like print (material TBC)',
+  },
+};
+
+// ---------- device scene ----------
+const stage = $('deviceStage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0xcfcad8, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(-2, 4, 3); scene.add(key);
+const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 50);
+camera.position.set(3.4, 2.2, 4.4);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.95, 0); controls.enableDamping = true; controls.minDistance = 3; controls.maxDistance = 9; controls.update();
+
+const floor = new THREE.Mesh(new THREE.CircleGeometry(1.05, 48), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.06 }));
+floor.rotation.x = -Math.PI / 2; scene.add(floor);
+
+const col = (hex) => new THREE.Color(hex);
+const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xBFC3CD, roughness: 0.65, sheen: 0.4, transparent: true, opacity: 1 });
+const cheekMat = new THREE.MeshPhysicalMaterial({ color: 0xF2AABD, roughness: 0.6, transparent: true, opacity: 1 });
+const bellyMat = new THREE.MeshPhysicalMaterial({ color: 0xF4E7D3, roughness: 0.6, transparent: true, opacity: 1 });
+const buttMat = new THREE.MeshPhysicalMaterial({ color: 0xF4B6A2, roughness: 0.6, transparent: true, opacity: 1 });
+const inkMat = new THREE.MeshStandardMaterial({ color: 0x2f2d35 });
+const shellMats = [bodyMat, cheekMat, bellyMat, buttMat];
+
+// shell: head group (top) and lower body group, so the exploded view can lift the head
+const device = new THREE.Group(); scene.add(device);
+const headShell = new THREE.Group(), lowerShell = new THREE.Group();
+device.add(headShell, lowerShell);
+const sph = (mat, r, x, y, z, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 32), mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); return m; };
+headShell.add(sph(bodyMat, 0.62, 0, 1.32, 0.03, 1.08, 0.9, 1));
+headShell.add(sph(bodyMat, 0.19, -0.38, 1.78, -0.02), sph(bodyMat, 0.19, 0.38, 1.78, -0.02));
+headShell.add(sph(cheekMat, 0.27, -0.41, 1.12, 0.36), sph(cheekMat, 0.27, 0.41, 1.12, 0.36));
+const eyes = [sph(inkMat, 0.04, -0.14, 1.33, 0.62), sph(inkMat, 0.04, 0.14, 1.33, 0.62)];
+headShell.add(...eyes);
+lowerShell.add(sph(bodyMat, 0.72, 0, 0.6, -0.04, 1, 0.82, 0.95));
+lowerShell.add(sph(bellyMat, 0.42, 0, 0.56, 0.38, 1, 0.95, 0.75));
+lowerShell.add(sph(buttMat, 0.33, -0.27, 0.42, -0.42), sph(buttMat, 0.33, 0.27, 0.42, -0.42));
+lowerShell.add(sph(bodyMat, 0.16, -0.7, 0.68, 0.3), sph(bodyMat, 0.16, 0.7, 0.68, 0.3));     // paws
+lowerShell.add(sph(bodyMat, 0.15, -0.46, 0.14, 0.56), sph(bodyMat, 0.15, 0.46, 0.14, 0.56));  // feet
+
+// internals
+const internals = new THREE.Group(); device.add(internals);
+const elecColor = () => col(css('--electronics') || '#3E7CB1');
+const pod = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.22, 0.42), new THREE.MeshStandardMaterial({ color: 0x3E7CB1, roughness: 0.5 }));
+pod.position.set(0, 1.36, -0.05); internals.add(pod);
+const board = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.32), new THREE.MeshStandardMaterial({ color: 0x1e5e3a })); board.position.set(0, 1.49, -0.05); internals.add(board);
+const led = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 12), new THREE.MeshBasicMaterial({ color: 0x3a3a3a }));
+led.position.set(0.16, 1.53, 0.05); internals.add(led);
+const haptic = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 24), new THREE.MeshStandardMaterial({ color: 0x8A5BB0 }));
+haptic.position.set(-0.18, 1.24, 0.1); internals.add(haptic);
+const hapticRing = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.012, 8, 32), new THREE.MeshBasicMaterial({ color: 0x8A5BB0, transparent: true, opacity: 0 }));
+hapticRing.position.copy(haptic.position); hapticRing.rotation.x = Math.PI / 2; internals.add(hapticRing);
+
+// sensors (one visible at a time)
+const sensorGroup = new THREE.Group(); internals.add(sensorGroup);
+const pinkMat = new THREE.MeshStandardMaterial({ color: 0xD9718A, roughness: 0.4 });
+const sensors = {
+  fsr: (() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 32), pinkMat); m.position.set(0, 0.42, -0.62); m.rotation.x = Math.PI / 2 - 0.3; return m; })(),
+  flex: (() => {
+    const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.42, 0.34, -0.5), new THREE.Vector3(0, 0.44, -0.64), new THREE.Vector3(0.42, 0.34, -0.5)]);
+    return new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.03, 8), pinkMat);
+  })(),
+  air: (() => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.24, 32, 24), new THREE.MeshStandardMaterial({ color: 0xD9718A, roughness: 0.3, transparent: true, opacity: 0.85 })); m.position.set(0, 0.45, -0.42); m.scale.set(1.2, 0.85, 0.9); return m; })(),
+};
+Object.values(sensors).forEach((m) => sensorGroup.add(m));
+
+// wire path: from the sensor zone up the back to the head pod, with a loose service loop
+const wireMat = new THREE.MeshStandardMaterial({ color: 0xC98A2B, roughness: 0.5 });
+let wire = new THREE.Mesh(new THREE.BufferGeometry(), wireMat); internals.add(wire);
+function rebuildWire(sensorPos, podPos) {
+  const a = sensorPos.clone(), b = podPos.clone();
+  const pts = [a,
+    new THREE.Vector3(0.12, a.y + 0.25, -0.5),
+    new THREE.Vector3(0.28, (a.y + b.y) / 2, -0.38),    // service loop out to the side
+    new THREE.Vector3(0.05, (a.y + b.y) / 2 + 0.12, -0.46),
+    new THREE.Vector3(0.0, b.y - 0.2, -0.25),
+    new THREE.Vector3(b.x, b.y - 0.11, b.z)];
+  wire.geometry.dispose();
+  wire.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, sensorChoice === 'air' ? 0.028 : 0.016, 8);
+}
+
+// ---------- state ----------
+let view = 'cutaway', sensorChoice = 'fsr', bodyChoice = 'cast';
+let localCount = 0, screenCount = 0, lastSqueeze = -1e9, squeezeT = 0, hapticT = 0, connected = true;
+let perch = 'head';
+
+// exploded offsets
+const EX = { head: new THREE.Vector3(0, 0.95, 0), pod: new THREE.Vector3(0, 0.55, 0), sensor: new THREE.Vector3(0, -0.15, -0.55) };
+const sensorBase = {}; for (const k in sensors) sensorBase[k] = sensors[k].position.clone();
+const podBase = pod.position.clone(), boardBase = board.position.clone(), ledBase = led.position.clone(), hapBase = haptic.position.clone();
+let explode = 0, explodeTarget = 0;
+
+function applyView() {
+  explodeTarget = view === 'exploded' ? 1 : 0;
+  const see = view !== 'exterior';
+  internals.visible = see;
+  const op = view === 'cutaway' ? 0.22 : view === 'exploded' ? 0.35 : 1;
+  for (const m of shellMats) { m.opacity = op; m.depthWrite = op === 1; m.needsUpdate = true; }
+  for (const e of eyes) e.visible = true;
+  document.querySelectorAll('#viewSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+}
+function applySensor() {
+  for (const k in sensors) sensors[k].visible = k === sensorChoice;
+  const s = SENSORS[sensorChoice];
+  $('sensorTitle').textContent = s.title; $('sensorText').textContent = s.text; $('sensorStatus').textContent = s.status;
+  document.querySelectorAll('#sensorSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sensor === sensorChoice)));
+}
+function applyBody() {
+  const print = bodyChoice === 'print';
+  bodyMat.color.set(print ? 0xC9CCD6 : 0xBFC3CD);
+  bodyMat.roughness = print ? 0.35 : 0.7;
+  bodyMat.transmission = 0; bodyMat.clearcoat = print ? 0.6 : 0.1;
+  const b = BODIES[bodyChoice];
+  $('bodyTitle').textContent = b.title; $('bodyText').textContent = b.text; $('bodyStatus').textContent = b.status;
+  document.querySelectorAll('#bodySeg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.body === bodyChoice)));
+}
+
+// ---------- labels projected from 3D anchors ----------
+const wp = (o) => o.getWorldPosition(new THREE.Vector3());
+const LABELS = [
+  { side: 'L', c: '--electronics', title: () => 'Electronics zone (head)', sub: 'microcontroller + count storage; not squeezed', at: () => wp(pod), show: () => view !== 'exterior' },
+  { side: 'L', c: '--open', title: () => 'Haptic (open)', sub: 'DRV2605L candidate; motor not chosen', at: () => wp(haptic), show: () => view !== 'exterior' },
+  { side: 'L', c: '--muted', title: () => BODIES[bodyChoice].label, sub: 'soft shell', at: () => new THREE.Vector3(-0.62, 0.62, 0.2), show: () => true },
+  { side: 'R', c: '--ok', title: () => 'Status LED', sub: 'blinks on a counted squeeze', at: () => wp(led), show: () => view !== 'exterior' },
+  { side: 'R', c: '--wire', title: () => sensorChoice === 'air' ? 'Air tube path' : 'Wire path + service loop', sub: () => sensorChoice === 'air' ? 'tube to a sensor on the board; untested' : 'type untested: silicone stranded / Qwiic', at: () => new THREE.Vector3(0.22, 0.95 + explode * 0.2, -0.42), show: () => view !== 'exterior' },
+  { side: 'R', c: '--accent', title: () => SENSORS[sensorChoice].label, sub: 'sensor zone: this part is squeezed', at: () => wp(sensors[sensorChoice]), show: () => view !== 'exterior' },
+];
+const labelBox = $('deviceLabels'), leaders = $('leaders');
+for (const L of LABELS) { const el = document.createElement('div'); el.className = 'lab'; el.style.setProperty('--c', `var(${L.c})`); labelBox.appendChild(el); L.el = el; }
+function placeLabels() {
+  const w = stage.clientWidth, h = stage.clientHeight, v = new THREE.Vector3(), pad = 10, gap = 8;
+  let svg = '';
+  for (const side of ['L', 'R']) {
+    const items = LABELS.filter((L) => L.side === side);
+    for (const L of items) {
+      L.el.hidden = !L.show();
+      if (L.el.hidden) continue;
+      L.el.innerHTML = `<b>${L.title()}</b><span>${typeof L.sub === 'function' ? L.sub() : L.sub}</span>`;
+      v.copy(L.at()).project(camera);
+      L.ax = (v.x + 1) / 2 * w; L.ay = (1 - v.y) / 2 * h;
+    }
+    // stack labels in a column at the stage edge, in anchor order, without overlap
+    const shown = items.filter((L) => !L.el.hidden).sort((a, b) => a.ay - b.ay);
+    let y = 14;
+    for (const L of shown) {
+      const lh = L.el.offsetHeight || 40;
+      const top = Math.max(y, Math.min(h - lh - 10, L.ay - lh / 2));
+      L.ly = top + lh / 2; y = top + lh + gap;
+      L.el.style.top = `${L.ly}px`;
+      if (side === 'L') { L.el.style.left = `${pad}px`; L.el.style.right = 'auto'; }
+      else { L.el.style.left = 'auto'; L.el.style.right = `${pad}px`; }
+      const ex = side === 'L' ? pad + L.el.offsetWidth : w - pad - L.el.offsetWidth;
+      const color = css(L.c);
+      svg += `<line x1="${ex}" y1="${L.ly}" x2="${L.ax}" y2="${L.ay}" stroke="${color}"/><circle cx="${L.ax}" cy="${L.ay}" r="4" fill="${color}"/>`;
+    }
+  }
+  leaders.innerHTML = svg;
+}
+
+// ---------- squeeze logic: one squeeze = one event ----------
+function squeeze(now = performance.now()) {
+  if (now - lastSqueeze < 300) { $('lastEvent').textContent = 'ignored (too soon)'; return; }
+  lastSqueeze = now;
+  localCount++;
+  squeezeT = 1; hapticT = 1;
+  $('lastEvent').textContent = `squeeze #${localCount}`;
+  if (connected) screenCount = localCount;
+  updateReadouts();
+}
+function updateReadouts() {
+  $('localCount').textContent = localCount;
+  $('screenCount').textContent = screenCount;
+  $('syncState').innerHTML = connected
+    ? (screenCount === localCount ? '<span class="pill ok">in sync</span>' : '<span class="pill warn">syncing…</span>')
+    : `<span class="pill warn">offline · ${localCount - screenCount} to sync</span>`;
+}
+$('squeeze').addEventListener('click', () => squeeze());
+$('reset').addEventListener('click', () => { localCount = 0; screenCount = 0; $('lastEvent').textContent = 'reset (button)'; updateReadouts(); });
+$('connected').addEventListener('change', (e) => {
+  connected = e.target.checked;
+  if (connected) { $('lastEvent').textContent = `synced ${localCount - screenCount}`; screenCount = localCount; }
+  updateReadouts();
+});
+document.querySelectorAll('#viewSeg button').forEach((b) => b.addEventListener('click', () => { view = b.dataset.view; applyView(); }));
+document.querySelectorAll('#sensorSeg button').forEach((b) => b.addEventListener('click', () => { sensorChoice = b.dataset.sensor; applySensor(); }));
+document.querySelectorAll('#bodySeg button').forEach((b) => b.addEventListener('click', () => { bodyChoice = b.dataset.body; applyBody(); }));
+$('perchHead').addEventListener('click', () => { perch = 'head'; $('perchHead').setAttribute('aria-pressed', 'true'); $('perchShoulder').setAttribute('aria-pressed', 'false'); });
+$('perchShoulder').addEventListener('click', () => { perch = 'shoulder'; $('perchHead').setAttribute('aria-pressed', 'false'); $('perchShoulder').setAttribute('aria-pressed', 'true'); });
+
+// click the body to squeeze (a short click, not a drag)
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let downAt = null;
+renderer.domElement.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  if (ray.intersectObjects([headShell, lowerShell], true).length) squeeze();
+});
+
+// ---------- screen view (2D canvas) ----------
+const scr = $('screen'), ctx = scr.getContext('2d');
+let shownScale = 1;
+function drawScreen(t) {
+  const w = scr.clientWidth, h = scr.clientHeight, dpr = Math.min(window.devicePixelRatio, 2);
+  if (scr.width !== w * dpr) { scr.width = w * dpr; scr.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = css('--stage'); ctx.fillRect(0, 0, w, h);
+  // "camera" frame
+  ctx.strokeStyle = css('--line'); ctx.lineWidth = 1; ctx.strokeRect(10.5, 10.5, w - 21, h - 21);
+  ctx.fillStyle = css('--muted'); ctx.font = '11px "IBM Plex Mono", monospace'; ctx.fillText('CAMERA VIEW (simulated)', 20, 28);
+  // person silhouette
+  const cx = w / 2, headR = Math.min(w, h) * 0.12, headY = h * 0.5;
+  ctx.fillStyle = css('--muted'); ctx.globalAlpha = 0.45;
+  ctx.beginPath(); ctx.arc(cx, headY, headR, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx - headR * 2.8, h); ctx.quadraticCurveTo(cx - headR * 2.6, headY + headR * 1.7, cx - headR * 0.9, headY + headR * 1.4);
+  ctx.lineTo(cx + headR * 0.9, headY + headR * 1.4); ctx.quadraticCurveTo(cx + headR * 2.6, headY + headR * 1.7, cx + headR * 2.8, h); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+  // Ppomo grows with the screen count (capped so it stays on screen)
+  const target = 1 + Math.min(screenCount, 12) * 0.07;
+  shownScale += (target - shownScale) * 0.12;
+  const bounce = squeezeT * 0.08 * Math.sin(t / 40);
+  const base = headR * 0.75 * shownScale;
+  const px = perch === 'head' ? cx : cx + headR * 1.75, py = perch === 'head' ? headY - headR * 0.92 : headY + headR * 1.42;
+  drawPpomo(px, py, base, bounce);
+  // haptic indicator
+  if (hapticT > 0) {
+    ctx.strokeStyle = css('--open'); ctx.globalAlpha = hapticT; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(px, py - base, base * (1.4 + (1 - hapticT) * 0.6), 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = css('--ink'); ctx.font = '600 13px "IBM Plex Sans", sans-serif';
+  ctx.fillText(`size ×${shownScale.toFixed(2)} · ${screenCount} squeezes shown`, 20, h - 22);
+}
+function drawPpomo(x, y, s, bounce) {
+  const sx = 1 + bounce, sy = 1 - bounce;
+  ctx.save(); ctx.translate(x, y); ctx.scale(sx, sy);
+  ctx.fillStyle = '#C3C7D1';
+  for (const e of [-1, 1]) { ctx.beginPath(); ctx.arc(e * s * 0.55, -s * 1.75, s * 0.28, 0, Math.PI * 2); ctx.fill(); }
+  ctx.beginPath(); ctx.ellipse(0, -s, s * 1.05, s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#F2AABD';
+  const puff = Math.min(screenCount, 12) * 0.02;
+  for (const e of [-1, 1]) { ctx.beginPath(); ctx.arc(e * s * 0.55, -s * 0.8, s * (0.28 + puff), 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = '#F4E7D3'; ctx.beginPath(); ctx.ellipse(0, -s * 0.35, s * (0.45 + puff), s * (0.32 + puff * 0.6), 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2f2d35';
+  for (const e of [-1, 1]) { ctx.beginPath(); ctx.arc(e * s * 0.2, -s * 1.08, s * 0.065, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
+// ---------- loop ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  explode += (explodeTarget - explode) * Math.min(1, dt * 6);
+  headShell.position.copy(EX.head).multiplyScalar(explode);
+  pod.position.copy(podBase).addScaledVector(EX.pod, explode);
+  board.position.copy(boardBase).addScaledVector(EX.pod, explode);
+  led.position.copy(ledBase).addScaledVector(EX.pod, explode);
+  haptic.position.copy(hapBase).addScaledVector(EX.pod, explode); hapticRing.position.copy(haptic.position);
+  for (const k in sensors) sensors[k].position.copy(sensorBase[k]).addScaledVector(EX.sensor, explode);
+  rebuildWire(sensors[sensorChoice].getWorldPosition(new THREE.Vector3()), pod.position);
+  // squeeze: squash the lower body, blink the LED, pulse the haptic ring
+  squeezeT = Math.max(0, squeezeT - dt * 2.5);
+  hapticT = Math.max(0, hapticT - dt * 2);
+  const sq = Math.sin(squeezeT * Math.PI) * 0.08;
+  lowerShell.scale.set(1 + sq, 1 - sq, 1 + sq);
+  led.material.color.set(squeezeT > 0.4 ? 0x3FD27A : 0x3a3a3a);
+  hapticRing.material.opacity = hapticT; hapticRing.scale.setScalar(1 + (1 - hapticT) * 0.8);
+  $('hapticState').textContent = hapticT > 0 ? 'pulse' : 'idle';
+  controls.update();
+  renderer.render(scene, camera);
+  placeLabels();
+  drawScreen(now);
+  requestAnimationFrame(frame);
+}
+applyView(); applySensor(); applyBody(); updateReadouts(); resize();
+requestAnimationFrame(frame);
+window.ppomoConcept = { squeeze, get localCount() { return localCount; }, get screenCount() { return screenCount; } };
+</script>
