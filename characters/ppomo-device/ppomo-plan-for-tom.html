@@ -1,0 +1,255 @@
+<title>Ppomo Build Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single readable column, like a one-page design review handout. Diagram and tables break out slightly wider. */
+:root {
+  --bg: #F5F3F7;
+  --paper: #FFFFFF;
+  --ink: #25232B;
+  --muted: #696674;
+  --line: #DFDBE6;
+  --accent: #CF6A84;        /* Ppomo cheek pink: the sensor zone and key decisions */
+  --elec: #3B78AE;          /* electronics */
+  --wire: #B98126;          /* wire */
+  --soft: #EFE9F2;          /* silicone body fill */
+  --ok: #2F855A;
+  --plan: #6B5BB0;
+  --hold: #A0611F;
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1B1A20; --paper: #23222A; --ink: #ECEAF1; --muted: #A6A3B3; --line: #383640;
+  --accent: #EE8FA6; --elec: #74A9D8; --wire: #E0AE5A; --soft: #33303C;
+  --ok: #6CC08C; --plan: #A99CE6; --hold: #E2A660; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #1B1A20; --paper: #23222A; --ink: #ECEAF1; --muted: #A6A3B3; --line: #383640;
+  --accent: #EE8FA6; --elec: #74A9D8; --wire: #E0AE5A; --soft: #33303C;
+  --ok: #6CC08C; --plan: #A99CE6; --hold: #E2A660; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; }
+.page { max-width: 820px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 40px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(32px, 6vw, 46px); line-height: 1.05; text-wrap: balance; }
+.lede { margin: 0; font-size: 18px; max-width: 60ch; }
+h2 { margin: 0 0 12px; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.2; text-wrap: balance; }
+h3 { margin: 0 0 6px; font-family: var(--font-display); font-weight: 500; font-size: 17px; }
+p { margin: 0 0 10px; max-width: 68ch; }
+section { display: flex; flex-direction: column; gap: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); }
+.st { display: inline-block; font-family: var(--font-data); font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.st.tested { color: var(--ok); } .st.plan { color: var(--plan); } .st.hold { color: var(--hold); }
+.summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.summary > div { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.summary .k { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.summary .v { font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.25; margin: 4px 0 6px; }
+.summary p { font-size: 14px; margin: 0; }
+figure { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+figure svg { width: 100%; height: auto; max-width: 380px; justify-self: center; }
+figcaption ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+figcaption b { font-weight: 600; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.pick td:first-child { box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.dots { font-family: var(--font-data); letter-spacing: 2px; color: var(--accent); white-space: nowrap; }
+.dots i { color: var(--line); font-style: normal; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.card ul { margin: 6px 0 0; padding-left: 18px; }
+.card li { margin-bottom: 4px; }
+.warn { border-left: 3px solid var(--hold); padding: 10px 14px; background: var(--paper); border-radius: 0 10px 10px 0; font-size: 14.5px; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.steps .n { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--accent); line-height: 1.2; }
+.steps .go { font-size: 13.5px; color: var(--muted); }
+.qs { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+.qs li { padding-left: 4px; }
+.qs li::marker { font-family: var(--font-display); font-weight: 700; color: var(--accent); }
+a { color: var(--elec); }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+footer ul { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 700px) {
+  .summary, .two, figure { grid-template-columns: 1fr; }
+  .lede { font-size: 16.5px; }
+}
+</style>
+
+<div class="page">
+  <header>
+    <span class="eyebrow">PComp final · Ppomo · plan for review · Nov 3, 2026</span>
+    <h1>Ppomo: what I plan to build first</h1>
+    <p class="lede">Ppomo is a squeezable companion. One squeeze is one event: the device counts squeezes and does not interpret them. At the Winter Show, an on-screen Ppomo sits on a visitor's head or shoulder and grows each time the physical Ppomo is squeezed.</p>
+    <div class="legend">
+      <span><span class="st tested">tested</span> tried by hand in the labs</span>
+      <span><span class="st plan">proposed</span> my plan, not built yet</span>
+      <span><span class="st hold">later</span> kept as an option</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="s-summary">
+    <h2 id="s-summary">The plan in three choices</h2>
+    <div class="summary">
+      <div><div class="k">Sensor</div><div class="v">FSR, mounted flat, with a foam puck</div><p><span class="st tested">tested</span> The FSR read 0 at rest and rose when pressed in my serial labs.</p></div>
+      <div><div class="k">Body</div><div class="v">Cast silicone in a 3D-printed mold</div><p><span class="st plan">proposed</span> Removable cores leave room for the electronics and the sensor.</p></div>
+      <div><div class="k">Layout</div><div class="v">Electronics in the head, sensor in the butt</div><p><span class="st plan">proposed</span> Following your earlier feedback: nothing fragile where it is squeezed.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-inside">
+    <h2 id="s-inside">Inside Ppomo</h2>
+    <figure>
+      <svg viewBox="0 0 360 380" role="img" aria-label="Side cross-section of Ppomo: electronics in the head, the FSR stack in the butt, a wire with a service loop between them, a cast silicone body, and an opening in the base.">
+        <defs>
+          <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="var(--line)" stroke-width="2"/>
+          </pattern>
+        </defs>
+        <!-- body silhouette (side view, facing right) -->
+        <path d="M120 350 C 70 345, 55 300, 62 255 C 50 215, 70 175, 112 160 C 95 125, 110 70, 165 52 C 175 30, 192 26, 200 40 C 240 38, 285 70, 285 120 C 300 150, 292 185, 270 200 C 300 235, 300 300, 270 335 C 250 350, 200 352, 120 350 Z" fill="var(--soft)" stroke="var(--muted)" stroke-width="2"/>
+        <!-- base opening -->
+        <rect x="155" y="343" width="70" height="10" fill="var(--paper)" stroke="var(--muted)" stroke-width="1.5"/>
+        <!-- head cavity + electronics -->
+        <rect x="150" y="88" width="96" height="58" rx="10" fill="url(#hatch)" stroke="var(--elec)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <rect x="160" y="100" width="76" height="34" rx="5" fill="var(--elec)"/>
+        <circle cx="226" cy="108" r="4" fill="#7BE0A0"/>
+        <!-- face -->
+        <circle cx="262" cy="104" r="4" fill="var(--ink)"/>
+        <!-- butt: rigid backing, FSR, foam puck (squeezed from the back-left) -->
+        <rect x="88" y="262" width="10" height="56" rx="2" fill="var(--muted)"/>
+        <rect x="78" y="268" width="8" height="44" rx="2" fill="var(--accent)"/>
+        <rect x="62" y="270" width="16" height="40" rx="7" fill="#F4C9A8" stroke="var(--muted)" stroke-width="1"/>
+        <!-- wire with service loop -->
+        <path d="M98 290 C 130 288, 140 262, 128 240 C 116 220, 150 214, 146 236 C 142 256, 112 246, 124 214 C 134 186, 150 160, 162 134" fill="none" stroke="var(--wire)" stroke-width="3" stroke-linecap="round"/>
+        <!-- hand arrows -->
+        <path d="M12 290 H 50" stroke="var(--accent)" stroke-width="3" marker-end="url(#arr)"/>
+        <defs><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>
+        <!-- number tags -->
+        <g font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" text-anchor="middle">
+          <circle cx="198" cy="72" r="11" fill="var(--paper)" stroke="var(--elec)"/><text x="198" y="76" fill="var(--elec)">1</text>
+          <circle cx="72" cy="246" r="11" fill="var(--paper)" stroke="var(--accent)"/><text x="72" y="250" fill="var(--accent)">2</text>
+          <circle cx="160" cy="236" r="11" fill="var(--paper)" stroke="var(--wire)"/><text x="160" y="240" fill="var(--wire)">3</text>
+          <circle cx="250" cy="260" r="11" fill="var(--paper)" stroke="var(--muted)"/><text x="250" y="264" fill="var(--muted)">4</text>
+          <circle cx="190" cy="368" r="11" fill="var(--paper)" stroke="var(--muted)"/><text x="190" y="372" fill="var(--muted)">5</text>
+          <text x="30" y="282" fill="var(--accent)" font-size="11">squeeze</text>
+        </g>
+      </svg>
+      <figcaption>
+        <ol>
+          <li><b>Head: electronics.</b> Microcontroller (Nano 33 IoT for now), status LED. The head is not squeezed.</li>
+          <li><b>Butt: sensor stack.</b> Rigid backing → FSR pad → foam puck. The puck gathers a wide squeeze onto the small pad. The FSR tail is fixed to the backing so it doesn't move.</li>
+          <li><b>Wire up the back</b>, with a loose service loop. Wire type to be settled by experiment.</li>
+          <li><b>Body: cast silicone.</b> Cavities for 1 and 2 and a channel for 3 come from removable cores in the mold.</li>
+          <li><b>Base opening.</b> Parts go in after the silicone cures, so they can be taken out and fixed.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <p>The board keeps the count itself (one squeeze = one event, using a threshold with a gap between press and release) and sends <code>squeeze,&lt;count&gt;</code> over USB serial. When the screen app connects, it asks for the current count, so squeezes made while it was closed are not lost. Interactive concept model: <a href="https://claude.ai/artifact/1U92S449SQLW1tWBqD6BgA">Ppomo Prototype v1</a>.</p>
+  </section>
+
+  <section aria-labelledby="s-sensor">
+    <h2 id="s-sensor">Why an FSR, for now</h2>
+    <p>I compared four ways to sense a squeeze inside a soft body. Ratings are my own judgement for Ppomo, not measurements.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Option</th><th>Cost</th><th>Catches a natural squeeze</th><th>Ease</th><th>Durability</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr class="pick"><td>FSR, flat on a backing, foam puck</td><td><span class="dots">●●●</span></td><td><span class="dots">●●<i>●</i></span> only over the puck</td><td><span class="dots">●●●</span> 2 wires, 1 resistor</td><td><span class="dots">●●<i>●</i></span> weak point is the tail</td><td><span class="st tested">tested</span></td></tr>
+          <tr><td>Flex sensor</td><td><span class="dots">●●<i>●</i></span></td><td><span class="dots">●<i>●●</i></span> needs a clean bend</td><td><span class="dots">●●<i>●</i></span></td><td><span class="dots">●<i>●●</i></span> bends every squeeze</td><td><span class="st hold">not chosen</span></td></tr>
+          <tr><td>Velostat, made by hand</td><td><span class="dots">●●●</span> Adafruit sheet $4.95</td><td><span class="dots">●●●</span> any shape</td><td><span class="dots">●<i>●●</i></span></td><td><span class="dots">●<i>●●</i></span> values drift</td><td><span class="st hold">not chosen</span></td></tr>
+          <tr><td>Sealed air bulb + tube + pressure sensor</td><td><span class="dots">●<i>●●</i></span></td><td><span class="dots">●●●</span> the whole butt</td><td><span class="dots">●<i>●●</i></span> sealing, leaks, drift</td><td><span class="dots">●●●</span> no electronics in the squeezed zone</td><td><span class="st hold">v2 option</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h3>Why the FSR wins for the Winter Show</h3>
+        <ul>
+          <li>It already worked in my labs. Fewer new variables before December.</li>
+          <li>Cheap and simple to replace if it breaks.</li>
+          <li>Counting squeezes doesn't need precise force.</li>
+          <li>Only the sensor changes if I upgrade later. The counting code and the screen stay the same.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The air-bulb option I'm keeping for v2</h3>
+        <ul>
+          <li>A single-opening rubber bulb (the ear-irrigation kind, about $1.40–$5.40) in the butt, a silicone tube (about $0.77–$1.70/ft) to a pressure sensor in the head.</li>
+          <li>Sensor candidates: CFSensor XGZP6847A, analog (a 3.3 V, 0–5 kPa version lists at $7.80; the range I'd need is unpriced) or Adafruit MPRLS, I2C, $29.95.</li>
+          <li>Not a blood-pressure bulb: its one-way valves keep pumping the pressure up.</li>
+          <li>I'll switch if user tests show the FSR missing squeezes.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-body">
+    <h2 id="s-body">Body: silicone cast in a printed mold</h2>
+    <p>For a squeeze toy, cast silicone should feel softer and survive longer than a rubber-like print. Smooth-On lists Ecoflex 00-30 at Shore 00-30 with 900% elongation. I already have the 95&nbsp;mm sitting Ppomo model, so I can print the mold directly.</p>
+    <ol class="steps">
+      <li><span class="n">1</span><div><b>Print a two-part mold</b> (front/back) from the model, with alignment keys and a pour hole. FDM PLA.</div></li>
+      <li><span class="n">2</span><div><b>Add removable cores:</b> a head cavity for the electronics, a butt cavity for the sensor stack, and a channel between them.</div></li>
+      <li><span class="n">3</span><div><b>Cast:</b> mold release, mix, degas, pour, cure (about 4 hours for Ecoflex 00-30).</div></li>
+      <li><span class="n">4</span><div><b>Insert parts after curing</b> through the base opening.</div></li>
+    </ol>
+    <div class="warn"><b>Watch-outs.</b> Platinum silicone won't cure against latex or sulfur (Smooth-On's FAQ). I'll use nitrile gloves, an FDM mold rather than resin, and a small test cast first. Mold layer lines transfer to the surface, so the mold needs smoothing. Ecoflex 00-30 is very soft and may feel tacky, so I want to compare two hardnesses on small samples. Trial unit: $32.99 from Smooth-On.</div>
+  </section>
+
+  <section aria-labelledby="s-tests">
+    <h2 id="s-tests">Test plan, in order</h2>
+    <p>The counts here (20, 500, 5 people) are the tests I plan to run, not results.</p>
+    <ol class="steps">
+      <li><span class="n">1</span><div><b>Bench:</b> 20 deliberate squeezes give a count of 20.<div class="go">If not → tune the threshold, or change how the FSR is mounted.</div></div></li>
+      <li><span class="n">2</span><div><b>Small silicone samples:</b> cure test and feel of two hardnesses.<div class="go">If it won't cure → change the mold material or the silicone.</div></div></li>
+      <li><span class="n">3</span><div><b>FSR + puck inside a cast body:</b> squeezed vs. resting is still clear through the silicone.<div class="go">If not → bigger puck or a sensor closer to the surface, then the air bulb.</div></div></li>
+      <li><span class="n">4</span><div><b>500 squeezes:</b> values stay separable, nothing tears, the wire survives the service loop.<div class="go">If not → change the mounting or the wire.</div></div></li>
+      <li><span class="n">5</span><div><b>Unplug and replug:</b> the count comes back. Then screen sync after reconnecting.<div class="go">If not → change where the count is stored, or the sync.</div></div></li>
+      <li><span class="n">6</span><div><b>5+ people, unprompted:</b> do they squeeze where the sensor is?<div class="go">If not → reshape the butt or guide the squeeze.</div></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-cost">
+    <h2 id="s-cost">What I need to buy first</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Item</th><th>For</th><th>Listed price</th></tr></thead>
+        <tbody>
+          <tr><td>FSR (round, e.g. Interlink FSR 402)</td><td>sensor (spare)</td><td class="num">I have one; spare TBD</td></tr>
+          <tr><td>Smooth-On Ecoflex 00-30, trial unit</td><td>body</td><td class="num">$32.99</td></tr>
+          <tr><td>PLA for the mold and cores</td><td>mold</td><td class="num">shop / free printing</td></tr>
+          <tr><td>Silicone-insulated stranded wire</td><td>wire test</td><td class="num">TBD</td></tr>
+          <tr><td>Foam for the puck, nitrile gloves, mold release</td><td>build</td><td class="num">TBD</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:14px;color:var(--muted)">Deferred until counting works in a body: haptics (DRV2605L candidate), battery and wireless, an RTC, an SD card.</p>
+  </section>
+
+  <section aria-labelledby="s-q">
+    <h2 id="s-q">Questions for you</h2>
+    <ol class="qs">
+      <li><b>Sensor:</b> Is an FSR on a rigid backing with a foam puck a good start for counting squeezes through a soft body, or would you try the sealed air bulb first?</li>
+      <li><b>Mounting:</b> How would you fix the FSR's tail so it survives hundreds of squeezes?</li>
+      <li><b>Body:</b> Does casting silicone in a printed mold with removable cores sound right, and which hardness would you start with?</li>
+      <li><b>Wire:</b> Which wire and strain relief would you use for the run from the butt to the head?</li>
+    </ol>
+  </section>
+
+  <footer>
+    Prices are from seller listings I found and may have changed. Datasheets have not been reviewed yet. Sources:
+    <ul>
+      <li><a href="https://www.interlinkelectronics.com/products/fsr-model-402">Interlink FSR 402</a> · <a href="https://www.adafruit.com/products/1361">Adafruit Velostat</a></li>
+      <li><a href="https://shop.smooth-on.com/platinum-cure-silicone-rubber/ecoflex-trade-series">Smooth-On Ecoflex series</a> · <a href="https://support.smooth-on.com/knowledgebase.php?article=46">Smooth-On: platinum silicone won't cure</a></li>
+      <li><a href="https://www.mountainside-medical.com/products/ear-ulcer-bulb-syringe-2-oz">Bulb syringe 2 oz</a> · <a href="https://patents.google.com/patent/US6258036">Blood-pressure bulb valves</a> · <a href="https://www.digikey.com.br/en/products/detail/cfsensor/XGZP6847A005KPG33/22531042">CFSensor XGZP6847A</a> · <a href="https://www.adafruit.com/products/3965">Adafruit MPRLS</a></li>
+      <li>Precedent for the air bulb: <a href="https://actaorthop.org/actao/article/download/28961/33841/82419">Martin Vigorimeter study</a></li>
+    </ul>
+  </footer>
+</div>
