@@ -60,7 +60,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 3
 .readouts .v { font-family: var(--font-data); font-size: 20px; font-variant-numeric: tabular-nums; }
 .pill { display: inline-block; font-family: var(--font-data); font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
 .pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); }
-.controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
 .ctl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ctl > span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -91,7 +91,7 @@ footer { color: var(--muted); font-size: 12px; max-width: 80ch; }
   <header>
     <div>
       <h1>Ppomo Prototype v1</h1>
-      <p class="sub">One squeeze, one event. The device counts squeezes locally. The screen shows an on-screen Ppomo that grows with the count. Nothing on this page is a measurement.</p>
+      <p class="sub">Squeeze the butt → the device counts one → the on-screen Ppomo grows. Electronics in the head, sensor in the butt, cast silicone body.</p>
     </div>
     <span class="tag">Concept model · not fabrication CAD</span>
   </header>
@@ -130,21 +130,14 @@ footer { color: var(--muted); font-size: 12px; max-width: 80ch; }
         <button type="button" data-view="exterior" aria-pressed="false">Exterior</button>
         <button type="button" data-view="cutaway" aria-pressed="true">Cutaway</button>
         <button type="button" data-view="exploded" aria-pressed="false">Exploded</button>
+        <button type="button" data-view="mold" aria-pressed="false">Mold</button>
       </div>
     </div>
     <div class="ctl">
       <span>Sensor option</span>
       <div class="seg" id="sensorSeg">
-        <button type="button" data-sensor="fsr" aria-pressed="true">FSR</button>
-        <button type="button" data-sensor="flex" aria-pressed="false">Flex</button>
-        <button type="button" data-sensor="air" aria-pressed="false">Air pressure</button>
-      </div>
-    </div>
-    <div class="ctl">
-      <span>Body option</span>
-      <div class="seg" id="bodySeg">
-        <button type="button" data-body="cast" aria-pressed="true">Silicone casting</button>
-        <button type="button" data-body="print" aria-pressed="false">Rubber-like print</button>
+        <button type="button" data-sensor="fsr" aria-pressed="true">FSR + foam puck</button>
+        <button type="button" data-sensor="air" aria-pressed="false">Air bulb (v2)</button>
       </div>
     </div>
   </div>
@@ -153,26 +146,23 @@ footer { color: var(--muted); font-size: 12px; max-width: 80ch; }
     <div class="card" style="--c: var(--accent)">
       <h3 id="sensorTitle"></h3>
       <p id="sensorText"></p>
-      <p class="status" id="sensorStatus"></p>
     </div>
     <div class="card" style="--c: var(--electronics)">
       <h3 id="bodyTitle"></h3>
       <p id="bodyText"></p>
-      <p class="status" id="bodyStatus"></p>
     </div>
     <div class="card" style="--c: var(--open)">
-      <h3>Still open in v1</h3>
+      <h3>Questions for Tom</h3>
       <ul>
-        <li>Wire between butt sensor and head electronics: candidates are silicone-insulated stranded wire or Qwiic. None tested for repeated flexing.</li>
-        <li>Haptic: DRV2605L is a candidate driver. No motor chosen or tested.</li>
-        <li>Count storage: onboard flash vs. microSD, and whether an RTC is needed at all.</li>
+        <li>FSR + foam puck to start, or the air bulb first?</li>
+        <li>How to fix the FSR tail so it survives repeated squeezes?</li>
+        <li>Silicone cast in a printed mold: which hardness to start with?</li>
+        <li>Which wire and strain relief for the butt-to-head run?</li>
       </ul>
     </div>
   </div>
 
-  <footer>
-    Layout follows Tom Igoe's earlier feedback: fragile electronics in the head, which is not squeezed; the sensor in the butt; the connecting wire settled by experiment. Counts here are simulated by the buttons on this page. Squeezes less than 300 ms apart are ignored, to show one squeeze = one event.
-  </footer>
+  <footer>Concept model for discussion. Nothing here is a measurement.</footer>
 </div>
 
 <script type="importmap">
@@ -191,36 +181,21 @@ const css = (name) => getComputedStyle(document.documentElement).getPropertyValu
 // ---------- option text: only what is actually known ----------
 const SENSORS = {
   fsr: {
-    title: 'Sensor: FSR (force-sensing resistor)',
-    text: 'A flat pad under the butt. Pressing it lowers its resistance, read through a voltage divider on an analog pin.',
-    status: 'Status: used by hand in the serial labs (0 at rest, rising with pressure). Not yet tested inside a soft body.',
-    label: 'FSR pad (butt)',
-  },
-  flex: {
-    title: 'Sensor: flex sensor',
-    text: 'A strip along the butt that bends when the body is squeezed. Its resistance rises as it bends.',
-    status: 'Status: the professor-recommended direction (Oct 6). Not yet tested side by side with the FSR inside the body.',
-    label: 'Flex strip (butt)',
+    title: 'Sensor: FSR + foam puck',
+    text: 'Rigid backing → FSR → foam puck in the butt. The puck gathers a wide squeeze onto the pad. The FSR already worked by hand in my labs.',
+    label: 'FSR + foam puck (butt)',
   },
   air: {
-    title: 'Sensor: air pressure in a bulb',
-    text: 'A sealed bulb in the butt, a tube to a pressure sensor on the board in the head. Squeezing raises the air pressure in the bulb.',
-    status: 'Status: researched alternative only (precedents: Martin Vigorimeter, TakkTile). Not built or tested.',
+    title: 'Sensor: air bulb (v2 option)',
+    text: 'A sealed single-opening bulb in the butt, a tube to a pressure sensor in the head. No electronics in the squeezed zone, but more variables. Not built yet.',
     label: 'Air bulb + tube (butt)',
   },
 };
 const BODIES = {
   cast: {
-    title: 'Body: silicone casting',
-    text: 'Pour soft silicone into a mold made from the 3D model. The route used by silicone art-toy makers in my references.',
-    status: 'Status: reference route only. No silicone chosen, no sample cast, no hardness tested.',
-    label: 'Body: cast silicone (untested)',
-  },
-  print: {
-    title: 'Body: rubber-like 3D print',
-    text: 'Print the body directly in a flexible, rubber-like material at the shop I visited.',
-    status: 'Status: shop visited Oct 9 and a prototype printed. Shop name, material name and Shore hardness not confirmed.',
-    label: 'Body: rubber-like print (material TBC)',
+    title: 'Body: cast silicone',
+    text: 'Poured into a 2-part mold printed from my 3D model. Removable cores leave room for the electronics and the sensor, which go in after curing.',
+    label: 'Body: cast silicone',
   },
 };
 
@@ -278,11 +253,25 @@ haptic.position.set(-0.18, 1.24, 0.1); internals.add(haptic);
 const hapticRing = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.012, 8, 32), new THREE.MeshBasicMaterial({ color: 0x8A5BB0, transparent: true, opacity: 0 }));
 hapticRing.position.copy(haptic.position); hapticRing.rotation.x = Math.PI / 2; internals.add(hapticRing);
 
+// mold view: a 2-part printed mold (front and back halves) that opens around the cast body
+const moldMat = new THREE.MeshStandardMaterial({ color: 0xE6D7A8, transparent: true, opacity: 0.45, depthWrite: false });
+const mold = new THREE.Group(); scene.add(mold);
+const moldFront = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.3, 0.85), moldMat); moldFront.position.set(0, 1.05, 0.6);
+const moldBack = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.3, 0.85), moldMat); moldBack.position.set(0, 1.05, -0.6);
+const pour = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.35, 16), new THREE.MeshStandardMaterial({ color: 0xC9A94F })); pour.position.set(0, 0.0, 0);
+mold.add(moldFront, moldBack, pour); mold.visible = false;
+
 // sensors (one visible at a time)
 const sensorGroup = new THREE.Group(); internals.add(sensorGroup);
 const pinkMat = new THREE.MeshStandardMaterial({ color: 0xD9718A, roughness: 0.4 });
 const sensors = {
-  fsr: (() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 32), pinkMat); m.position.set(0, 0.42, -0.62); m.rotation.x = Math.PI / 2 - 0.3; return m; })(),
+  fsr: (() => {
+    const g = new THREE.Group(); g.position.set(0, 0.42, -0.5); g.rotation.x = Math.PI / 2 - 0.3;
+    const backing = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 32), new THREE.MeshStandardMaterial({ color: 0x6b6876 }));
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.015, 32), pinkMat); pad.position.y = -0.03;
+    const puck = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.09, 32), new THREE.MeshStandardMaterial({ color: 0xF4C9A8, roughness: 0.9 })); puck.position.y = -0.085;
+    g.add(backing, pad, puck); return g;
+  })(),
   flex: (() => {
     const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.42, 0.34, -0.5), new THREE.Vector3(0, 0.44, -0.64), new THREE.Vector3(0.42, 0.34, -0.5)]);
     return new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.03, 8), pinkMat);
@@ -319,9 +308,10 @@ let explode = 0, explodeTarget = 0;
 
 function applyView() {
   explodeTarget = view === 'exploded' ? 1 : 0;
-  const see = view !== 'exterior';
+  const see = view !== 'exterior' && view !== 'mold';
   internals.visible = see;
-  const op = view === 'cutaway' ? 0.22 : view === 'exploded' ? 0.35 : 1;
+  mold.visible = view === 'mold';
+  const op = view === 'cutaway' ? 0.22 : view === 'exploded' ? 0.35 : view === 'mold' ? 0.85 : 1;
   for (const m of shellMats) { m.opacity = op; m.depthWrite = op === 1; m.needsUpdate = true; }
   for (const e of eyes) e.visible = true;
   document.querySelectorAll('#viewSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
@@ -329,7 +319,7 @@ function applyView() {
 function applySensor() {
   for (const k in sensors) sensors[k].visible = k === sensorChoice;
   const s = SENSORS[sensorChoice];
-  $('sensorTitle').textContent = s.title; $('sensorText').textContent = s.text; $('sensorStatus').textContent = s.status;
+  $('sensorTitle').textContent = s.title; $('sensorText').textContent = s.text;
   document.querySelectorAll('#sensorSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sensor === sensorChoice)));
 }
 function applyBody() {
@@ -338,19 +328,21 @@ function applyBody() {
   bodyMat.roughness = print ? 0.35 : 0.7;
   bodyMat.transmission = 0; bodyMat.clearcoat = print ? 0.6 : 0.1;
   const b = BODIES[bodyChoice];
-  $('bodyTitle').textContent = b.title; $('bodyText').textContent = b.text; $('bodyStatus').textContent = b.status;
+  $('bodyTitle').textContent = b.title; $('bodyText').textContent = b.text;
   document.querySelectorAll('#bodySeg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.body === bodyChoice)));
 }
 
 // ---------- labels projected from 3D anchors ----------
 const wp = (o) => o.getWorldPosition(new THREE.Vector3());
 const LABELS = [
-  { side: 'L', c: '--electronics', title: () => 'Electronics zone (head)', sub: 'microcontroller + count storage; not squeezed', at: () => wp(pod), show: () => view !== 'exterior' },
-  { side: 'L', c: '--open', title: () => 'Haptic (open)', sub: 'DRV2605L candidate; motor not chosen', at: () => wp(haptic), show: () => view !== 'exterior' },
-  { side: 'L', c: '--muted', title: () => BODIES[bodyChoice].label, sub: 'soft shell', at: () => new THREE.Vector3(-0.62, 0.62, 0.2), show: () => true },
-  { side: 'R', c: '--ok', title: () => 'Status LED', sub: 'blinks on a counted squeeze', at: () => wp(led), show: () => view !== 'exterior' },
-  { side: 'R', c: '--wire', title: () => sensorChoice === 'air' ? 'Air tube path' : 'Wire path + service loop', sub: () => sensorChoice === 'air' ? 'tube to a sensor on the board; untested' : 'type untested: silicone stranded / Qwiic', at: () => new THREE.Vector3(0.22, 0.95 + explode * 0.2, -0.42), show: () => view !== 'exterior' },
-  { side: 'R', c: '--accent', title: () => SENSORS[sensorChoice].label, sub: 'sensor zone: this part is squeezed', at: () => wp(sensors[sensorChoice]), show: () => view !== 'exterior' },
+  { side: 'L', c: '--electronics', title: () => 'Electronics zone (head)', sub: 'microcontroller + count storage; not squeezed', at: () => wp(pod), show: () => view === 'cutaway' || view === 'exploded' },
+  { side: 'L', c: '--open', title: () => 'Haptic (open)', sub: 'DRV2605L candidate; motor not chosen', at: () => wp(haptic), show: () => view === 'cutaway' || view === 'exploded' },
+  { side: 'L', c: '--muted', title: () => BODIES[bodyChoice].label, sub: 'cast in a printed mold', at: () => new THREE.Vector3(-0.62, 0.62, 0.2), show: () => true },
+  { side: 'R', c: '--wire', title: () => '2-part printed mold', sub: 'front + back halves, PLA', at: () => moldFront.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0.9, 0.6, 0)), show: () => view === 'mold' },
+  { side: 'R', c: '--muted', title: () => 'Pour hole', sub: 'silicone goes in here', at: () => pour.getWorldPosition(new THREE.Vector3()), show: () => view === 'mold' },
+  { side: 'R', c: '--ok', title: () => 'Status LED', sub: 'blinks on a counted squeeze', at: () => wp(led), show: () => view === 'cutaway' || view === 'exploded' },
+  { side: 'R', c: '--wire', title: () => sensorChoice === 'air' ? 'Air tube path' : 'Wire path + service loop', sub: () => sensorChoice === 'air' ? 'tube to a sensor on the board; untested' : 'type untested: silicone stranded / Qwiic', at: () => new THREE.Vector3(0.22, 0.95 + explode * 0.2, -0.42), show: () => view === 'cutaway' || view === 'exploded' },
+  { side: 'R', c: '--accent', title: () => SENSORS[sensorChoice].label, sub: 'sensor zone: this part is squeezed', at: () => wp(sensors[sensorChoice]), show: () => view === 'cutaway' || view === 'exploded' },
 ];
 const labelBox = $('deviceLabels'), leaders = $('leaders');
 for (const L of LABELS) { const el = document.createElement('div'); el.className = 'lab'; el.style.setProperty('--c', `var(${L.c})`); labelBox.appendChild(el); L.el = el; }
@@ -484,6 +476,7 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   explode += (explodeTarget - explode) * Math.min(1, dt * 6);
+  if (mold.visible) { const o = 0.35 + 0.25 * Math.sin(now / 900) ** 2; moldFront.position.z = 0.6 + o; moldBack.position.z = -0.6 - o; }
   headShell.position.copy(EX.head).multiplyScalar(explode);
   pod.position.copy(podBase).addScaledVector(EX.pod, explode);
   board.position.copy(boardBase).addScaledVector(EX.pod, explode);
