@@ -122,6 +122,8 @@ kbd { font-family: var(--font-data); font-size: 11px; color: var(--muted); borde
   </aside>
 </div>
 
+<!-- lets older browsers (e.g. Safari before 16.4) understand the import map below -->
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.1/dist/es-module-shims.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -461,6 +463,15 @@ function applyPuff() {
 
 // ---------- XPBD step ----------
 const SUBSTEPS = 12, GRAVITY = -12, FRICTION = 0.55, MAXV = 25;
+// light mode for slow computers: fewer physics substeps, no shadows, 1x pixels.
+// Turns on by itself when the physics takes too long per frame, or with ?lite in the address.
+let substeps = SUBSTEPS, lite = false;
+function enableLite() {
+  if (lite) return;
+  lite = true; substeps = 6;
+  renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; bodyMesh.castShadow = false;
+  resize();
+}
 const ORDER = [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
 let edgeCompliance = 0, damping = 0;
 const grab = { ids: [], offsets: [], target: new THREE.Vector3(), active: false };
@@ -636,16 +647,17 @@ function frame(now) {
   }
   if (changed) applyPuff();
   const t0 = performance.now();
-  const step = (slow ? 0.25 : 1) / 60 / SUBSTEPS;
-  for (let s = 0; s < SUBSTEPS; s++) substep(step);
+  const step = (slow ? 0.25 : 1) / 60 / substeps;
+  for (let s = 0; s < substeps; s++) substep(step);
   simMs = simMs * 0.9 + (performance.now() - t0) * 0.1;
+  if (!lite && frames > 90 && simMs > 18) enableLite();
   applyEmbedding(surfEmb, surfNow);
   posAttr.needsUpdate = true;
   surface.computeVertexNormals();
   updateFace();
   controls.update();
   renderer.render(scene, camera);
-  if (++frames % 15 === 0) stats.textContent = `격자 점 ${NP} · 사면체 ${NT} · 연결 ${NE}\n시뮬레이션 ${simMs.toFixed(1)} ms/프레임`;
+  if (++frames % 15 === 0) stats.textContent = `격자 점 ${NP} · 사면체 ${NT} · 연결 ${NE}\n시뮬레이션 ${simMs.toFixed(1)} ms/프레임${lite ? ' · 가벼운 모드' : ''}`;
   requestAnimationFrame(frame);
 }
 stats.style.whiteSpace = 'pre-line';
@@ -665,6 +677,7 @@ window.ppomoJelly = {
   updateMesh() { applyEmbedding(surfEmb, surfNow); posAttr.needsUpdate = true; surface.computeVertexNormals(); updateFace(); },
   recolor(hex) { PAL.body = hex; colorize(surface); },
 };
+if (new URLSearchParams(location.search).has('lite')) enableLite();
 if (new URLSearchParams(location.search).has('bake')) {
   document.body.dataset.bake = '1';
 } else {
