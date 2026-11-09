@@ -1,3 +1,5 @@
+// noprotect
+// ^ tells the p5 web editor not to stop the pixel loops on slower computers (they are long, not infinite)
 /*
   Ppomo Puff Cam (ICM Week 8: Pixels as Data, "Parts of a Whole")
 
@@ -27,8 +29,8 @@
     - The sketch code was written with help from Claude (prompts listed in AI-USE.md).
 */
 
-const W = 640;
-const H = 480;
+const W = 480;                  // smaller frame = fewer pixels to bend each frame (faster on older laptops)
+const H = 360;
 const MAX_LEVEL = 6;            // how many squeezes until the cheeks are fully puffed
 const PINK = [242, 170, 189];   // Ppomo cheek pink
 
@@ -124,7 +126,7 @@ function setup() {
   createSpan('Puff strength').parent(panel);
   strengthSlider = createSlider(0.3, 2.5, 1.4, 0.05).parent(panel);
   createSpan('Cheek size').parent(panel);
-  sizeSlider = createSlider(40, 140, 80, 1).parent(panel);
+  sizeSlider = createSlider(30, 110, 60, 1).parent(panel);
   guideCheckbox = createCheckbox(' show cheek guides (drag them onto your cheeks)', true).parent(panel).class('wide');
   const buttons = createDiv().parent(panel).class('wide buttons');
   createButton('Squeeze').parent(buttons).mousePressed(squeezeAll);

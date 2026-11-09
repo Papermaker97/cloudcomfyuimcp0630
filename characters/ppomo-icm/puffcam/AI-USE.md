@@ -18,4 +18,10 @@
 
    *Translation:* "Oh really? Make it for me."
 
+3. *(I pasted the p5 web editor error)* "Error: Infinite loop detected at line 85…" and asked:
+   > 한번 되긴 했는데 이건 컴퓨터 버벅이는 오류인가
+
+   *Translation:* "It worked once, but is this an error from my computer lagging?"
+   *Change made:* added `// noprotect` (the editor's loop guard stopped the long pixel loop) and reduced the frame from 640×480 to 480×360.
+
 *(Add any later prompts here, e.g. follow-up fixes.)*
