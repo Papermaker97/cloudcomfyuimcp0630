@@ -28,4 +28,10 @@
 
    *Translation:* "It works! Please write up the blog post."
 
+5. *(I asked where `// noprotect` is documented, then pasted a new error from my older Mac)* "Error: Multiple infinite loops detected. Stopping execution." and asked:
+   > 이걸 지금 코드에서 보완할 수 있게 조언해주고 링크도 추가해줘.
+
+   *Translation:* "Give me advice so the current code can make up for this, and add the links too."
+   *Changes made:* added `<!-- noprotect -->` to `index.html` (the newer editor reads it there); a `LITE` switch that bends a 320×240 frame shown at 480×360; the pixel loop now skips the square root outside the circle and uses `Math.*` instead of p5 helpers; and no pixel work at all while both cheeks are deflated and still. Added links to the p5.js reference and the p5.js Web Editor issues and PR about `noprotect`.
+
 *(Add any later prompts here, e.g. follow-up fixes.)*

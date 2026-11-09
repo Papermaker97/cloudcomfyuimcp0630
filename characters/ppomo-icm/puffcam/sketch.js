@@ -1,5 +1,6 @@
 // noprotect
-// ^ tells the p5 web editor not to stop the pixel loops on slower computers (they are long, not infinite)
+// ^ tells the p5 web editor not to stop the pixel loops on slower computers (they are long, not infinite).
+//   Newer versions of the editor read <!-- noprotect --> in index.html instead, so that line is there too.
 /*
   Ppomo Puff Cam (ICM Week 8: Pixels as Data, "Parts of a Whole")
 
@@ -26,11 +27,21 @@
     - Pixel array indexing and webcam capture: Allison Parrish, "Working with video"
       (https://creative-coding.decontextualize.com/video/) and The Coding Train 11.1–11.3.
     - p5.js reference: createCapture(), loadPixels(), pixels[], updatePixels().
+      https://p5js.org/reference/p5/createCapture/  https://p5js.org/reference/p5/loadPixels/
+      https://p5js.org/reference/p5/pixels/  https://p5js.org/reference/p5/updatePixels/
+    - "// noprotect" / "<!-- noprotect -->" is a p5.js Web Editor setting, not part of p5.js itself:
+      https://github.com/processing/p5.js-web-editor/issues/372
+      https://github.com/processing/p5.js-web-editor/issues/458
+      https://github.com/processing/p5.js-web-editor/pull/4108
     - The sketch code was written with help from Claude (prompts listed in AI-USE.md).
 */
 
-const W = 480;                  // smaller frame = fewer pixels to bend each frame (faster on older laptops)
-const H = 360;
+// LITE = true bends a 320x240 frame (about half the pixels of 480x360) and the page shows it scaled up.
+// Set it to false on a fast computer for a sharper image.
+const LITE = true;
+const W = LITE ? 320 : 480;
+const H = LITE ? 240 : 360;
+const K = W / 480;              // cheek sizes are designed for 480 wide, scaled by this
 const MAX_LEVEL = 6;            // how many squeezes until the cheeks are fully puffed
 const PINK = [242, 170, 189];   // Ppomo cheek pink
 
@@ -52,7 +63,11 @@ class Cheek {
   }
 
   get r() {              // radius grows a little as it puffs
-    return sizeSlider.value() * (1 + 0.25 * max(0, this.puff));
+    return sizeSlider.value() * K * (1 + 0.25 * max(0, this.puff));
+  }
+
+  isResting() {          // fully deflated and still: nothing to bend, so skip the pixel loop
+    return this.level === 0 && abs(this.puff) < 0.005 && abs(this.vel) < 0.005;
   }
 
   squeeze() {
@@ -78,27 +93,34 @@ class Cheek {
   }
 
   // bend the pixels inside this cheek (reads from src, writes into pixels)
+  // The inner loop runs tens of thousands of times per frame, so it uses plain Math.* instead of
+  // p5's sqrt()/pow()/constrain()/lerp() helpers (same maths, less overhead per call).
   bend() {
-    const R = this.r;
+    if (this.isResting()) return;
+    const R = this.r, R2 = R * R;
     const power = 1 + max(-0.4, this.puff);     // >1 = bulge out, <1 = squash in
     const blush = min(1, this.level / MAX_LEVEL) * 0.55;
-    const x0 = max(0, floor(this.x - R)), x1 = min(W - 1, ceil(this.x + R));
-    const y0 = max(0, floor(this.y - R)), y1 = min(H - 1, ceil(this.y + R));
+    const cx = this.x, cy = this.y;
+    const x0 = max(0, floor(cx - R)), x1 = min(W - 1, ceil(cx + R));
+    const y0 = max(0, floor(cy - R)), y1 = min(H - 1, ceil(cy + R));
+    const [pr, pg, pb] = PINK;
     for (let y = y0; y <= y1; y++) {
+      const dy = y - cy;
       for (let x = x0; x <= x1; x++) {
-        const dx = x - this.x, dy = y - this.y;
-        const d = sqrt(dx * dx + dy * dy);
-        if (d >= R || d === 0) continue;
-        const t = d / R;                          // 0 at the centre, 1 at the edge
-        const k = pow(t, power) / t;              // read from closer to the centre
-        const sx = constrain(round(this.x + dx * k), 0, W - 1);
-        const sy = constrain(round(this.y + dy * k), 0, H - 1);
+        const dx = x - cx;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= R2 || d2 === 0) continue;       // outside the circle (checked without a square root)
+        const t = Math.sqrt(d2) / R;              // 0 at the centre, 1 at the edge
+        const k = Math.pow(t, power - 1);         // same as pow(t, power) / t: read from closer to the centre
+        let sx = Math.round(cx + dx * k), sy = Math.round(cy + dy * k);
+        sx = sx < 0 ? 0 : sx > W - 1 ? W - 1 : sx;
+        sy = sy < 0 ? 0 : sy > H - 1 ? H - 1 : sy;
         const from = (sy * W + sx) * 4;
         const to = (y * W + x) * 4;
         const w = blush * (1 - t) * (1 - t);      // pink is strongest in the middle
-        pixels[to]     = lerp(src[from],     PINK[0], w);
-        pixels[to + 1] = lerp(src[from + 1], PINK[1], w);
-        pixels[to + 2] = lerp(src[from + 2], PINK[2], w);
+        pixels[to]     = src[from]     + (pr - src[from])     * w;
+        pixels[to + 1] = src[from + 1] + (pg - src[from + 1]) * w;
+        pixels[to + 2] = src[from + 2] + (pb - src[from + 2]) * w;
       }
     }
   }
@@ -146,21 +168,21 @@ function draw() {
   image(cam, 0, 0, W, H);
   pop();
 
-  // 2–4. bend the pixels inside each cheek
-  loadPixels();
-  src = pixels.slice();            // untouched copy to read from
-  for (const c of cheeks) {
-    c.update();
-    c.bend();
+  // 2–4. bend the pixels inside each cheek (skipped entirely while both cheeks are resting)
+  for (const c of cheeks) c.update();
+  if (!cheeks.every((c) => c.isResting())) {
+    loadPixels();
+    src = pixels.slice();          // untouched copy to read from
+    for (const c of cheeks) c.bend();
+    updatePixels();
   }
-  updatePixels();
 
   if (guideCheckbox.checked()) for (const c of cheeks) c.showGuide();
 
   noStroke();
   fill(255);
-  textSize(16);
-  text(`squeezes: ${squeezes}`, 16, 28);
+  textSize(16 * K);
+  text(`squeezes: ${squeezes}`, 16 * K, 28 * K);
   countP.html(`Puff level ${cheeks[0].level} / ${MAX_LEVEL}. Click the video or press Space to squeeze.`);
 }
 
