@@ -24,4 +24,8 @@
    *Translation:* "It worked once, but is this an error from my computer lagging?"
    *Change made:* added `// noprotect` (the editor's loop guard stopped the long pixel loop) and reduced the frame from 640×480 to 480×360.
 
+4. > 잘 되는데? 블로그좀 올려줘.
+
+   *Translation:* "It works! Please write up the blog post."
+
 *(Add any later prompts here, e.g. follow-up fixes.)*
