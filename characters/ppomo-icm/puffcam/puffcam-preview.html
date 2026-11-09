@@ -1,0 +1,221 @@
+<title>Ppomo Puff Cam</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centred "mirror" with its controls beneath, like a photo-booth screen. */
+:root {
+  --bg: #F1EFF4;
+  --panel: #FFFFFF;
+  --ink: #26242C;
+  --muted: #6B6876;
+  --line: #DEDAE5;
+  --accent: #D9718A;     /* Ppomo cheek pink */
+  --accent-ink: #FFFFFF;
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1B1A20; --panel: #24232B; --ink: #ECEAF1; --muted: #A5A2B2; --line: #36343F;
+  --accent: #EE8FA6; --accent-ink: #2A0E16; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #1B1A20; --panel: #24232B; --ink: #ECEAF1; --muted: #A5A2B2; --line: #36343F;
+  --accent: #EE8FA6; --accent-ink: #2A0E16; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 700px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1.1; }
+.sub { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+#stage { position: relative; width: 100%; aspect-ratio: 4 / 3; max-width: 100%; border-radius: 16px; overflow: hidden; background: var(--panel); border: 1px solid var(--line); touch-action: none; cursor: pointer; }
+#stage canvas { width: 100% !important; height: 100% !important; display: block; }
+.badge { position: absolute; top: 12px; left: 12px; font-family: var(--font-data); font-size: 12px; background: rgba(0,0,0,.45); color: #fff; padding: 3px 9px; border-radius: 999px; pointer-events: none; }
+.controls { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.ctl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ctl > span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, .filebtn { font: inherit; font-weight: 500; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+button:hover, .filebtn:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-weight: 700; font-size: 16px; padding: 9px 18px; }
+button:focus-visible, input:focus-visible + .filebtn, input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.filein { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.level { display: flex; gap: 4px; }
+.level i { width: 22px; height: 8px; border-radius: 4px; background: var(--line); }
+.level i.on { background: var(--accent); }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+@media (max-width: 520px) { .controls { grid-template-columns: 1fr; } h1 { font-size: 23px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Ppomo Puff Cam</h1>
+    <p class="sub">Every squeeze puffs the cheeks up like Ppomo's: two round pixel regions bulge outward and blush pink. Drag the dashed circles onto the cheeks.</p>
+  </header>
+
+  <div id="stage"><span class="badge" id="badge">demo face</span></div>
+
+  <div class="controls">
+    <div class="ctl">
+      <span>Squeeze</span>
+      <div class="row">
+        <button type="button" class="primary" id="squeeze">Squeeze</button>
+        <button type="button" id="deflate">Deflate</button>
+      </div>
+      <div class="level" id="level" aria-label="Puff level"></div>
+    </div>
+    <div class="ctl">
+      <span>Picture</span>
+      <div class="row">
+        <input type="file" id="photo" class="filein" accept="image/*">
+        <label for="photo" class="filebtn">Use my photo</label>
+        <button type="button" id="demo">Demo face</button>
+      </div>
+      <label class="row"><input type="checkbox" id="guides" checked> Show cheek guides</label>
+    </div>
+    <div class="ctl">
+      <span>Puff strength</span>
+      <input type="range" id="strength" min="0.3" max="2.5" step="0.05" value="1.4" aria-label="Puff strength">
+    </div>
+    <div class="ctl">
+      <span>Cheek size</span>
+      <input type="range" id="size" min="40" max="140" step="1" value="80" aria-label="Cheek size">
+    </div>
+  </div>
+  <p class="note">Click the picture or press Space to squeeze, 0 to deflate. In the p5 version the picture is your live webcam; this preview uses a still picture because the page can't use a camera here.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/p5@2.2.0/lib/p5.min.js"></script>
+<script>
+const W = 640, H = 480, MAX_LEVEL = 6, PINK = [242, 170, 189];
+const $ = (id) => document.getElementById(id);
+let source;            // the picture being bent (demo face or the viewer's photo)
+let cheeks = [], squeezes = 0, src, pressX = 0, pressY = 0, dragging = null;
+
+class Cheek {
+  constructor(x, y) { this.x = x; this.y = y; this.level = 0; this.puff = 0; this.vel = 0; }
+  get r() { return Number($('size').value) * (1 + 0.25 * Math.max(0, this.puff)); }
+  squeeze() { if (this.level < MAX_LEVEL) this.level++; this.vel += 0.35; }
+  deflate() { this.level = 0; this.vel -= 0.2; }
+  update() {
+    const target = (this.level / MAX_LEVEL) * Number($('strength').value);
+    this.vel += (target - this.puff) * 0.12; this.vel *= 0.84; this.puff += this.vel;
+  }
+  contains(px, py) { return dist(px, py, this.x, this.y) < this.r; }
+  bend() {
+    const R = this.r, power = 1 + Math.max(-0.4, this.puff), blush = Math.min(1, this.level / MAX_LEVEL) * 0.55;
+    const x0 = Math.max(0, Math.floor(this.x - R)), x1 = Math.min(W - 1, Math.ceil(this.x + R));
+    const y0 = Math.max(0, Math.floor(this.y - R)), y1 = Math.min(H - 1, Math.ceil(this.y + R));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const dx = x - this.x, dy = y - this.y, d = Math.sqrt(dx * dx + dy * dy);
+      if (d >= R || d === 0) continue;
+      const t = d / R, k = Math.pow(t, power) / t;
+      const sx = Math.min(W - 1, Math.max(0, Math.round(this.x + dx * k)));
+      const sy = Math.min(H - 1, Math.max(0, Math.round(this.y + dy * k)));
+      const from = (sy * W + sx) * 4, to = (y * W + x) * 4, w = blush * (1 - t) * (1 - t);
+      pixels[to] = src[from] + (PINK[0] - src[from]) * w;
+      pixels[to + 1] = src[from + 1] + (PINK[1] - src[from + 1]) * w;
+      pixels[to + 2] = src[from + 2] + (PINK[2] - src[from + 2]) * w;
+    }
+  }
+  guide() {
+    noFill(); stroke(255, 255, 255, 220); strokeWeight(2);
+    drawingContext.setLineDash([6, 6]); circle(this.x, this.y, this.r * 2); drawingContext.setLineDash([]);
+  }
+}
+
+// a drawn demo face, with freckles so the bulge is easy to see
+function drawDemoFace() {
+  const g = source;
+  g.push();
+  g.noStroke();
+  for (let y = 0; y < H; y += 4) { g.fill(222 - y * 0.04, 214 - y * 0.03, 232); g.rect(0, y, W, 4); }
+  g.fill(70, 52, 48); g.ellipse(320, 230, 360, 380);                       // hair
+  g.fill(236, 196, 170); g.ellipse(320, 270, 300, 340);                    // face
+  g.fill(70, 52, 48); g.arc(320, 180, 310, 210, PI, TWO_PI);               // fringe
+  g.fill(222, 178, 152); g.ellipse(170, 275, 40, 70); g.ellipse(470, 275, 40, 70);   // ears
+  g.fill(60, 50, 50); g.ellipse(262, 262, 22, 26); g.ellipse(378, 262, 22, 26);      // eyes
+  g.fill(255); g.ellipse(266, 257, 7, 7); g.ellipse(382, 257, 7, 7);
+  g.stroke(110, 70, 70); g.strokeWeight(3); g.noFill(); g.arc(320, 352, 60, 30, 0.2, PI - 0.2);  // smile
+  g.noStroke(); g.fill(200, 150, 120);
+  randomSeed(3);
+  for (let i = 0; i < 70; i++) {                                           // freckles over both cheeks
+    const side = i % 2 ? 1 : -1, a = random(TWO_PI), rr = random(22, 62);
+    g.circle(320 + side * 96 + Math.cos(a) * rr, 318 + Math.sin(a) * rr * 0.8, random(3, 6));
+  }
+  g.pop();
+  placeCheeks(224, 318, 416, 318);
+  $('badge').textContent = 'demo face';
+}
+
+function placeCheeks(x1, y1, x2, y2) {
+  cheeks = [new Cheek(x1, y1), new Cheek(x2, y2)];
+  squeezes = 0; updateLevel();
+}
+
+function updateLevel() {
+  const lv = cheeks[0] ? cheeks[0].level : 0;
+  $('level').innerHTML = Array.from({ length: MAX_LEVEL }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('');
+}
+
+function setup() {
+  const c = createCanvas(W, H);
+  c.parent('stage');
+  pixelDensity(1);
+  source = createGraphics(W, H);
+  source.pixelDensity(1);
+  drawDemoFace();
+}
+
+function draw() {
+  image(source, 0, 0, W, H);
+  loadPixels();
+  src = pixels.slice();
+  for (const c of cheeks) { c.update(); c.bend(); }
+  updatePixels();
+  if ($('guides').checked) for (const c of cheeks) c.guide();
+  noStroke(); fill(255); textSize(15); textFont('IBM Plex Mono, monospace');
+  text(`squeezes: ${squeezes}`, W - 140, 28);
+}
+
+function squeezeAll() { squeezes++; for (const c of cheeks) c.squeeze(); updateLevel(); }
+function deflateAll() { for (const c of cheeks) c.deflate(); updateLevel(); }
+
+// mouse/touch on the picture: drag a cheek, or click to squeeze
+function inStage() { return mouseX >= 0 && mouseX <= W && mouseY >= 0 && mouseY <= H; }
+function mousePressed() {
+  if (!inStage()) return;
+  pressX = mouseX; pressY = mouseY; dragging = null;
+  if ($('guides').checked) for (const c of cheeks) if (c.contains(mouseX, mouseY)) dragging = c;
+}
+function mouseDragged() { if (dragging) { dragging.x = constrain(mouseX, 0, W); dragging.y = constrain(mouseY, 0, H); return false; } }
+function mouseReleased() {
+  if (inStage() && dist(mouseX, mouseY, pressX, pressY) < 5) squeezeAll();
+  dragging = null;
+}
+function keyPressed() {
+  if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type !== 'checkbox') return;
+  if (key === ' ' || keyCode === 32) { squeezeAll(); return false; }
+  if (key === '0') deflateAll();
+}
+
+$('squeeze').addEventListener('click', squeezeAll);
+$('deflate').addEventListener('click', deflateAll);
+$('demo').addEventListener('click', drawDemoFace);
+$('photo').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    // cover-fit the photo into the 4:3 frame
+    const k = Math.max(W / img.width, H / img.height), w = img.width * k, h = img.height * k;
+    source.clear();
+    source.drawingContext.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+    placeCheeks(W * 0.35, H * 0.62, W * 0.65, H * 0.62);
+    $('badge').textContent = 'your photo: drag the circles onto your cheeks';
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(file);
+});
+</script>
