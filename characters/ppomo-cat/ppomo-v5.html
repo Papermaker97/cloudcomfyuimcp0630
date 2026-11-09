@@ -1,0 +1,227 @@
+<title>Ppomo v5</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #FBF6F1; --ink: #6E3F27; --muted: #A27A63; --chip: rgba(255, 252, 247, 0.92); --line: #E8D7C8; --accent: #E99AA6;
+  --font-display: "Jua", "Apple SD Gothic Neo", system-ui, sans-serif; --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #2A2320; --ink: #F1D9C8; --muted: #C2A08C; --chip: rgba(50, 42, 38, 0.92); --line: #4A3E38; --accent: #EFA7B2; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #2A2320; --ink: #F1D9C8; --muted: #C2A08C; --chip: rgba(50, 42, 38, 0.92); --line: #4A3E38; --accent: #EFA7B2; color-scheme: dark; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-display); }
+#stage { position: fixed; inset: 0; touch-action: none; }
+#stage canvas { display: block; }
+.title { position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); margin: 0; font-size: 26px; font-weight: 400; pointer-events: none; }
+.title small { display: block; font-family: var(--font-data); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 6px; background: var(--chip); border: 1px solid var(--line); border-radius: 999px; max-width: calc(100% - 32px); }
+.bar button { font: inherit; font-size: 15px; color: var(--ink); background: transparent; border: 0; border-radius: 999px; padding: 7px 13px; cursor: pointer; }
+.bar button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.bar button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+</style>
+
+<div id="stage"></div>
+<h1 class="title">뽀모<small>Ppomo v5 · drag to turn</small></h1>
+<div class="bar" role="group" aria-label="View">
+  <button type="button" data-view="three" aria-pressed="true">3/4</button>
+  <button type="button" data-view="side" aria-pressed="false">Side</button>
+  <button type="button" data-view="front" aria-pressed="false">Front</button>
+  <button type="button" data-view="back" aria-pressed="false">Back</button>
+  <button type="button" data-view="top" aria-pressed="false">Top</button>
+  <button type="button" data-view="rear" aria-pressed="false">Rear ¾</button>
+  <button type="button" data-view="spin" aria-pressed="false">Spin</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============ the character, as a handful of soft balls ============
+// Measured off the turnaround sheet. 1 unit ≈ 200 px of the sheet. z = forward (face), y = up, floor at y = 0.
+//   head: as wide as the body but lower; body: taller, rises toward the back; two butt lobes at the rear.
+const P = {
+  head:  { c: [0, 0.42, 0.52],     r: [0.72, 0.42, 0.46] },
+  body:  { c: [0, 0.55, -0.30],    r: [0.72, 0.55, 0.70] },
+  butt:  { c: [0.27, 0.42, -0.72], r: [0.40, 0.40, 0.38] },   // mirrored to -x
+  ear:   { c: [0.31, 0.86, 0.50],  r: [0.15, 0.14, 0.08] },   // round ears, mirrored
+  paw:   { c: [0.44, 0.07, 0.80],  r: [0.14, 0.08, 0.14] },   // front paws, mirrored
+  foot:  { c: [0.52, 0.07, -0.86], r: [0.13, 0.08, 0.13] },   // back feet, mirrored
+  base:  { c: [0, 0.20, 0.05],      r: [0.68, 0.22, 0.85] },   // low filler: smooth belly line and no waist seen from above
+};
+const K = { base: 0.16, neck: 0.10, butt: 0.18, cleft: 0.04, ear: 0.06, limb: 0.07 };   // blend radii (small = visible crease)
+const COLOR = { pink: '#F9D3D8', cream: '#FCF1D8', blush: '#F5B5BF', ink: '#5A3424', line: '#B0704C' };
+
+const ball = (x, y, z, b, mx = 1) => {
+  const [cx, cy, cz] = b.c, [rx, ry, rz] = b.r;
+  return (Math.hypot((x - cx * mx) / rx, (y - cy) / ry, (z - cz) / rz) - 1) * Math.min(rx, ry, rz);
+};
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+function sdf(x, y, z) {
+  let d = smin(ball(x, y, z, P.head), ball(x, y, z, P.body), K.neck);
+  const butt = smin(ball(x, y, z, P.butt, 1), ball(x, y, z, P.butt, -1), K.cleft);
+  d = smin(d, butt, K.butt);
+  d = smin(d, ball(x, y, z, P.base), K.base);
+  for (const s of [1, -1]) {
+    d = smin(d, ball(x, y, z, P.ear, s), K.ear);
+    d = smin(d, ball(x, y, z, P.paw, s), K.limb);
+    d = smin(d, ball(x, y, z, P.foot, s), K.limb);
+  }
+  return Math.max(d, -y);                    // sits flat on the floor
+}
+const BOX = { min: [-0.9, -0.01, -1.25], max: [0.9, 1.15, 1.1] };
+
+// ============ turn the field into a mesh (surface nets) ============
+function mesh(f, min, max, h) {
+  const n = [0, 1, 2].map((a) => Math.ceil((max[a] - min[a]) / h));
+  const sx = n[0] + 1, sxy = sx * (n[1] + 1);
+  const val = new Float32Array(sxy * (n[2] + 1));
+  for (let k = 0; k <= n[2]; k++) for (let j = 0; j <= n[1]; j++) for (let i = 0; i <= n[0]; i++)
+    val[i + sx * j + sxy * k] = f(min[0] + i * h, min[1] + j * h, min[2] + k * h);
+  const cell = new Int32Array(n[0] * n[1] * n[2]).fill(-1), ci = (i, j, k) => i + n[0] * (j + n[1] * k);
+  const pos = [], cv = new Float32Array(8), E = [];
+  for (let a = 0; a < 8; a++) for (const b of [1, 2, 4]) if (!(a & b)) E.push([a, a | b]);
+  for (let k = 0; k < n[2]; k++) for (let j = 0; j < n[1]; j++) for (let i = 0; i < n[0]; i++) {
+    let m = 0;
+    for (let c = 0; c < 8; c++) { cv[c] = val[(i + (c & 1)) + sx * (j + ((c >> 1) & 1)) + sxy * (k + (c >> 2))]; if (cv[c] < 0) m |= 1 << c; }
+    if (m === 0 || m === 255) continue;
+    let px = 0, py = 0, pz = 0, cnt = 0;
+    for (const [a, b] of E) {
+      if ((cv[a] < 0) === (cv[b] < 0)) continue;
+      const t = cv[a] / (cv[a] - cv[b]);
+      px += (a & 1) + t * ((b & 1) - (a & 1)); py += ((a >> 1) & 1) + t * (((b >> 1) & 1) - ((a >> 1) & 1)); pz += (a >> 2) + t * ((b >> 2) - (a >> 2)); cnt++;
+    }
+    cell[ci(i, j, k)] = pos.length / 3;
+    pos.push(min[0] + (i + px / cnt) * h, min[1] + (j + py / cnt) * h, min[2] + (k + pz / cnt) * h);
+  }
+  const idx = [];
+  for (let k = 0; k <= n[2]; k++) for (let j = 0; j <= n[1]; j++) for (let i = 0; i <= n[0]; i++) {
+    const g = [i, j, k], v0 = val[i + sx * j + sxy * k];
+    for (let ax = 0; ax < 3; ax++) {
+      const u = (ax + 1) % 3, w = (ax + 2) % 3;
+      if (g[ax] >= n[ax] || g[u] < 1 || g[w] < 1 || g[u] >= n[u] || g[w] >= n[w]) continue;
+      const g2 = g.slice(); g2[ax]++;
+      if ((v0 < 0) === (val[g2[0] + sx * g2[1] + sxy * g2[2]] < 0)) continue;
+      const q = (du, dw) => { const c = g.slice(); c[u] -= du; c[w] -= dw; return cell[ci(c[0], c[1], c[2])]; };
+      const a = q(1, 1), b = q(0, 1), c = q(0, 0), d = q(1, 0);
+      if (a < 0 || b < 0 || c < 0 || d < 0) continue;
+      if (v0 < 0) idx.push(a, b, c, a, c, d); else idx.push(a, c, b, a, d, c);
+    }
+  }
+  // snap each vertex onto the true surface
+  const e = h * 0.25, grad = (x, y, z) => [f(x + e, y, z) - f(x - e, y, z), f(x, y + e, z) - f(x, y - e, z), f(x, y, z + e) - f(x, y, z - e)];
+  for (let q = 0; q < pos.length; q += 3) for (let it = 0; it < 3; it++) {
+    const d = f(pos[q], pos[q + 1], pos[q + 2]), g = grad(pos[q], pos[q + 1], pos[q + 2]), l = Math.hypot(...g) || 1;
+    for (let a = 0; a < 3; a++) pos[q + a] -= d * g[a] / l;
+  }
+  // make sure triangles face outward
+  const A = new THREE.Vector3().fromArray(pos, idx[0] * 3), B = new THREE.Vector3().fromArray(pos, idx[1] * 3), C = new THREE.Vector3().fromArray(pos, idx[2] * 3);
+  const mid = A.clone().add(B).add(C).divideScalar(3);
+  if (B.clone().sub(A).cross(C.clone().sub(A)).dot(new THREE.Vector3(...grad(mid.x, mid.y, mid.z))) < 0)
+    for (let t = 0; t < idx.length; t += 3) [idx[t + 1], idx[t + 2]] = [idx[t + 2], idx[t + 1]];
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ============ colours: pink, a soft cream belly, a hint of blush, a soft shadow line in the butt cleft ============
+function paint(geo) {
+  const pink = new THREE.Color(COLOR.pink), cream = new THREE.Color(COLOR.cream), blush = new THREE.Color(COLOR.blush), line = new THREE.Color(COLOR.line);
+  const p = geo.attributes.position, col = new Float32Array(p.count * 3), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    c.copy(pink);
+    const limb = [P.paw, P.foot].some((b) => [1, -1].some((s) => ball(x, y, z, b, s) < 0.03));
+    if (!limb) c.lerp(cream, 0.9 * (1 - smooth(0.12, 0.34, y)));                       // cream fades up from the floor
+    for (const s of [1, -1]) c.lerp(blush, 0.6 * (1 - smooth(0.04, 0.16, Math.hypot(x - s * 0.40, (y - 0.33) * 1.2, Math.max(0, 0.85 - z)))));
+    const cleft = Math.exp(-((x / 0.035) ** 2)) * smooth(-0.95, -1.06, z) * smooth(0.12, 0.28, y) * (1 - smooth(0.55, 0.7, y));
+    c.lerp(line, 0.55 * cleft);
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+}
+
+// ============ scene ============
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0xf6e6e0, 2.4));
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const sun = new THREE.DirectionalLight(0xfff6ee, 0.55);
+sun.position.set(-1.2, 5, 3); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 18; sun.shadow.blurSamples = 20; sun.shadow.bias = -0.002;
+Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 14 });
+scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ color: 0x8a5a40, opacity: 0.12 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+const geo = mesh(sdf, BOX.min, BOX.max, 0.02);
+paint(geo);
+const ppomo = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+ppomo.castShadow = true; scene.add(ppomo);
+
+// outline: a slightly fatter copy, drawn inside-out in brown
+const lineGeo = geo.clone();
+{ const p = lineGeo.attributes.position, nrm = lineGeo.attributes.normal;
+  for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) + nrm.getX(i) * 0.02, p.getY(i) + nrm.getY(i) * 0.02, p.getZ(i) + nrm.getZ(i) * 0.02); }
+scene.add(new THREE.Mesh(lineGeo, new THREE.MeshBasicMaterial({ color: COLOR.line, side: THREE.BackSide })));
+
+// face: two dot eyes and a tiny mouth, stuck onto the front of the head
+const surfaceZ = (x, y) => { let z = 1.2; while (z > 0 && sdf(x, y, z) > 0) z -= 0.002; return z; };
+const ink = new THREE.MeshBasicMaterial({ color: COLOR.ink });
+for (const s of [1, -1]) {
+  const x = s * 0.25, y = 0.44, z = surfaceZ(x, y);
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.042, 20, 14), ink);
+  eye.position.set(x, y, z - 0.01); eye.scale.set(1, 1, 0.4); eye.lookAt(x * 3, y, z + 3); scene.add(eye);
+}
+{ // "ω"-ish mouth: two tiny arcs
+  const y = 0.42, z = surfaceZ(0, y), g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: COLOR.ink });
+  for (const s of [1, -1]) {
+    const a = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.007, 8, 20, Math.PI), m);
+    a.rotation.z = Math.PI; a.position.x = s * 0.024; g.add(a);
+  }
+  g.position.set(0, y, z + 0.004); scene.add(g);
+}
+
+// ============ camera ============
+const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 80);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.45, -0.1); controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 3.5; controls.maxDistance = 14; controls.maxPolarAngle = Math.PI * 0.53;
+const VIEWS = { three: [4.6, 2.2, 4.6], side: [7, 0.6, -0.1], front: [0, 0.7, 7], back: [0, 0.8, -7.2], top: [0.001, 7.5, -0.05], rear: [-4.4, 2.4, -4.8] };
+let tween = null;
+function go(name) {
+  document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+  controls.autoRotate = name === 'spin'; controls.autoRotateSpeed = 2.2;
+  if (name !== 'spin') tween = { from: camera.position.clone(), to: new THREE.Vector3(...VIEWS[name]), t: 0 };
+}
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => go(b.dataset.view)));
+const start = new URLSearchParams(location.search).get('view');
+camera.position.set(...(VIEWS[start] || VIEWS.three));
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.fov = w < h ? 40 : 24; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+renderer.setAnimationLoop(() => {
+  if (tween) { tween.t = Math.min(1, tween.t + 0.05); const e = tween.t * tween.t * (3 - 2 * tween.t); camera.position.lerpVectors(tween.from, tween.to, e); if (tween.t >= 1) tween = null; }
+  controls.update(); renderer.render(scene, camera);
+});
+document.body.dataset.ready = '1';
+</script>
