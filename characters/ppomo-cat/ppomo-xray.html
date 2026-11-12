@@ -78,7 +78,7 @@
 <div id="stage"></div>
 <header>
   <h1>뽀모 · 엑스레이</h1>
-  <span>귀여운 젤리 속 무서운 뼈 · concept, not fabrication CAD</span>
+  <span>숨겨도 비치는 최소한의 기능 · concept, not fabrication CAD</span>
 </header>
 <div class="controls" role="toolbar" aria-label="보기 설정">
   <button id="btn-rotate" type="button" aria-pressed="true">자동 회전</button>
@@ -90,10 +90,10 @@
 </div>
 <div id="sheet-labels"></div>
 <div class="legend" aria-label="Legend">
-  <div><i style="background:#F1E6D2"></i>Bone: a rigid puck that carries the squeeze to the core</div>
-  <div><i style="background:#6E6A7A"></i>Squeeze core: switches on an octahedron (any direction counts)</div>
-  <div><i style="background:#E0566E"></i>Nerve: the one wire pair from the butt to the head</div>
-  <div><i style="background:#2F4C86"></i>Brain: Arduino in the head, where you don't squeeze</div>
+  <div><i style="background:#EFEBE3"></i>Printed frame: holds the parts, nothing more</div>
+  <div><i style="background:#2C6E49"></i>Board: the Arduino that counts each squeeze</div>
+  <div><i style="background:#24479A"></i>Pressure sensor, reading the air pocket in the butt</div>
+  <div><i style="background:#C8323C"></i>A few wires. The limbs and head stay empty.</div>
 </div>
 
 <script type="importmap">
@@ -299,8 +299,8 @@ const silicone = (extra = {}) => new THREE.MeshPhysicalMaterial({
 });
 // every fur part shares one material; its colour comes from per-vertex pastel blooms (see recolor)
 const furMat = new THREE.MeshPhysicalMaterial({        // translucent pink jelly: you can see the bones inside
-  color: 0xffffff, vertexColors: true, roughness: 0.06, transmission: 0.92, thickness: 0.35, ior: 1.33,
-  attenuationColor: new THREE.Color('#EC8CA2'), attenuationDistance: 1.3, clearcoat: 0.6, clearcoatRoughness: 0.2,
+  color: 0xffffff, vertexColors: true, roughness: 0.22, transmission: 0.92, thickness: 0.45, ior: 1.33,
+  attenuationColor: new THREE.Color('#EC8CA2'), attenuationDistance: 1.8, clearcoat: 0.6, clearcoatRoughness: 0.2,
   sheen: 0.2, sheenColor: new THREE.Color(0xffffff),
 });
 const inkMat = new THREE.MeshPhysicalMaterial({ color: PAL.ink, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.3 });
@@ -408,88 +408,55 @@ for (const side of [-1, 1]) {
 const placeFace = () => face.forEach((f) => f());
 placeFace();
 
-// ---------- inside: a cute-but-creepy skeleton, the squeeze core and the nerve ----------
-// web coords: y up, z forward (face). All shapes are simple and rounded on purpose: cartoon bones, not anatomy.
-const boneMat = new THREE.MeshStandardMaterial({ color: 0xFFF6E6, roughness: 0.5, emissive: 0x5A4A3A, emissiveIntensity: 0.25 });
-const socketMat = new THREE.MeshStandardMaterial({ color: 0x3A2A28, roughness: 0.8 });
-const coreMat = new THREE.MeshStandardMaterial({ color: 0x6E6A7A, roughness: 0.35, metalness: 0.3 });
-const capMat = new THREE.MeshStandardMaterial({ color: 0xF7F3EE, roughness: 0.4 });
-const nerveMat = new THREE.MeshStandardMaterial({ color: 0xE0566E, roughness: 0.4, emissive: 0xE0566E, emissiveIntensity: 0.15 });
-const boardMat = new THREE.MeshStandardMaterial({ color: 0x2F4C86, roughness: 0.5 });
+// ---------- inside: only what Ppomo needs to work, gathered in the middle of the body ----------
+// Not anatomy and not decoration: one printed frame, one board, one pressure sensor, a few plain wires,
+// and the air pocket it reads. The limbs and head stay empty jelly. Through the frosted body it is faint:
+// the character is the focus, the parts are secondary, like a fear that shows through without being chosen.
+// web coords: y up, z forward (face).
+const printMat = new THREE.MeshStandardMaterial({ color: 0xEFEBE3, roughness: 0.7 });          // white PLA
+const pcbMat = new THREE.MeshStandardMaterial({ color: 0x2C6E49, roughness: 0.55 });            // plain green board
+const chipMat = new THREE.MeshStandardMaterial({ color: 0x1E1E22, roughness: 0.4 });
+const metalMat = new THREE.MeshStandardMaterial({ color: 0xBFC3C8, roughness: 0.3, metalness: 0.8 });
+const sensorMat = new THREE.MeshStandardMaterial({ color: 0x24479A, roughness: 0.5 });
+const ledMat = new THREE.MeshStandardMaterial({ color: 0x9BE89B, emissive: 0x6BEA6B, emissiveIntensity: 0.2 });
+const pocketMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.3, transparent: true, opacity: 0.35 });
+const tubeMat = new THREE.MeshStandardMaterial({ color: 0xE8ECEF, roughness: 0.3, transparent: true, opacity: 0.8 });
 const inside = new THREE.Group(); inside.name = 'inside';
 ppomo.add(inside);
-const blob = (mat, x, y, z, sx, sy, sz) => { const m = ball(mat, 1, sx, sy, sz); m.position.set(x, y, z); m.castShadow = true; inside.add(m); return m; };
+const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); inside.add(m); return m; };
+const roundBar = (len, w, h, mat, x, y, z) => add(new THREE.CapsuleGeometry(Math.min(w, h) / 2, len, 6, 12), mat, x, y, z);
 
-// skull with big round eye sockets right behind the face
-blob(boneMat, 0, 0.44, 0.54, 0.36, 0.27, 0.28);
-blob(boneMat, 0, 0.27, 0.60, 0.24, 0.08, 0.19);               // little jaw
-for (const s of [-1, 1]) blob(socketMat, s * 0.14, 0.45, 0.79, 0.075, 0.08, 0.035);
-blob(socketMat, 0, 0.36, 0.83, 0.025, 0.02, 0.015);           // nose hole
-
-// spine: a chain of rounded vertebrae from the skull to the tail
-const spine = new THREE.CatmullRomCurve3([
-  new THREE.Vector3(0, 0.46, 0.28), new THREE.Vector3(0, 0.58, 0.02), new THREE.Vector3(0, 0.68, -0.28),
-  new THREE.Vector3(0, 0.62, -0.58), new THREE.Vector3(0, 0.44, -0.86),
-]);
-for (let i = 0; i <= 13; i++) {
-  const t = i / 13, p = spine.getPointAt(t), tan = spine.getTangentAt(t);
-  const v = blob(boneMat, p.x, p.y, p.z, 0.075, 0.055, 0.04);
-  v.lookAt(p.clone().add(tan));
-  const spike = blob(boneMat, p.x, p.y + 0.06, p.z, 0.025, 0.04, 0.025);   // little bump on top
+// printed frame: one plain bar along the belly with three clips, slightly bone-like but only structural
+const frame = roundBar(0.62, 0.07, 0.07, printMat, 0, 0.30, -0.18);
+frame.rotation.x = Math.PI / 2;
+for (const z of [0.02, -0.18, -0.38]) {
+  const clip = add(new THREE.TorusGeometry(0.075, 0.016, 8, 24, Math.PI), printMat, 0, 0.36, z);
+  clip.rotation.y = Math.PI / 2;
 }
-
-// ribs: arcs hanging from the spine around the body
-for (const [z, r] of [[0.02, 0.34], [-0.14, 0.40], [-0.30, 0.42], [-0.46, 0.38]]) {
-  let best = 0, bestD = 9;
-  for (let i = 0; i <= 100; i++) { const d = Math.abs(spine.getPointAt(i / 100).z - z); if (d < bestD) { bestD = d; best = i / 100; } }
-  const top = spine.getPointAt(best);
-  const rib = new THREE.Mesh(new THREE.TorusGeometry(r, 0.022, 10, 40, Math.PI * 1.22), boneMat);
-  rib.rotation.z = -Math.PI * 0.11;                             // arc goes over the top and down both sides
-  rib.position.set(0, top.y - r, z);
-  rib.castShadow = true;
-  inside.add(rib);
-}
-
-// legs: short bones into the paws and feet
-const legBone = (a, b) => {
-  const dir = b.clone().sub(a), len = dir.length();
-  const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.032, len, 6, 12), boneMat);
-  m.position.copy(a).add(b).multiplyScalar(0.5);
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-  inside.add(m);
+// one small board on the frame, with a chip, a USB port and a status LED
+add(new THREE.BoxGeometry(0.11, 0.014, 0.30), pcbMat, 0, 0.375, -0.12);
+add(new THREE.BoxGeometry(0.05, 0.012, 0.05), chipMat, 0, 0.388, -0.10);
+add(new THREE.BoxGeometry(0.045, 0.02, 0.04), metalMat, 0, 0.392, 0.03);
+const led = add(new THREE.SphereGeometry(0.009, 10, 8), ledMat, 0.035, 0.388, -0.2);
+// pressure sensor at the back end of the frame
+add(new THREE.BoxGeometry(0.09, 0.014, 0.09), sensorMat, 0, 0.375, -0.42);
+const port = add(new THREE.CylinderGeometry(0.012, 0.012, 0.04, 12), metalMat, 0, 0.40, -0.42);
+// a few plain wires from the board to the sensor
+const wire = (dx, color) => {
+  const c = new THREE.CatmullRomCurve3([new THREE.Vector3(dx, 0.39, -0.26), new THREE.Vector3(dx * 2, 0.43, -0.32), new THREE.Vector3(dx, 0.39, -0.38)]);
+  inside.add(new THREE.Mesh(new THREE.TubeGeometry(c, 16, 0.005, 6, false), new THREE.MeshStandardMaterial({ color, roughness: 0.5 })));
 };
-for (const s of [-1, 1]) {
-  legBone(new THREE.Vector3(s * 0.36, 0.26, 0.58), new THREE.Vector3(s * 0.50, 0.09, 0.70));
-  legBone(new THREE.Vector3(s * 0.38, 0.30, -0.72), new THREE.Vector3(s * 0.52, 0.09, -0.86));
-}
+wire(-0.03, 0xC8323C); wire(0, 0x222222); wire(0.03, 0xD8D8D8);
+// the air pocket in the butt and the tube that carries its pressure to the sensor
+const pocket = add(new THREE.SphereGeometry(1, 32, 20), pocketMat, 0, 0.36, -0.72);
+pocket.scale.set(0.22, 0.17, 0.17);
+const tube = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.42, -0.42), new THREE.Vector3(0, 0.46, -0.52), new THREE.Vector3(0, 0.40, -0.58)]);
+inside.add(new THREE.Mesh(new THREE.TubeGeometry(tube, 16, 0.013, 8, false), tubeMat));
+// the whole core 1.35x larger around the belly centre so the board reads through the jelly
+inside.scale.setScalar(1.35);
+inside.position.set(0, 0.35 * (1 - 1.35), -0.2 * (1 - 1.35));
 
-// pelvis: two hip bones that press on the squeeze core
-for (const s of [-1, 1]) blob(boneMat, s * 0.21, 0.38, -0.74, 0.11, 0.15, 0.10);
-
-// squeeze core: an octahedron with a key switch on each of its 8 faces
-const CORE = new THREE.Vector3(0, 0.36, -0.76);
-const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.15), coreMat);
-core.position.copy(CORE); core.castShadow = true; inside.add(core);
-const caps = [];
-for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
-  const n = new THREE.Vector3(sx, sy, sz).normalize();
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.065, 0.03), capMat);
-  cap.userData.n = n;
-  cap.position.copy(CORE).addScaledVector(n, 0.105);
-  cap.lookAt(cap.position.clone().add(n));
-  inside.add(cap); caps.push(cap);
-}
-
-// brain: the Arduino board in the head, and the nerve (one wire pair) from the core to it
-const board = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.025, 0.09), boardMat);
-board.position.set(0, 0.17, 0.22); inside.add(board);
-const nerve = new THREE.CatmullRomCurve3([
-  CORE.clone().add(new THREE.Vector3(0, -0.05, 0.12)), new THREE.Vector3(0.05, 0.22, -0.40),
-  new THREE.Vector3(-0.04, 0.17, -0.05), new THREE.Vector3(0, 0.17, 0.12),
-]);
-inside.add(new THREE.Mesh(new THREE.TubeGeometry(nerve, 60, 0.014, 8, false), nerveMat));
-
-// ---------- squeeze: the jelly squashes, the bones press the keys, the nerve lights up ----------
+// ---------- squeeze: the jelly squashes, the air pocket is pressed, the board's LED blinks ----------
 let squeezeT = 0, squeezes = 0;
 const countEl = document.getElementById('squeeze-count');
 function squeeze() { squeezeT = 1; squeezes++; countEl.textContent = squeezes; }
@@ -500,8 +467,8 @@ function animateSqueeze() {
   squeezeT = Math.max(0, squeezeT - 0.04);
   const s = Math.sin(squeezeT * Math.PI);                       // 0 -> 1 -> 0
   ppomo.scale.set(1 + 0.05 * s, 1 - 0.09 * s, 1 + 0.03 * s);
-  for (const c of caps) c.position.copy(CORE).addScaledVector(c.userData.n, 0.105 - 0.018 * s);
-  nerveMat.emissiveIntensity = 0.15 + 1.6 * s;
+  pocket.scale.set(0.22 * (1 + 0.05 * s), 0.17 * (1 - 0.3 * s), 0.17 * (1 - 0.15 * s));
+  ledMat.emissiveIntensity = 0.2 + 2.5 * s;
 }
 
 // per-part scale (빵빵폼): e.g. ppomo.setScale('cheekL', 1.3) — the field is re-meshed so seams stay smooth
