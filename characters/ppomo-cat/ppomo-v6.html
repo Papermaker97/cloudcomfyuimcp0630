@@ -392,6 +392,11 @@ placeFace();
 window.ppomo = {
   setScale(name, s) { if (!(name in SCALE)) throw new Error(`unknown part ${name}`); SCALE[name] = s; rebuild(); placeFace(); },
   scales: SCALE,
+  // for STL export (3D printing / molds): the body surface at a finer grid, in model units
+  exportBody(h = 0.012) {
+    const g = meshField(modelSDF, BOUNDS.min, BOUNDS.max, h);
+    return { pos: Array.from(g.attributes.position.array), idx: Array.from(g.index.array) };
+  },
 };
 
 // ---------- camera & controls ----------
