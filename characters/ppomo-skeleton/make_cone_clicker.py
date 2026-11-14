@@ -1,5 +1,5 @@
 """
-Ppomo cone clicker v1: press from the TOP, BOTTOM, LEFT, RIGHT or BACK -> the same ONE button.
+Ppomo cone clicker v1.1: press from the TOP, BOTTOM, LEFT, RIGHT or BACK -> the same ONE button.
 
 How it works
   * A rod runs front-to-back through a block. In the middle it has a 45-degree CONE.
@@ -12,17 +12,23 @@ How it works
     So ONE spring returns all five directions.
   * The cone's front face lands on a wall after 3.5 mm, so neither the button nor the spiral is crushed.
 
-Parts (6 kinds, already oriented for printing, no supports):
+v1.1 fixes two things that made v1 impossible to assemble:
+  * the button pocket was sealed inside the block -> now a channel open on the +X side (slide the button in)
+  * the back plate was a closed ring trapped between the cone and the back cap -> now two halves
+
+Parts (already oriented for printing, no supports):
   cone-housing.stl      the block. Print front face down (as exported).
   cone-rod.stl          the rod with the cone and the back cap. Print standing on its cap (as exported).
   cone-plunger.stl      print 4. Print standing on its cap (as exported).
   cone-spiral.stl       the spiral spring plate, 1.0 mm thick. Print flat.
-  cone-backplate.stl    closes the back of the cone chamber. Print flat.
-Assembly
-  1. Slide the spiral plate into the slot on the +X side of the block.
-  2. Drop the tactile button into the pocket on the front face (plunger pointing into the block).
-  3. Put the rod in from the back: its thin tip goes through the hole in the spiral's centre.
-  4. Press the back plate into the back opening (a drop of glue if loose).
+  cone-backplate-half.stl  print 2. Half of the plug that closes the back. Flange down (as exported).
+Assembly (the CLICK comes from a 6 x 6 mm tactile button you add; the printed parts give travel + return)
+  1. Slide the spiral plate into the thin slot on the +X side of the block, all the way in.
+  2. Slide the tactile button into the channel at the front of the same +X side, plunger pointing
+     into the block (toward the back), legs sticking out of the front face. Push until it stops.
+  3. Put the rod in from the back (cone first): its thin tip goes through the hole in the spiral's centre.
+  4. Hold the two back-plate halves around the rod shaft (between the block and the back cap)
+     and push them together into the back opening, flange outward. A drop of glue if loose.
   5. Put the 4 plungers into the side holes, round tip first.
   6. For testing, one rubber band around the 4 plunger caps keeps them in (later the silicone does this).
 
@@ -111,12 +117,13 @@ def rod(forward=0.0):
 
 def housing():
     h = box(-HALF, HALF, 0, HOUSE_Y1, -HALF, HALF)
-    # front: button pocket + leg slots through the front wall
+    # front: button channel + leg slots through the front wall, both OPEN on the +X face (v1.1):
+    # the 6 x 6 button slides in sideways from +X until it hits the end at -X (then it sits centred)
     p = SW / 2 + 0.2
-    h -= box(-p, p, FRONT_WALL, FRONT_WALL + BODY + 0.2, -p, p)
+    h -= box(-p, HALF + 1, FRONT_WALL, FRONT_WALL + BODY + 0.2, -p, p)
     for s in (-1, 1):
         lo, hi = sorted([s * 2.45, s * 4.05])
-        h -= box(-p, p, -1, FRONT_WALL + 0.1, lo, hi)
+        h -= box(-p, HALF + 1, -1, FRONT_WALL + 0.1, lo, hi)
     # space for the button plunger + the rod tip + the spiral hub moving forward
     c = PLATE / 2 - FRAME_W                                    # square, so the spiral arms never rub; the frame sits on a ledge
     h -= box(-c, c, FRONT_WALL + BODY, PLATE_Y0 + 0.01, -c, c)
@@ -134,11 +141,21 @@ def housing():
 
 
 def backplate():
-    """a plug that closes the cone chamber; its flange sits on the back face."""
+    """a plug that closes the cone chamber; its flange sits on the back face.
+    v1.1: split in two halves (print 2 of the same half) so it can go AROUND the rod shaft
+    (the rod's cone and back cap are both wider than the hole, so a one-piece ring could never get on)."""
     m = cyl_y(CH_Y1, HOUSE_Y1, CH_R - 0.05)                    # snug plug
     m += cyl_y(HOUSE_Y1, HOUSE_Y1 + 1.2, CH_R + 2.5)           # flange
     m -= cyl_y(CH_Y1 - 1, HOUSE_Y1 + 2, SHAFT_R + FIT)
     return m
+
+
+def backplate_halves():
+    m = backplate()
+    big = 40
+    right = m ^ box(0.1, big, -big, big, -big, big)
+    left = m ^ box(-big, -0.1, -big, big, -big, big)
+    return left, right
 
 
 def spiral_plate(world=True):
@@ -178,9 +195,11 @@ def to_tm(m):
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))
-    out = os.path.join(here, "cone-clicker-v1")
+    out = os.path.join(here, "cone-clicker-v1.1")
     os.makedirs(out, exist_ok=True)
     H, B, SP = housing(), backplate(), spiral_plate()
+    BL, BR = backplate_halves()
+    BTN = box(-SW / 2, SW / 2, FRONT_WALL + 0.05, FRONT_WALL + BODY, -SW / 2, SW / 2)
     ok = True
 
     def vol(a, b):
@@ -220,8 +239,28 @@ if __name__ == "__main__":
     # 4) the stop: cone face meets the wall exactly at STOP; the button clicks before that
     print(f"rod tip touches the button at {TIP_GAP} mm, clicks at ~{TIP_GAP + 0.25:.2f} mm, cone lands on the stop at {STOP} mm:", TIP_GAP + 0.25 < STOP)
     ok &= TIP_GAP + 0.25 < STOP
-    one = all(len(m.decompose()) == 1 for m in (H, rod(), plunger_local(), B, SP))
+    one = all(len(m.decompose()) == 1 for m in (H, rod(), plunger_local(), BL, BR, SP))
     print("each part is one piece:", one); ok &= one
+    # 5) can it actually be ASSEMBLED, in order?
+    w = max(vol(BTN.translate([x, 0, 0]), H) for x in np.arange(0, HALF + SW + 1, 0.5))
+    print("2. button slides in from +X to its seat:", w < 0.02, f"({w:.3f})"); ok &= w < 0.02
+    w = max(vol(SP.translate([x, 0, 0]), H) for x in np.arange(0, PLATE + 2, 0.5))
+    print("1. spiral slides in from +X to its slot:", w < 0.02, f"({w:.3f})"); ok &= w < 0.02
+    w = 0.0
+    for y in np.arange(0, HOUSE_Y1 + 2, 0.5):                    # rod comes in from the back
+        r_ = rod().translate([0, y, 0])
+        w = max(w, vol(r_, H), vol(r_, SP), vol(r_, BTN))
+    print("3. rod goes in from the back through the spiral hub:", w < 0.05, f"({w:.3f})"); ok &= w < 0.05
+    w = 0.0
+    lift = HOUSE_Y1 - CH_Y1 + 0.1                                # halves start just behind the back face
+    for half, sx in ((BL, -1), (BR, 1)):
+        for x in np.arange(0, 12, 0.5):                          # close in sideways around the shaft...
+            hh = half.translate([sx * x, lift, 0])
+            w = max(w, vol(hh, rod()), vol(hh, H))
+        for y in np.arange(0, lift + 0.01, 0.25):                # ...then push into the opening
+            hh = half.translate([0, y, 0])
+            w = max(w, vol(hh, rod()), vol(hh, H))
+    print("4. back-plate halves close around the shaft and push in:", w < 0.05, f"({w:.3f})"); ok &= w < 0.05
     # export, oriented for printing
     t = to_tm(H)                                               # front face (y = 0) down: rotate +Y to +Z
     t.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0])); t.apply_translation(-t.bounds[0])
@@ -235,9 +274,9 @@ if __name__ == "__main__":
     t.export(os.path.join(out, "cone-plunger.stl"))
     t = to_tm(spiral_plate(world=False)); t.apply_translation(-t.bounds[0])
     t.export(os.path.join(out, "cone-spiral.stl"))
-    t = to_tm(B)
+    t = to_tm(BR)                                              # flange down
     t.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])); t.apply_translation(-t.bounds[0])
-    t.export(os.path.join(out, "cone-backplate.stl"))
+    t.export(os.path.join(out, "cone-backplate-half.stl"))
     full = H + B + SP + rod()
     for n in DIRS:
         full += plunger(n)
