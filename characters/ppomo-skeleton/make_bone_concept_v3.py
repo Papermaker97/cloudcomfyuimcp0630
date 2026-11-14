@@ -58,11 +58,11 @@ def bone_centre(name, y):
     s = (y - b["span"][0]) / (b["span"][1] - b["span"][0])          # 0 at the head end, 1 at the tail end
     r, sway = BONE_R, 0.0
     if name == "back":
-        r += 3.5 * s ** 1.5                                         # climbs toward the rump like the body
+        r += 7.0 * s ** 1.5                                         # climbs toward the rump like the body
     elif name == "belly":
         pass                                                        # belly stays low and flat
     else:
-        r += 1.6 * np.sin(np.pi * s)                                # bows out at the flank
+        r += 3.5 * np.sin(np.pi * s)                                # bows out at the flank
         sway = (s - 0.5) * 3.0 * (1 if name == "right" else -1)     # shoulder low, hip high
     return ux * r + tx * sway, AX_Z + uz * r + tz * sway
 
@@ -121,7 +121,10 @@ def stem_field(P, name):
     d = np.full(P.shape[:-1], 99.0, np.float32)
     for hy in HUB_Y:
         cx, cz = bone_centre(name, hy)
-        d = np.minimum(d, capsule(P, (ux * HUB_R, hy, AX_Z + uz * HUB_R), (cx, hy, cz), 2.4).astype(np.float32))
+        d = np.minimum(d, capsule(P, (ux * HUB_R, hy, AX_Z + uz * HUB_R), (cx, hy, cz), 2.1).astype(np.float32))
+        # the stem flares where it meets the bone, so it reads as part of the bone, not a post
+        fl = ellip(P, (cx - ux * 2.2, hy, cz - uz * 2.2), (3.6, 4.6, 3.6))
+        d = sminp(d, fl.astype(np.float32), 2.0)
     return d
 
 

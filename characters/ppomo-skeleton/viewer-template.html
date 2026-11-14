@@ -1,0 +1,237 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Ppomo Skeleton</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
+<style>
+  /* Layout: full-bleed stage with the character centred; title top-left, parts key under it, one control strip at the bottom. */
+  :root {
+    --bg-top: #FBF7F3;
+    --bg-bottom: #EFE6DF;
+    --fg: #3A3A3E;
+    --muted: #7C808A;
+    --chip: rgba(255, 255, 255, 0.72);
+    --chip-line: rgba(58, 58, 62, 0.10);
+    --chip-on: #3A3A3E;
+    --chip-on-fg: #F7F5F0;
+    --font-display: "Gowun Dodum", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    --font-ui: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg-top: #2A2D34; --bg-bottom: #1B1D22; --fg: #ECEDF0; --muted: #9A9EA8;
+      --chip: rgba(40, 42, 49, 0.72); --chip-line: rgba(236, 237, 240, 0.12);
+      --chip-on: #ECEDF0; --chip-on-fg: #24262C; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg-top: #2A2D34; --bg-bottom: #1B1D22; --fg: #ECEDF0; --muted: #9A9EA8;
+    --chip: rgba(40, 42, 49, 0.72); --chip-line: rgba(236, 237, 240, 0.12);
+    --chip-on: #ECEDF0; --chip-on-fg: #24262C; color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; color: var(--fg); font-family: var(--font-ui);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  #stage canvas:active { cursor: grabbing; }
+  .top {
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px);
+    left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+  }
+  .top h1 { margin: 0; font: 400 1.35rem/1.2 var(--font-display); letter-spacing: 0.01em; text-wrap: balance; }
+  .top p { margin: 0; font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0; padding: 0; list-style: none; font-size: 0.78rem; max-width: 30rem; }
+  .key li { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--muted); flex: none; }
+  .controls {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px;
+    max-width: calc(100% - 32px); padding: 6px; border-radius: 22px;
+    background: var(--chip); border: 1px solid var(--chip-line);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .controls button {
+    font: 500 0.8rem/1 var(--font-ui); color: var(--fg); background: transparent;
+    border: 0; border-radius: 999px; padding: 9px 12px; cursor: pointer; white-space: nowrap;
+  }
+  .controls button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-fg); }
+  .controls button:focus-visible { outline: 2px solid var(--muted); outline-offset: 2px; }
+  #fail { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+</style>
+
+<div id="stage"></div>
+<div class="top">
+  <div>
+    <h1>뽀모 속 뼈대</h1>
+    <p>드래그해서 돌려보기 · 휠이나 두 손가락으로 확대</p>
+  </div>
+  <ul class="key" aria-label="부품 색">
+    <li><span class="swatch" style="background:#D9C393"></span>프린팅한 뼈대</li>
+    <li><span class="swatch" style="background:#2B2B31"></span>택트 버튼</li>
+    <li><span class="swatch" style="background:#2E7D5C"></span>블루투스 보드</li>
+    <li><span class="swatch" style="background:#466EC8"></span>배터리</li>
+    <li><span class="swatch" style="background:#A9ABB3"></span>스프링</li>
+    <li><span class="swatch" style="background:#D73C3C"></span>전선</li>
+  </ul>
+</div>
+<div class="controls" role="toolbar" aria-label="보기 설정">
+  <button id="btn-rotate" type="button" aria-pressed="true">자동 회전</button>
+  <button id="btn-body" type="button" aria-pressed="true">몸 보이기</button>
+  <button id="btn-clear" type="button" aria-pressed="true">뼈 반투명</button>
+  <button id="btn-press" type="button" aria-pressed="false">꾹 누르기</button>
+</div>
+<div id="fail" hidden>3D를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 열어 주세요.</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+const MESHES = /*__MESHES__*/null;
+const CFG = /*__CFG__*/null;
+let THREE, OrbitControls, RoomEnvironment;
+try {
+  THREE = await import('three');
+  ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+  ({ RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js'));
+} catch (e) {
+  document.getElementById('fail').hidden = false;
+  throw e;
+}
+
+// body millimetres (x across, y front-to-back with the face at -y, z up) -> viewer units (y up, face toward +z)
+const mm = (x, y, z) => new THREE.Vector3(x / CFG.S, z / CFG.S + CFG.YF, -(y + CFG.YC) / CFG.S);
+const U = 1 / CFG.S;                                   // one millimetre in viewer units
+const bytes = (b64) => { const s = atob(b64), a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a.buffer; };
+function geo(name) {
+  const d = MESHES[name], g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bytes(d.p)), 3));
+  g.setIndex(new THREE.BufferAttribute(new Uint32Array(bytes(d.i)), 1));
+  g.computeVertexNormals();
+  return g;
+}
+
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environmentIntensity = 0.55;
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.6); keyLight.position.set(3, 5, 4); scene.add(keyLight);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd9c8c0, 0.5));
+
+const ppomo = new THREE.Group(); scene.add(ppomo);
+// printed skeleton: slightly see-through so the parts inside the head pod show
+const boneMat = new THREE.MeshStandardMaterial({ color: 0xD9C393, roughness: 0.5, transparent: true, opacity: 0.72, depthWrite: false });
+const plateMat = new THREE.MeshStandardMaterial({ color: 0xE9DCC0, roughness: 0.6, transparent: true, opacity: 0.92 });
+const inkMat = new THREE.MeshStandardMaterial({ color: 0x4A2E24, roughness: 0.6 });
+const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xEC8AA2, roughness: 0.22, clearcoat: 0.4, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide });
+const add = (name, mat, order) => { const m = new THREE.Mesh(geo(name), mat); m.renderOrder = order; ppomo.add(m); return m; };
+const fixed = add('fixed', boneMat, 2);
+const rod = add('rod', boneMat, 2);
+const bones = {};
+for (const n of Object.keys(CFG.dirs)) bones[n] = add('bone_' + n, boneMat, 2);
+const plate = add('plate', plateMat, 3);
+const ink = add('ink', inkMat, 3);
+const body = add('body', bodyMat, 4);
+
+// parts that are not printed (opaque, drawn first)
+const parts = new THREE.Group(); ppomo.add(parts);
+function box(b, color, opts = {}) {
+  const [x0, x1, y0, y1, z0, z1] = b;
+  const g = new THREE.BoxGeometry((x1 - x0) * U, (z1 - z0) * U, (y1 - y0) * U);
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color, roughness: opts.rough ?? 0.5, metalness: opts.metal ?? 0 }));
+  m.position.copy(mm((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2));
+  parts.add(m); return m;
+}
+const P = CFG.parts;
+box(P.button, 0x2B2B31);
+box([-1.6, 1.6, P.button[3], CFG.plungerTip, CFG.axZ - 1.6, CFG.axZ + 1.6], 0x5A5A62);
+const bd = P.board;
+box([bd[0], bd[1], bd[2], bd[3], bd[4], bd[4] + 1.2], 0x2E7D5C);                                   // board
+box([-4.5, 4.5, bd[2] - 1.0, bd[2] + 6.5, bd[4] + 1.2, bd[5]], 0xBFC1C8, { metal: 0.8, rough: 0.35 });   // USB-C
+box([-6, -1, bd[2] + 9, bd[2] + 15, bd[4] + 1.2, bd[4] + 2.6], 0x3A3A40, { metal: 0.5 });           // chip can
+box(P.battery, 0x466EC8, { rough: 0.35 });
+for (const w of CFG.wires) {
+  const curve = new THREE.CatmullRomCurve3(w.map((p) => mm(p[0], p[1], p[2])));
+  parts.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.35 * U, 8), new THREE.MeshStandardMaterial({ color: 0xD73C3C, roughness: 0.5 })));
+}
+// return spring: a coil around the rod, between the pod and the collar on the rod
+const [sy0, sy1] = CFG.spring;
+const springMat = new THREE.MeshStandardMaterial({ color: 0xA9ABB3, roughness: 0.3, metalness: 0.9 });
+const spring = new THREE.Mesh(new THREE.BufferGeometry(), springMat); parts.add(spring);
+function setSpring(len) {                               // len = current length in mm; the pod end stays put
+  const pts = [], turns = 5, n = 120;
+  for (let i = 0; i <= n; i++) { const t = i / n, a = t * turns * Math.PI * 2; pts.push(mm(3.7 * Math.cos(a), sy0 + t * len, CFG.axZ + 3.7 * Math.sin(a))); }
+  spring.geometry.dispose();
+  spring.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 160, 0.42 * U, 6);
+}
+setSpring(sy1 - sy0);
+
+// a press: every bone moves toward the spine, the rod slides toward the face, the spring shortens
+let press = 0, lastSpring = -1;
+function applyPress(t) {
+  const d = t * CFG.travel;
+  for (const [n, u] of Object.entries(CFG.dirs)) bones[n].position.set(-u[0] * d * U, -u[1] * d * U, 0);
+  rod.position.set(0, 0, d * U);
+  const len = Math.round((sy1 - sy0 - d) * 10) / 10;
+  if (len !== lastSpring) { setSpring(len); lastSpring = len; }
+}
+
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
+const TARGET = new THREE.Vector3(0, 0.42, -0.05);
+camera.position.set(3.1, 1.75, 3.3);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(TARGET);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 2.2; controls.maxDistance = 13;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+controls.autoRotate = !calm; controls.autoRotateSpeed = 1.2;
+controls.update();
+
+const toggle = (id, on, fn) => {
+  const b = document.getElementById(id);
+  b.setAttribute('aria-pressed', String(on)); fn(on);
+  b.addEventListener('click', () => { const v = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(v)); fn(v); });
+};
+toggle('btn-rotate', controls.autoRotate, (v) => { controls.autoRotate = v; });
+toggle('btn-body', true, (v) => { body.visible = v; });
+toggle('btn-clear', true, (v) => { boneMat.opacity = v ? 0.72 : 1; boneMat.transparent = v; boneMat.depthWrite = !v; boneMat.needsUpdate = true; });
+let pressing = false;
+toggle('btn-press', false, (v) => { pressing = v; });
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = w < h ? 44 : 30;                        // step back on a tall phone screen
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const t = clock.getElapsedTime();
+  // while "꾹 누르기" is on, squeeze and let go about once every 1.6 s; otherwise ease back to rest
+  const goal = pressing ? (calm ? 1 : 0.5 - 0.5 * Math.cos(t * Math.PI * 2 / 1.6)) : 0;
+  press += (goal - press) * 0.25;
+  applyPress(Math.abs(press) < 0.002 ? 0 : press);
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
