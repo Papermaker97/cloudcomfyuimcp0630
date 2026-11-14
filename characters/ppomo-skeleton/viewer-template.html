@@ -74,11 +74,12 @@
     <p>드래그해서 돌려보기 · 휠이나 두 손가락으로 확대</p>
   </div>
   <ul class="key" aria-label="부품 색">
-    <li><span class="swatch" style="background:#D9C393"></span>프린팅한 뼈 (두개골, 심, 굽은 뼈 4개)</li>
+    <li><span class="swatch" style="background:#D9C393"></span>프린팅한 뼈 (두개골, 심, 뼈 5개)</li>
     <li><span class="swatch" style="background:#2B2B31"></span>택트 버튼 5개</li>
     <li><span class="swatch" style="background:#2E7D5C"></span>블루투스 보드</li>
     <li><span class="swatch" style="background:#466EC8"></span>배터리</li>
     <li><span class="swatch" style="background:#D73C3C"></span>전선</li>
+    <li><span class="swatch" style="background:#8A6A3C"></span>당기는 끈</li>
   </ul>
 </div>
 <div class="controls" role="toolbar" aria-label="보기 설정">
@@ -150,16 +151,11 @@ add('core', boneMat, 2);
 add('plate', plateMat, 3);
 add('ink', inkMat, 3);
 
-// each curved bone turns about the root where it is fixed to the core
+// each bone sits on its button and slides straight down onto it
 const movers = [];
 for (const [n, m] of Object.entries(CFG.movers)) {
-  const pivot = new THREE.Group();
-  const h = mm(...m.hinge);
-  pivot.position.copy(h);
-  const mesh = add('bone_' + n, boneMat, 2, pivot);
-  mesh.position.copy(h).multiplyScalar(-1);
-  ppomo.add(pivot);
-  movers.push({ pivot, axis: dir(...m.axis), angle: m.angle });
+  const mesh = add('bone_' + n, boneMat, 2);
+  movers.push({ mesh, step: dir(...m.dir).multiplyScalar(m.dist * U) });
 }
 const body = add('body', bodyMat, 4);
 
@@ -180,9 +176,14 @@ for (const w of CFG.wires) {
   ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.35 * U, 8), solid(0xD73C3C)));
 }
 
-// a squeeze: every bone closes onto its button
+if (CFG.cord) {                                        // pull cord beside the wires (takes the pull instead of the solder joints)
+  const curve = new THREE.CatmullRomCurve3(CFG.cord.map((p) => mm(p[0], p[1], p[2])));
+  ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.5 * U, 8), solid(0x8A6A3C)));
+}
+
+// a squeeze: every bone goes straight down onto its button
 function applyPress(t) {
-  for (const m of movers) m.pivot.setRotationFromAxisAngle(m.axis, m.angle * t);
+  for (const m of movers) m.mesh.position.copy(m.step).multiplyScalar(t);
 }
 
 const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
