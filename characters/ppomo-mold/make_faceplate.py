@@ -26,11 +26,11 @@ from manifold3d import CrossSection, Manifold
 import make_face as mf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-A, B = 17.0, 10.0            # oval half-width, half-height of the visible plate (34 x 20 mm)
-ZC = 17.5                    # oval centre height (between the eyes and the mouth)
+A, B = 20.0, 12.0            # oval half-width, half-height of the visible plate (40 x 24 mm)
+ZC = 18.5                    # oval centre height (between the eyes and the mouth)
 SKIN = 2.0                   # thickness of the visible part (sits in a seat, flush with the face)
 LIP = 3.0                    # silicone lip thickness = length of the taper
-NECK_IN = 3.0                # the opening is this much smaller than the plate all round (28 x 14 mm)
+NECK_IN = 3.0                # the opening is this much smaller than the plate all round (34 x 18 mm)
 FLANGE_T, FLANGE_OUT = 1.6, 1.5
 VENT_R = 0.8
 CLEAR = 0.15                 # the silicone seat is this much bigger than the plate
@@ -70,7 +70,7 @@ def build():
                                 oval_slab(A - NECK_IN + CLEAR, B - NECK_IN + CLEAR, y_neck - 0.01, y_neck + 0.01)])
     fa, fb = A - NECK_IN + FLANGE_OUT + CLEAR, B - NECK_IN + FLANGE_OUT + CLEAR
     pocket = oval_slab(fa, fb, y_neck, y_fl + 0.5)            # room for the plate's back flange
-    zc2 = ZC + 3.0
+    zc2 = ZC + 1.5
     ball0 = Manifold.sphere(CAV_R, 64).translate([0, y_neck + CAV_START, zc2])
     ball1 = Manifold.sphere(CAV_R, 64).translate([0, y_neck + CAV_START + CAV_LEN, zc2])
     cav = Manifold.batch_hull([pocket, ball0]) + Manifold.batch_hull([ball0, ball1])
