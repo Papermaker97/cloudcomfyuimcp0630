@@ -39,7 +39,7 @@ HUB_R = 4.5
 ROD_R = 3.0
 BONE_R = HUB_R + 0.5 + TRAVEL + 3.0            # bone centreline distance from the axis (underside clears the hub when pressed)
 PLATE_BACK = -43.3
-POD = dict(c=(0.0, -32.0, 18.5), r=(14.0, 11.0, 9.5))
+POD = dict(c=(0.0, -32.0, 18.5), r=(13.5, 11.0, 9.5))   # a rounded box (not an egg) so real parts fit
 TAIL = dict(c=(0.0, 41.0, AX_Z), r=(8.0, 5.5, 8.0))
 BONES = {
     #        direction   y-span        knuckles         half-width knuckle/waist   half-thickness knuckle/waist
@@ -90,9 +90,15 @@ def ellip(P, c, r):
     return (np.linalg.norm(q, axis=-1) - 1) * min(r)
 
 
+def pod_field(P):
+    """the head pod: a rounded box (superellipsoid), which holds far more than an egg of the same size."""
+    q = np.abs((P - np.asarray(POD["c"])) / np.asarray(POD["r"]))
+    return ((q ** 4).sum(-1) ** 0.25 - 1) * min(POD["r"])
+
+
 def frame_field(P):
     """head pod, visible rod, two hubs, two slim rails, tail dome (everything that does not move sideways)."""
-    d = ellip(P, POD["c"], POD["r"])                                              # closed pod behind the face plate
+    d = pod_field(P)                                                              # closed pod behind the face plate
     d = sminp(d, capsule(P, (0, PLATE_BACK - 0.5, 18.5), (0, POD["c"][1], 18.5), 8.0), 3.0)
     rod = capsule(P, (0, POD["c"][1], AX_Z), (0, TAIL["c"][1], AX_Z), ROD_R)
     d = sminp(d, rod, 1.5)
