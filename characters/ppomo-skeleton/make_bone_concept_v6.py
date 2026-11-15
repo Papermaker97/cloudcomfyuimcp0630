@@ -14,7 +14,7 @@ Problems in v5 and how v6 answers them
                                      that arrive within about 0.3 s as one squeeze (software, not built here)
 
 Parts
-  SKULL     face + plug + braincase (board, battery), as in v5
+  SKULL     one rounded hollow bone inside the head: face + plug + housing (make_skull.py)
   VERTEBRA  x 3, all the same print (2 rings + the tail)
   DISC      thin round plates between the vertebrae: they join the stack and close the open faces
   3 tactile buttons, 2 slack wires and a pull cord to the skull
@@ -175,7 +175,8 @@ if __name__ == "__main__":
         print(f"  cap {n:4s} faces {np.round(pls[n]['u'], 2)}: silicone over it {v.min():4.1f} - {v.max():4.1f} mm")
     w = float(silicone(whole).min())
     print(f"thinnest silicone over the skeleton: {w:.1f} mm (want >= 5):", w >= 5.0); ok &= w >= 5.0
-    skull_gap = Y_FRONT - DISC_T - (v3.POD["c"][1] + v3.POD["r"][1])
+    import make_skull as sk0
+    skull_gap = Y_FRONT - DISC_T - (sk0.CY + sk0.RY)
     print(f"soft neck between the skull and the first vertebra: {skull_gap:.1f} mm of silicone, crossed only by 2 wires and a cord:", skull_gap >= 4.0); ok &= skull_gap >= 4.0
     # every direction round the body: how far is it from the nearest cap axis or its opposite (the back of a disc)?
     worst = 0.0
@@ -196,15 +197,16 @@ if __name__ == "__main__":
     meshes = {"core": core, "sw_body": trimesh.util.concatenate(sw_b), "sw_plunger": trimesh.util.concatenate(sw_p)}
     for n, c in caps.items():
         meshes["bone_" + n] = c
-    lo2 = np.array([-26.0, -46.0, 0.0])
-    P = mv.grid(lo2, (26.0, 52.0, 46.0), H)
-    meshes["skull"] = mv.slim(mv.mc(v5.skull_field(P), H, lo2), 20000)
-    plate, ink = v5.build_skull_face()
-    meshes["plate"], meshes["ink"] = mv.slim(plate, 24000), mv.slim(ink, 8000)
+    import make_skull as sk
+    g = sk.build()
+    sk.checks(g)
+    skull_t, ink_t = sk.meshes(g)
+    meshes["skull"], meshes["ink"] = mv.slim(skull_t, 60000), mv.slim(ink_t, 6000)
     h = 0.8
     Pbig = mv.grid(lo, (40.0, 58.0, 54.0), h)
     f = body_field(Pbig[..., 0], Pbig[..., 1], Pbig[..., 2])
-    seat = ((Pbig[..., 0] / (mv.PLATE_A + 0.15)) ** 2 + ((Pbig[..., 2] - mv.PLATE_ZC) / (mv.PLATE_B + 0.15)) ** 2 < 1) & (Pbig[..., 1] < mv.Y_SKIN)
+    # the silicone has an opening where the front of the skull comes through
+    seat = ((np.abs(Pbig[..., 0]) / (sk.WIN_A + 0.2)) ** sk.WIN_E + (np.abs(Pbig[..., 2] - sk.WIN_Z) / (sk.WIN_B + 0.2)) ** sk.WIN_E < 1) & (Pbig[..., 1] < sk.CY - sk.RY + 4)
     meshes["body"] = mv.slim(mv.mc(np.where(seat, 1.0, f), h, lo), 60000)
     data = {k: mv.pack(t) for k, t in meshes.items()}
     movers = {n: dict(dir=(-pls[n]["u"]).tolist(), dist=vb.TRAVEL) for n in caps}
@@ -212,11 +214,11 @@ if __name__ == "__main__":
     wires = []
     for sx in (-1, 1):
         wires.append([(sx * 2.0, fy, AX_Z + 9), (sx * 5.0, fy - 4.0, AX_Z + 5), (sx * -1.0, fy - 8.0, AX_Z - 1.0),
-                      (sx * 3.0, -22.0, 19.0), (sx * 3.0, -27.0, 16.5), (sx * 3.0, -31.0, 13.6)])
-        wires.append([(sx * 6.0, -39.0, 15.6), (sx * 6.5, -38.0, 14.6), (sx * 7.0, -36.0, 13.6)])
-    cord = [(0.0, fy, AX_Z + 3.0), (0.0, fy - 6, AX_Z + 6.0), (0.0, -21.5, 24.0)]
+                      (sx * 2.0, -15.0, 20.0), (sx * 3.0, -20.0, 17.5), (sx * 3.0, -27.0, 13.6)])
+        wires.append([(sx * 6.0, -37.0, 15.6), (sx * 6.5, -36.0, 14.6), (sx * 7.0, -34.0, 13.6)])
+    cord = [(0.0, fy, AX_Z + 3.0), (0.0, fy - 3, AX_Z + 5.0), (0.0, -15.6, 24.0)]
     cfg = dict(S=mv.S, YC=mv.YC, YF=mv.YF, movers=movers, wires=wires, cord=cord,
-               parts={k: lay.PARTS[k] for k in ("board", "battery")})
+               parts=sk.parts())
     tpl = open(os.path.join(HERE, "viewer-template.html"), encoding="utf-8").read()
     tpl = tpl.replace("프린팅한 뼈 (두개골, 심, 뼈 5개)", "프린팅한 뼈 (두개골, 척추뼈 3마디)").replace("택트 버튼 5개", "택트 버튼 3개")
     html = tpl.replace("/*__MESHES__*/null", json.dumps(data)).replace("/*__CFG__*/null", json.dumps(cfg))

@@ -85,7 +85,7 @@
 <div class="controls" role="toolbar" aria-label="보기 설정">
   <button id="btn-rotate" type="button" aria-pressed="true">자동 회전</button>
   <button id="btn-body" type="button" aria-pressed="true">몸 보이기</button>
-  <button id="btn-clear" type="button" aria-pressed="true">뼈 반투명</button>
+  <button id="btn-clear" type="button" aria-pressed="false">뼈 반투명</button>
   <button id="btn-press" type="button" aria-pressed="false">쥐어보기</button>
 </div>
 <div id="fail" hidden>3D를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 열어 주세요.</div>
@@ -146,9 +146,9 @@ const solid = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughne
 const add = (name, mat, order, parent = ppomo) => { const m = new THREE.Mesh(geo(name), mat); m.renderOrder = order; parent.add(m); return m; };
 add('sw_body', solid(0x2B2B31), 0);
 add('sw_plunger', solid(0x6A6A72), 0);
-add('skull', boneMat, 2);
+if (MESHES.skull) add('skull', boneMat, 2);
 add('core', boneMat, 2);
-add('plate', plateMat, 3);
+if (MESHES.plate) add('plate', plateMat, 3);
 add('ink', inkMat, 3);
 
 // each bone sits on its button and slides straight down onto it
@@ -204,7 +204,7 @@ const toggle = (id, on, fn) => {
 };
 toggle('btn-rotate', controls.autoRotate, (v) => { controls.autoRotate = v; });
 toggle('btn-body', true, (v) => { body.visible = v; });
-toggle('btn-clear', true, (v) => { boneMat.opacity = v ? 0.72 : 1; boneMat.transparent = v; boneMat.depthWrite = !v; boneMat.needsUpdate = true; });
+toggle('btn-clear', false, (v) => { boneMat.opacity = v ? 0.72 : 1; boneMat.transparent = v; boneMat.depthWrite = !v; boneMat.needsUpdate = true; });
 let pressing = false;
 toggle('btn-press', false, (v) => { pressing = v; });
 
