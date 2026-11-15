@@ -139,7 +139,8 @@ scene.add(new THREE.HemisphereLight(0xffffff, 0xd9c8c0, 0.5));
 
 const ppomo = new THREE.Group(); scene.add(ppomo);
 // printed bone parts: slightly see-through so the buttons and the parts in the skull show
-const boneMat = new THREE.MeshStandardMaterial({ color: 0xD9C393, roughness: 0.5, transparent: true, opacity: 0.72, depthWrite: false });
+const BONE_OP = CFG.boneOpacity ?? 0.72;
+const boneMat = new THREE.MeshStandardMaterial({ color: 0xD9C393, roughness: 0.5, transparent: true, opacity: BONE_OP, depthWrite: false });
 const plateMat = new THREE.MeshStandardMaterial({ color: 0xE3D2A8, roughness: 0.6, transparent: true, opacity: 0.92 });
 const inkMat = new THREE.MeshStandardMaterial({ color: 0x4A2E24, roughness: 0.6 });
 const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xEC8AA2, roughness: 0.22, clearcoat: 0.4, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide });
@@ -191,6 +192,7 @@ box([bd[0], bd[1], bd[2], bd[3], bd[4], bd[4] + 1.2], solid(0x2E7D5C));         
 box([-4.5, 4.5, bd[2] - 1.0, bd[2] + 6.5, bd[4] + 1.2, bd[5]], solid(0xBFC1C8, { metal: 0.8, rough: 0.35 })); // USB-C
 box([-6, -1, bd[2] + 9, bd[2] + 15, bd[4] + 1.2, bd[4] + 2.6], solid(0x3A3A40, { metal: 0.5 }));         // chip can
 box(CFG.parts.battery, solid(0x466EC8, { rough: 0.35 }));
+for (const bx of CFG.boxes || []) box(bx.b, solid(bx.color, { metal: bx.metal ?? 0, rough: 0.4 }));
 for (const w of CFG.wires) {
   const curve = new THREE.CatmullRomCurve3(w.map((p) => mm(p[0], p[1], p[2])));
   ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.35 * U, 8), solid(0xD73C3C)));
@@ -225,7 +227,7 @@ const toggle = (id, on, fn) => {
 };
 toggle('btn-rotate', controls.autoRotate, (v) => { controls.autoRotate = v; });
 toggle('btn-body', true, (v) => { body.visible = v; });
-toggle('btn-clear', false, (v) => { boneMat.opacity = v ? 0.72 : 1; boneMat.transparent = v; boneMat.depthWrite = !v; boneMat.needsUpdate = true; });
+toggle('btn-clear', !!CFG.clearDefault, (v) => { boneMat.opacity = v ? BONE_OP : 1; boneMat.transparent = v; boneMat.depthWrite = !v; boneMat.needsUpdate = true; });
 toggle('btn-mold', false, (v) => {
   for (const m of making) m.visible = v;
   for (const m of finished) m.visible = !v;

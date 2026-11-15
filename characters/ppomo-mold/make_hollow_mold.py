@@ -9,15 +9,17 @@ Idea (air-pressure sensing)
       (a round head part, a neck, and a larger torso part).
     * the SKULL PLUG is pushed into the head part. Its front fills the opening and is the face.
       It has no holes: the eyes, nose and mouth are raised bumps.
-    * for now the sensor is outside on the breadboard, so one hole for the silicone hose runs through the
-      skull plug under the mouth. Later the sensor moves into the skull and that hole goes away.
+    * the skull is hollow. The pressure sensor, the board and the battery sit inside it. The sensor's
+      port pokes out through the skull's back cap into the neck passage, so it reads the air in the body.
+      Nothing leaves the toy: no hose to the outside.
 
 Parts written to hollow-v1/
   mold-hollow-left.stl, mold-hollow-right.stl   the two mold halves (print as exported: flat side down)
   dummy-top.stl, dummy-bottom.stl               the dummy in two halves (print flat side down, join with
                                                 two bits of 1.75 mm filament as pins, glue, sand the seam)
-  skull-plug-v0.stl                             the skull plug with the hose hole (print standing on its flat back)
-  skull-plug-v0-face.stl                        the raised eyes, nose and mouth only (for colouring / a filament swap)
+  skull-shell-v1.stl                            the skull: face + round shell, open at the back (print standing on its open back)
+  skull-cap-v1.stl                              the flat back cap with the hole for the sensor port (print flat)
+  skull-face-v1.stl                             the raised eyes, nose and mouth only (for colouring / a filament swap)
   hollow-section.png                            a labelled cut through the finished toy
 
 Needs: pip install manifold3d trimesh numpy scipy scikit-image fast-simplification pillow
@@ -45,7 +47,16 @@ sk.WIN_A, sk.WIN_B, sk.WIN_E = 20.0, 11.0, 3.0          # the face opening: 40 x
 TORSO_C, TORSO_R, TORSO_E = (0.0, 14.0, 22.0), (22.0, 26.0, 13.0), 2.5   # the air space in the torso: 44 x 52 x 26 mm
 NECK = ((0.0, -19.0, 20.0), (0.0, -9.0, 21.5), 8.0)     # the passage between head and torso (two ends, radius)
 SKULL_BACK = -21.0                                       # the skull plug is cut flat here (it prints standing on this face)
-HOSE_R, HOSE_Z = 2.1, 10.8                               # hole for the silicone hose, under the mouth
+CAP_T = 1.6                                              # thickness of the skull's back cap
+PORT_R, PORT_Z = 1.5, 23.0                               # hole in the cap for the sensor's port
+# what sits inside the skull (x0, x1, y0, y1, z0, z1) mm. Sizes are the usual ones for these parts; check yours.
+PARTS = {
+    "board": (-8.75, 8.75, -46.6, -25.6, 10.0, 13.5),         # small Bluetooth board, about 21 x 17.5 mm, lying flat
+    "battery": (-10.0, 10.0, -40.6, -35.6, 15.6, 25.6),       # small LiPo cell, about 5 x 10 x 20 mm
+    "sensor": (-8.9, 8.9, -29.6, -28.0, 13.7, 30.2),          # pressure sensor breakout, about 17.8 x 16.5 mm, facing backward
+    "chip": (-2.5, 2.5, -28.0, -24.0, 20.5, 25.5),            # the sensor itself on that breakout
+}
+PORT = (-1.25, 1.25, -24.0, -16.0, PORT_Z - 1.25, PORT_Z + 1.25)   # the sensor's metal port, through the cap into the neck
 BUMP = 0.9                                               # how far the eyes, nose and mouth stand out
 STEM_Y0, FLANGE = -63.0, 3.0                             # the dummy's flange starts at the mold's front face (the depth stop)
 HOLE_CLEAR = 0.25
@@ -88,7 +99,7 @@ def masks():
 
 
 def skull_plug():
-    """the skull at a finer grid, cut flat at the back, with raised features and the hose hole."""
+    """the skull at a finer grid: a hollow shell with raised features, closed at the back by a cap with one port hole."""
     g = sk.build()
     X, Y, Z, body, lo, hh = g["X"], g["Y"], g["Z"], g["body"], g["lo"], sk.h
 
@@ -106,36 +117,50 @@ def skull_plug():
         for a in np.linspace(np.pi, 2 * np.pi, 40):
             q = surf(side * sk.MOUTH_ARC + sk.MOUTH_ARC * np.cos(a), sk.MOUTH_TOP + sk.MOUTH_ARC * np.sin(a))
             face |= (X - q[0]) ** 2 + ((Y - q[1]) / 1.3) ** 2 + (Z - q[2]) ** 2 < 0.7 ** 2
-    hose = (X ** 2 + (Z - HOSE_Z) ** 2) < HOSE_R ** 2
-    solid = (g["solid"] | face) & (Y < SKULL_BACK) & ~hose
-    return g, solid, face & ~g["solid"]
+    outer = g["solid"] & (Y < SKULL_BACK)
+    room = (ndimage.distance_transform_edt(g["solid"]) * hh >= sk.WALL) & (Y < SKULL_BACK - CAP_T)   # the space inside
+    port = (X ** 2 + (Z - PORT_Z) ** 2) < PORT_R ** 2
+    cap = outer & (Y >= SKULL_BACK - CAP_T) & ~port
+    shell = (outer & ~room & (Y < SKULL_BACK - CAP_T)) | (face & (Y < SKULL_BACK))
+    return dict(g=g, shell=shell, cap=cap, room=room, face=face & ~g["solid"])
 
 
-def section_png(m, path):
+def section_png(m, sp, path):
     """a side cut through the finished toy at x = 0."""
     SC = 14
     i0 = int(round((0 - m["lo"][0]) / h))
-    body, space, head = m["body"][i0], m["space"][i0], m["head"][i0]
+    body, space = m["body"][i0], m["space"][i0]
     ys, zs = m["Y"][i0, :, 0], m["Z"][i0, 0, :]
-    skull = head & (m["Y"][i0] < SKULL_BACK)
-    hose = np.abs(m["Z"][i0] - HOSE_Z) < HOSE_R
+    Yc, Zc = m["Y"][i0], m["Z"][i0]
+    g = sp["g"]
+    j0 = int(round((0 - g["lo"][0]) / sk.h))
     arr = np.full(body.shape + (3,), 255, np.uint8)
     arr[body] = (247, 205, 214)
     arr[space] = (255, 255, 255)
-    arr[space & ~skull & ~m["neck"][i0] & (m["Y"][i0] > -8)] = (255, 244, 205)       # foam in the torso space
-    arr[skull] = (226, 205, 160)
-    arr[hose & (m["Y"][i0] < SKULL_BACK + 6) & (m["Y"][i0] > -70)] = (120, 170, 220)
+    arr[space & (Yc > -8)] = (255, 244, 205)                         # foam in the torso space
+    # the skull (finer grid) resampled onto this picture
+    iy = np.clip(np.round((Yc - g["lo"][1]) / sk.h).astype(int), 0, g["body"].shape[1] - 1)
+    iz = np.clip(np.round((Zc - g["lo"][2]) / sk.h).astype(int), 0, g["body"].shape[2] - 1)
+    ok_ = (Yc <= -8.0) & (Zc >= g["lo"][2]) & (Zc <= 44.0)
+    hard = (sp["shell"][j0] | sp["cap"][j0])[iy, iz] & ok_
+    arr[hard] = (226, 205, 160)
+
+    def boxc(b, col):
+        arr[(Yc >= b[2]) & (Yc <= b[3]) & (Zc >= b[4]) & (Zc <= b[5])] = col
+
+    boxc(PARTS["board"], (46, 125, 92)); boxc(PARTS["battery"], (70, 110, 200))
+    boxc(PARTS["sensor"], (150, 90, 190)); boxc(PARTS["chip"], (60, 60, 66)); boxc(PORT, (170, 172, 180))
     img = Image.fromarray(np.transpose(arr, (1, 0, 2))[::-1]).resize((int(len(ys) * h * SC), int(len(zs) * h * SC)), Image.BILINEAR)
-    W, Hh = img.size[0] + 80, img.size[1] + 330
+    W, Hh = img.size[0] + 80, img.size[1] + 420
     out = Image.new("RGB", (W, Hh), (255, 255, 255))
     out.paste(img, (40, 90))
     d = ImageDraw.Draw(out)
-    F = lambda s: ImageFont.truetype("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", s)
+    F = lambda s_: ImageFont.truetype("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", s_)
     d.text((40, 24), "완성된 뽀모를 옆에서 자른 모습 (얼굴이 왼쪽)", font=F(40), fill=(20, 20, 20))
     y = img.size[1] + 110
     for col, t in (((247, 205, 214), "실리콘 몸"), ((255, 244, 205), "공기 공간 (스펀지를 채워요): 여기가 공기주머니"),
-                   ((226, 205, 160), "두개골 마개: 얼굴이자 입구를 막는 부품"), ((120, 170, 220), "호스: 공기 공간에서 얼굴 밖 센서로"),
-                   ((255, 255, 255), "목 통로: 머리 공간과 몸통 공간을 이어요")):
+                   ((255, 255, 255), "목 통로: 머리와 몸통의 공기를 이어요"), ((226, 205, 160), "두개골: 얼굴이자 마개이자 속 부품을 감싸는 통"),
+                   ((150, 90, 190), "압력 센서 (은색 관이 두개골 뒤판을 지나 목 통로로 나와요)"), ((46, 125, 92), "블루투스 보드"), ((70, 110, 200), "배터리")):
         d.rectangle([40, y, 84, y + 32], fill=col, outline=(20, 20, 20))
         d.text((100, y - 4), t, font=F(30), fill=(40, 40, 40)); y += 42
     out.save(path)
@@ -214,19 +239,44 @@ if __name__ == "__main__":
         t.export(os.path.join(OUT, name))
         print(name, "watertight:", t.is_watertight, "| size mm:", np.round(t.extents, 1))
 
-    # ---- skull plug ----
-    g, solid, face = skull_plug()
-    lab, n = ndimage.label(solid)
-    sizes = ndimage.sum(solid, lab, range(1, n + 1))
+    # ---- skull: hollow shell + back cap, with the sensor, board and battery inside ----
+    sp = skull_plug()
+    g = sp["g"]
+    whole = sp["shell"] | sp["cap"]
+    lab, n = ndimage.label(whole)
+    sizes = ndimage.sum(whole, lab, range(1, n + 1))
     one = sizes.max() / sizes.sum() > 0.999
-    print("skull plug is one piece, with no opening except the hose hole:", bool(one)); ok &= bool(one)
-    idx = np.argwhere(solid); ext = (idx.max(0) - idx.min(0)) * sk.h
-    print(f"skull plug: {ext[0]:.0f} x {ext[1]:.0f} x {ext[2]:.0f} mm; eyes, nose and mouth stand out {BUMP} mm; hose hole {2 * HOSE_R:.1f} mm")
-    st = mv.mc(ndimage.gaussian_filter(solid.astype(np.float32), 0.6), sk.h, g["lo"], level=0.5)
-    st = mv.slim(st, 250000)
-    st.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])); st.apply_translation(-st.bounds[0])
-    st.export(os.path.join(OUT, "skull-plug-v0.stl"))
-    ft = mv.mc(ndimage.gaussian_filter(face.astype(np.float32), 0.5), sk.h, g["lo"], level=0.4)
-    ft.export(os.path.join(OUT, "skull-plug-v0-face.stl"))
-    section_png(m, os.path.join(OUT, "hollow-section.png"))
+    print("skull (shell + cap) closes into one sealed piece; the only opening is the sensor port hole:", bool(one)); ok &= bool(one)
+    idx = np.argwhere(whole); ext = (idx.max(0) - idx.min(0)) * sk.h
+    print(f"skull: {ext[0]:.0f} x {ext[1]:.0f} x {ext[2]:.0f} mm, wall {sk.WALL} mm; eyes, nose and mouth stand out {BUMP} mm; no holes in the face")
+    room_d = ndimage.distance_transform_edt(sp["room"]) * sk.h
+    for name, b in PARTS.items():
+        sl = tuple(slice(int(round((b[2 * i] - g["lo"][i]) / sk.h)), int(round((b[2 * i + 1] - g["lo"][i]) / sk.h)) + 1) for i in range(3))
+        inside = bool(sp["room"][sl].all())
+        print(f"  {name:7s} {b[1] - b[0]:4.1f} x {b[3] - b[2]:4.1f} x {b[5] - b[4]:4.1f} mm fits inside the skull, {float(room_d[sl].min()):.1f} mm from the wall at its tightest corner:", inside)
+        ok &= inside
+    names = list(PARTS)
+    for i, a_ in enumerate(names):
+        for b_ in names[i + 1:]:
+            A, B = PARTS[a_], PARTS[b_]
+            hit = all(A[k] < B[k + 1] and B[k] < A[k + 1] for k in (0, 2, 4)) and {a_, b_} != {"sensor", "chip"}
+            if hit:
+                print(f"  !! {a_} overlaps {b_}")
+            ok &= not hit
+    tip = PORT[3] - SKULL_BACK
+    print(f"the sensor port reaches {tip:.1f} mm past the skull's back cap into the neck passage, so it reads the air in the body:", tip > 2.0); ok &= tip > 2.0
+
+    def export(mask, name, sigma=0.6, level=0.5, target=250000, stand=False):
+        t = mv.slim(mv.mc(ndimage.gaussian_filter(mask.astype(np.float32), sigma), sk.h, g["lo"], level=level), target)
+        if stand:
+            t.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])); t.apply_translation(-t.bounds[0])
+        t.export(os.path.join(OUT, name))
+
+    export(sp["shell"], "skull-shell-v1.stl", stand=True)
+    export(sp["cap"], "skull-cap-v1.stl", sigma=0.4, target=20000, stand=True)
+    export(sp["face"], "skull-face-v1.stl", sigma=0.5, level=0.4, target=20000)
+    for old in ("skull-plug-v0.stl", "skull-plug-v0-face.stl"):
+        if os.path.exists(os.path.join(OUT, old)):
+            os.remove(os.path.join(OUT, old))
+    section_png(m, sp, os.path.join(OUT, "hollow-section.png"))
     print("ALL CHECKS OK" if ok else "CHECK FAILED")
