@@ -53,19 +53,20 @@ if __name__ == "__main__":
     for k, d in data.items():
         print(f"{k:8s} {d['n']:6d} triangles")
     P_ = hm.PARTS
-    boxes = [dict(b=P_["sensor"], color=0x965ABE), dict(b=P_["chip"], color=0x3C3C42), dict(b=hm.PORT, color=0xB4B6BE, metal=0.9)]
+    boxes = [dict(b=P_["sensor"], color=0x965ABE), dict(b=P_["chip"], color=0xC9CBD2, metal=0.8)]
+    cyls = [dict(x=0.0, z=hm.PORT_Z, y0=hm.PORT[2], y1=hm.PORT[3], r=hm.PORT_D / 2, color=0xD8DAE0)]
     wires = [[(7.0, -28.8, 16.0), (8.0, -27.0, 15.2), (7.5, -26.5, 14.5)], [(-7.0, -28.8, 16.0), (-8.0, -27.0, 15.2), (-7.5, -26.5, 14.5)],
              [(6.0, -37.0, 15.6), (6.5, -36.0, 15.0), (7.0, -34.0, 14.5)], [(-6.0, -37.0, 15.6), (-6.5, -36.0, 15.0), (-7.0, -34.0, 14.5)]]
-    cfg = dict(S=mv.S, YC=mv.YC, YF=mv.YF, movers={}, wires=wires, boxes=boxes, clearDefault=True, boneOpacity=0.36,
+    cfg = dict(S=mv.S, YC=mv.YC, YF=mv.YF, movers={}, wires=wires, boxes=boxes, cyls=cyls, clearDefault=True, boneOpacity=0.36,
                parts=dict(board=P_["board"], battery=P_["battery"]))
     tpl = open(os.path.join(SKEL, "viewer-template.html"), encoding="utf-8").read()
     key = '''<ul class="key" aria-label="부품 색">
     <li><span class="swatch" style="background:#EC8AA2"></span>실리콘 몸</li>
     <li><span class="swatch" style="background:#F2D27A"></span>공기 공간 (공기주머니, 스펀지를 채워요)</li>
     <li><span class="swatch" style="background:#D9C393"></span>두개골 (얼굴 + 마개 + 통)</li>
-    <li><span class="swatch" style="background:#965ABE"></span>압력 센서</li>
-    <li><span class="swatch" style="background:#2E7D5C"></span>블루투스 보드</li>
-    <li><span class="swatch" style="background:#466EC8"></span>배터리</li>
+    <li><span class="swatch" style="background:#965ABE"></span>압력 센서 MPRLS (실제 치수)</li>
+    <li><span class="swatch" style="background:#2E7D5C"></span>보드 (자리 표시, 아직 없는 부품)</li>
+    <li><span class="swatch" style="background:#466EC8"></span>배터리 (자리 표시, 아직 없는 부품)</li>
     <li><span class="swatch" style="background:#D73C3C"></span>전선</li>
     <li><span class="swatch" style="background:#E8915A"></span>더미 (몰드 보기에서)</li>
   </ul>'''

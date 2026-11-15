@@ -193,6 +193,12 @@ box([-4.5, 4.5, bd[2] - 1.0, bd[2] + 6.5, bd[4] + 1.2, bd[5]], solid(0xBFC1C8, {
 box([-6, -1, bd[2] + 9, bd[2] + 15, bd[4] + 1.2, bd[4] + 2.6], solid(0x3A3A40, { metal: 0.5 }));         // chip can
 box(CFG.parts.battery, solid(0x466EC8, { rough: 0.35 }));
 for (const bx of CFG.boxes || []) box(bx.b, solid(bx.color, { metal: bx.metal ?? 0, rough: 0.4 }));
+for (const c of CFG.cyls || []) {                       // round parts lying along the body's length (a sensor port)
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(c.r * U, c.r * U, (c.y1 - c.y0) * U, 24), solid(c.color, { metal: 0.9, rough: 0.3 }));
+  m.rotation.x = Math.PI / 2;
+  m.position.copy(mm(c.x, (c.y0 + c.y1) / 2, c.z));
+  ppomo.add(m);
+}
 for (const w of CFG.wires) {
   const curve = new THREE.CatmullRomCurve3(w.map((p) => mm(p[0], p[1], p[2])));
   ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.35 * U, 8), solid(0xD73C3C)));

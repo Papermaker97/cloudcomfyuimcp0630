@@ -48,15 +48,22 @@ TORSO_C, TORSO_R, TORSO_E = (0.0, 14.0, 22.0), (22.0, 26.0, 13.0), 2.5   # the a
 NECK = ((0.0, -19.0, 20.0), (0.0, -9.0, 21.5), 8.0)     # the passage between head and torso (two ends, radius)
 SKULL_BACK = -21.0                                       # the skull plug is cut flat here (it prints standing on this face)
 CAP_T = 1.6                                              # thickness of the skull's back cap
-PORT_R, PORT_Z = 1.5, 23.0                               # hole in the cap for the sensor's port
-# what sits inside the skull (x0, x1, y0, y1, z0, z1) mm. Sizes are the usual ones for these parts; check yours.
+PORT_R, PORT_Z = 1.45, 21.0                              # hole in the cap for the sensor's 2.5 mm port
+# what sits inside the skull (x0, x1, y0, y1, z0, z1) mm
+# SENSOR: Adafruit MPRLS breakout (product 3965). Adafruit's page gives 17.8 x 16.7 x 7.5 mm overall and a
+#         stainless port 3.7 mm long, 2.5 mm diameter. The 7.5 mm is taken here as board 1.6 + sensor body 2.2 + port 3.7.
+# BOARD and BATTERY are NOT parts the owner has: they are stand-ins for a small Bluetooth board (about 21 x 17.5 mm)
+#         and a small LiPo cell (about 5 x 10 x 20 mm). The Arduino Nano 33 IoT in use now is 45 x 18 mm and does not fit.
+SENSOR_BODY = 2.2
+PORT_LEN, PORT_D = 3.7, 2.5
+_cap_in = SKULL_BACK - CAP_T                              # inner face of the back cap
 PARTS = {
-    "board": (-8.75, 8.75, -46.6, -25.6, 10.0, 13.5),         # small Bluetooth board, about 21 x 17.5 mm, lying flat
-    "battery": (-10.0, 10.0, -40.6, -35.6, 15.6, 25.6),       # small LiPo cell, about 5 x 10 x 20 mm
-    "sensor": (-8.9, 8.9, -29.6, -28.0, 13.7, 30.2),          # pressure sensor breakout, about 17.8 x 16.5 mm, facing backward
-    "chip": (-2.5, 2.5, -28.0, -24.0, 20.5, 25.5),            # the sensor itself on that breakout
+    "board": (-8.75, 8.75, -47.9, -26.9, 10.0, 13.5),
+    "battery": (-10.0, 10.0, -40.6, -35.6, 15.6, 25.6),
+    "sensor": (-8.9, 8.9, _cap_in - 0.25 - SENSOR_BODY - 1.6, _cap_in - 0.25 - SENSOR_BODY, PORT_Z - 8.35, PORT_Z + 8.35),   # the breakout board, 17.8 x 16.7 mm
+    "chip": (-2.5, 2.5, _cap_in - 0.25 - SENSOR_BODY, _cap_in - 0.25, PORT_Z - 2.5, PORT_Z + 2.5),         # the sensor body, sitting against the cap
 }
-PORT = (-1.25, 1.25, -24.0, -16.0, PORT_Z - 1.25, PORT_Z + 1.25)   # the sensor's metal port, through the cap into the neck
+PORT = (-PORT_D / 2, PORT_D / 2, _cap_in - 0.25, _cap_in - 0.25 + PORT_LEN, PORT_Z - PORT_D / 2, PORT_Z + PORT_D / 2)   # the port, through the cap
 BUMP = 0.9                                               # how far the eyes, nose and mouth stand out
 STEM_Y0, FLANGE = -63.0, 3.0                             # the dummy's flange starts at the mold's front face (the depth stop)
 HOLE_CLEAR = 0.25
@@ -264,7 +271,7 @@ if __name__ == "__main__":
                 print(f"  !! {a_} overlaps {b_}")
             ok &= not hit
     tip = PORT[3] - SKULL_BACK
-    print(f"the sensor port reaches {tip:.1f} mm past the skull's back cap into the neck passage, so it reads the air in the body:", tip > 2.0); ok &= tip > 2.0
+    print(f"the sensor port reaches {tip:.1f} mm past the skull's back cap into the neck passage, so it reads the air in the body:", tip > 1.5); ok &= tip > 1.5
 
     def export(mask, name, sigma=0.6, level=0.5, target=250000, stand=False):
         t = mv.slim(mv.mc(ndimage.gaussian_filter(mask.astype(np.float32), sigma), sk.h, g["lo"], level=level), target)
