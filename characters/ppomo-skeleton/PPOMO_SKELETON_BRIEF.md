@@ -109,9 +109,21 @@ a clearly better way to reach the same goal.
 - **The body has no plug.** Every part of the torso must be squeezable, so the opening cannot be there.
 - **The opening is in the face.** The face is never squeezed. The inside parts go in through the face,
   and the piece that closes the opening is the face itself.
-- **The face is a skull.** In an animal, the skull is the face and also protects the brain. In Ppomo one
-  part should be the face (eyes, nose, mouth), the plug, and the protection for the electronics.
-  It should not be a face plate plus a separate plug plus a separate box joined together.
+- **The skull is a whole rounded bone inside the head.** It is not a flat face plate. Like the two
+  reference images in `references/skull-in-head-ref-1.webp` and `-2.webp`, a smooth, round, hollow
+  skull sits inside the head and follows the head's shape, with the soft translucent silicone around it.
+  That ONE part does three jobs:
+  - it is the face: its front carries the eyes, nose and mouth;
+  - it is the plug: it closes the opening in the head that the inside parts went in through;
+  - it is the housing: the board and battery sit inside it, protected, the way a skull protects a brain.
+  In the references the electronics can be glimpsed through an eye socket.
+  A face plate, a separate plug and a separate box joined together is exactly what the owner rejected.
+- **Keep Ppomo's own expression.** Two small dot eyes and a small "w"-shaped mouth, as in
+  `characters/ppomo-mold/ppomo-v6-face-110mm.stl`. "Skull" describes the part's shape and its jobs.
+  It does not mean changing the expression, enlarging the eyes or adding bone details to the face.
+- **Ignore the earlier oval face plate.** Files named `ppomo-faceplate*` and the face in the 3D viewer
+  are leftovers from the failed attempts (a flat oval with enlarged eye holes and a seam line).
+  Do not start from them.
 - **Cheeks and ears stay silicone.** Only the eyes, nose and mouth area is hard.
 - **The skeleton is small, like a squeaker in a toy.** The hand should first sink into soft silicone
   and then find the click. A skeleton that fills the body kills the feel.
@@ -176,6 +188,14 @@ What this means in practice:
 - Printed flat, so the spring bends inside the print plane.
 - The owner's evidence: printed in PLA, played with continuously for a day, still returns.
 
+### E. Two concept images of the skull inside the head
+
+- `references/skull-in-head-ref-1.webp`, `references/skull-in-head-ref-2.webp`.
+- A cute translucent toy with a round ivory skull filling its head, soft ribs in its body, clear ears
+  and paws, and a small blue circuit board visible through an eye socket.
+- They show how the skull sits in the head and how the inside reads through the silicone.
+  They are not Ppomo's exact shape or expression.
+
 ### D. The owner's Blender model
 
 - A round core, a short post on it, and three fat curved limbs that arc over and around the core.
@@ -190,6 +210,7 @@ What this means in practice:
 | Concept v2 | Pads cut from an inner copy of the body surface, with wavy interlocking seams. | It filled the body, so no squish was left. Thin plates with edges: "that will pinch". |
 | Concept v3 | A small version: visible rod, two hub beads, four plump straight bones on stems, a metal return spring, tail dome. | "Your bones are straight bars. This is pressing, not squeezing." Grabbing the rump does nothing. A metal spring and stems were added instead of solving it by form. |
 | Concept v4 | A pebble core with five tactile buttons, four curved bones hinged at one end by a printed zigzag. | The spring was at the far end, so the bone tilts like a lever. One bone pressed two buttons. A plastic neck was not needed. The face was still an old plate. |
+| "Skull" face (v5, v6) | The old oval plate with bigger eye holes, a nose opening and a seam line, plus a separate box behind it. | The owner: "You still keep the plug and the sensor box separate, and you answer my request for a skull by changing the expression?" The skull was meant as one rounded bone inside the head (see section 4). |
 | Concept v5 | Five short curved bones, each sitting on its button with a zigzag on both sides, in pockets in the core. | It could not be printed (springs inside a 3D core, bones in different print planes). The button was the end stop. Nothing held a bone sideways. Still five straight directions. |
 | Concept v6 | Identical flat print-in-place discs ("vertebrae"), each a whole button: cap, stem, two zigzags, lips as guide and stop. Two at right angles plus one upright as a tail. | It is printable and its numbers check, but it is a stack of machine parts, not bones. It has none of the curvature the owner asked for. The neck and chest have no bones. The owner judged that this line of work was not converging. |
 
