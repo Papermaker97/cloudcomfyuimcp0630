@@ -196,6 +196,16 @@ What this means in practice:
 - They show how the skull sits in the head and how the inside reads through the silicone.
   They are not Ppomo's exact shape or expression.
 
+### F. Three more concept images: "this is what I meant"
+
+- `references/mask-ribcage-ref-1.webp`, `-2.webp`, `-3.webp`.
+- In all three: a hard face shows through the soft hood like a mask and continues into the head;
+  the eyes are real holes with the inside glimpsed through them; a row of fat rounded ribs wraps the
+  torso from a spine and reads as soft bands through the silicone; ears, paws and cheeks are silicone.
+- A first fit of this look to Ppomo's real body is in `bone-concept/ribcage/` (script
+  `make_ribcage_concept.py`): skull 48 x 39 x 29 mm with a 40 x 22 mm face showing, five ribs 5 mm wide
+  with 9 mm of silicone over them. It is a look only. How squeezing the ribs becomes one click is not designed.
+
 ### D. The owner's Blender model
 
 - A round core, a short post on it, and three fat curved limbs that arc over and around the core.

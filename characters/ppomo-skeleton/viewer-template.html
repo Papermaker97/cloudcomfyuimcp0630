@@ -144,10 +144,10 @@ const inkMat = new THREE.MeshStandardMaterial({ color: 0x4A2E24, roughness: 0.6 
 const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xEC8AA2, roughness: 0.22, clearcoat: 0.4, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide });
 const solid = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: o.rough ?? 0.5, metalness: o.metal ?? 0 });
 const add = (name, mat, order, parent = ppomo) => { const m = new THREE.Mesh(geo(name), mat); m.renderOrder = order; parent.add(m); return m; };
-add('sw_body', solid(0x2B2B31), 0);
-add('sw_plunger', solid(0x6A6A72), 0);
+if (MESHES.sw_body) add('sw_body', solid(0x2B2B31), 0);
+if (MESHES.sw_plunger) add('sw_plunger', solid(0x6A6A72), 0);
 if (MESHES.skull) add('skull', boneMat, 2);
-add('core', boneMat, 2);
+if (MESHES.core) add('core', boneMat, 2);
 if (MESHES.plate) add('plate', plateMat, 3);
 add('ink', inkMat, 3);
 
@@ -199,6 +199,7 @@ controls.update();
 
 const toggle = (id, on, fn) => {
   const b = document.getElementById(id);
+  if (!b) return;
   b.setAttribute('aria-pressed', String(on)); fn(on);
   b.addEventListener('click', () => { const v = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(v)); fn(v); });
 };
