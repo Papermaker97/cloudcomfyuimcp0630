@@ -27,10 +27,10 @@ from manifold3d import CrossSection, JoinType, Manifold, Mesh
 HERE = os.path.dirname(os.path.abspath(__file__))
 BODY = os.path.join(HERE, "ppomo-v6-face-110mm.stl")
 OUT = os.path.join(HERE, "mold-v1-solid")
-WALL = 10.0                       # mold wall around the body (top, sides, front, back)
-TONGUE = (3.0, 5.5, 2.0)          # the tongue: from 3 to 5.5 mm out from the cavity edge, 2 mm tall
+WALL = 6.0                        # mold wall around the body (thin enough to print under ~70 g a half)
+TONGUE = (1.5, 3.5, 2.0)          # the tongue: from 1.5 to 3.5 mm out from the cavity edge, 2 mm tall
 GAP = 0.25                        # clearance around the tongue in the groove
-FLANGE = 16.0                     # how far the flanges reach out in front and behind
+FLANGE = 12.0                     # how far the flanges reach out in front and behind
 BOLT_R, NUT_R, KEEP = 2.25, 4.6, 6.0   # M4 clearance hole, nut/washer pocket, solid plastic left at the seam
 SILICONE_DENSITY = 1.07
 
@@ -60,6 +60,17 @@ def box(x0, x1, y0, y1, z0, z1):
     return Manifold.cube([x1 - x0, y1 - y0, z1 - z0]).translate([x0, y0, z0])
 
 
+def outer_block(body, X0, X1, YF, YB, Z1):
+    """the mold's outside: the body's side view grown by WALL (box corners cut away to save plastic),
+    plus full-height strips at the front and back for the bolt flanges, as a prism across x."""
+    side = body.rotate([0, 90, 0]).project().offset(WALL, JoinType.Round)      # (z, y) side view of the body
+    strips = CrossSection.square([Z1, YF + FLANGE + WALL - YF]).translate([0.0, YF]) + \
+        CrossSection.square([Z1, FLANGE + WALL]).translate([0.0, YB - FLANGE - WALL])
+    shape = (side + strips) ^ CrossSection.square([Z1, YB - YF]).translate([0.0, YF])    # z from 0 (open floor) to Z1
+    m = Manifold.extrude(shape, X1 - X0).translate([0, 0, -X1])                # z' = -x from -X1 to -X0
+    return m.rotate([0, -90, 0])
+
+
 def ring_in_x(section, r0, r1, x0, x1, zmax):
     """a band around the body's outline in the x = 0 plane, r0..r1 mm out from it, spanning x0..x1."""
     band = section.offset(r1, JoinType.Round) - section.offset(r0, JoinType.Round)
@@ -81,7 +92,7 @@ if __name__ == "__main__":
 
     # the cavity: the body, plus its floor outline pushed down through the bottom face so the bottom is really open
     floor = Manifold.extrude(body.slice(0.4), 3.0).translate([0, 0, -2.6])
-    block = box(X0, X1, Y0 - FLANGE, Y1 + FLANGE, Z0, Z1) - (body + floor)
+    block = outer_block(body, X0, X1, Y0 - FLANGE, Y1 + FLANGE, Z1) - (body + floor)
     left = block ^ box(X0 - 1, 0, Y0 - FLANGE - 1, Y1 + FLANGE + 1, -1, Z1 + 1)
     right = block ^ box(0, X1 + 1, Y0 - FLANGE - 1, Y1 + FLANGE + 1, -1, Z1 + 1)
 

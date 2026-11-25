@@ -69,7 +69,7 @@ if __name__ == "__main__":
     YF = Y0 - FLANGE                                       # the mold's front face
     floor = Manifold.extrude(body.slice(0.4), 3.0).translate([0, 0, -2.6])
     hole = prism_y(sk.WIN_A + hm.HOLE_CLEAR, sk.WIN_B + hm.HOLE_CLEAR, YF - 1.0, sk.CY)
-    block = v1.box(X0, X1, YF, Y1 + FLANGE, Z0, Z1) - (body + floor) - hole
+    block = v1.outer_block(body, X0, X1, YF, Y1 + FLANGE, Z1) - (body + floor) - hole
 
     # ---- core: the pockets, a handle out through the face, a socket for the post ----
     core = mm.to_manifold(mv.mc(ndimage.gaussian_filter(space.astype(np.float32), 0.6), h, lo, level=0.5))
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     post_top = 14.5
     bridge = v1.box(X0 + 4, X1 - 4, POST_Y - BRIDGE_W / 2, POST_Y + BRIDGE_W / 2, -BRIDGE_T, 0.0)
     post = Manifold.cylinder(post_top + BRIDGE_T, POST_R, POST_R, 48).translate([0, POST_Y, -BRIDGE_T])
-    bpins = [(sx * (X1 - 9.0), POST_Y) for sx in (-1, 1)]
+    bpins = [(sx * (X1 - 3.0), POST_Y) for sx in (-1, 1)]
     bp = bridge + post
     for px, py in bpins:
         bp += Manifold.cylinder(BPIN_H + BRIDGE_T, BPIN_R, BPIN_R, 32).translate([px, py, -BRIDGE_T])
