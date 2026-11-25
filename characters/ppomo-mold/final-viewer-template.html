@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ppomo Final Product</title>
+<style>
+  :root {
+    --bg-top: #fbf6f3; --bg-bottom: #efe6ee; --fg: #3c3446; --muted: #7a7086;
+    --panel: rgba(255,255,255,0.86); --line: #e3d9e6; --accent: #e98aa3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg-top: #2b2631; --bg-bottom: #1f1b24; --fg: #f1ebf4; --muted: #b3a9bc; --panel: rgba(40,35,46,0.88); --line: #4a4152; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg-top: #2b2631; --bg-bottom: #1f1b24; --fg: #f1ebf4; --muted: #b3a9bc; --panel: rgba(40,35,46,0.88); --line: #4a4152; color-scheme: dark; }
+  html, body { margin: 0; height: 100%; overflow: hidden; color: var(--fg); font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+               background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom)); }
+  #stage { position: fixed; inset: 0; }
+  .panel { position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); width: 300px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow: auto;
+           background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; box-sizing: border-box;
+           backdrop-filter: blur(8px); font-size: 13px; }
+  h1 { font-size: 17px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin: 0 0 10px; line-height: 1.4; }
+  .row { display: grid; grid-template-columns: 1fr 90px; align-items: center; gap: 8px; margin: 6px 0; }
+  .row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .checks label { display: block; margin: 4px 0; }
+  .views { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .views button { font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+  .views button:hover { border-color: var(--accent); }
+  ul.key { list-style: none; padding: 0; margin: 10px 0 0; }
+  ul.key li { display: grid; grid-template-columns: 14px 1fr; gap: 8px; margin: 5px 0; line-height: 1.35; }
+  .sw { width: 12px; height: 12px; border-radius: 4px; margin-top: 2px; }
+  .key small { color: var(--muted); display: block; }
+  .facts { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; color: var(--muted); line-height: 1.5; }
+  @media (max-width: 600px) { .panel { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: calc(12px + env(safe-area-inset-left, 0px)); max-height: 45vh; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="panel">
+  <h1>뽀모 최종 제품</h1>
+  <p class="sub">실리콘 몸 + 천 커버 + 얼굴 모듈(마개 겸 부품 상자) + 공기주머니. 드래그로 돌리고, 휠로 확대해요.</p>
+
+  <div class="row"><span>실리콘 몸 투명도</span><input id="op-body" type="range" min="0" max="1" step="0.01" value="1"></div>
+  <div class="row"><span>천 커버 투명도</span><input id="op-cover" type="range" min="0" max="1" step="0.01" value="1"></div>
+  <div class="row"><span>얼굴 모듈 투명도</span><input id="op-face" type="range" min="0" max="1" step="0.01" value="1"></div>
+
+  <div class="checks">
+    <label><input id="show-cover" type="checkbox" checked> 천 커버 보이기</label>
+    <label><input id="cut" type="checkbox"> 반으로 잘라 보기 (가운데 단면)</label>
+    <label><input id="rotate" type="checkbox"> 자동 회전</label>
+  </div>
+
+  <div class="views">
+    <button data-view="34">3/4</button><button data-view="front">정면</button><button data-view="side">옆</button>
+    <button data-view="top">위</button><button data-view="back">뒤</button><button id="xray">속 보기</button>
+  </div>
+
+  <ul class="key">
+    <li><span class="sw" style="background:#E9A7B6"></span><span>실리콘 몸<small>속이 빈 캐스팅: 머리 주머니 + 목 + 몸통 주머니</small></span></li>
+    <li><span class="sw" style="background:#CFC3E6"></span><span>천 커버<small>얼굴만 열려 있음. 실리콘의 끈적임과 먼지를 가림</small></span></li>
+    <li><span class="sw" style="background:#F2E8D5"></span><span>얼굴 모듈<small>얼굴 + 마개 + 부품 상자 (프린트 한 덩어리)</small></span></li>
+    <li><span class="sw" style="background:#F06C8C"></span><span>공기주머니<small>몸통 주머니 속, 밀폐된 별도 주머니</small></span></li>
+    <li><span class="sw" style="background:#BFE3F0"></span><span>호스<small>공기주머니 → 센서 포트</small></span></li>
+    <li><span class="sw" style="background:#2F5FB8"></span><span>압력 센서 MPRLS<small>17.8 × 16.7 mm, 포트 2.5 mm (실제 치수)</small></span></li>
+    <li><span class="sw" style="background:#2E7D5C"></span><span>블루투스 보드 (자리 표시)<small>약 21 × 17.5 mm (XIAO 크기)</small></span></li>
+    <li><span class="sw" style="background:#C9A43A"></span><span>배터리 (자리 표시)<small>약 20 × 10 × 5 mm LiPo</small></span></li>
+    <li><span class="sw" style="background:#D73C3C"></span><span>전선</span></li>
+  </ul>
+  <div class="facts" id="facts"></div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const MESHES = /*__MESHES__*/null;
+const CFG = /*__CFG__*/null;
+
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.localClippingEnabled = true;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environmentIntensity = 0.4;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xf0e0e4, 0.9));
+const sun = new THREE.DirectionalLight(0xfffaf5, 1.1);
+sun.position.set(-60, 160, 120);
+scene.add(sun);
+
+const cut = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);   // keeps x < 0 when on
+const noCut = [];
+
+function decode(m) {
+  const b = (s, T) => { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new T(u.buffer); };
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(b(m.p, Float32Array), 3));
+  g.setIndex(new THREE.BufferAttribute(b(m.i, Uint32Array), 1));
+  g.computeVertexNormals();
+  return g;
+}
+const mat = (color, o = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.55, side: THREE.DoubleSide, clippingPlanes: noCut, ...o });
+
+const ppomo = new THREE.Group();
+scene.add(ppomo);
+const mBody = mat(0xE9A7B6, { roughness: 0.6, sheen: 0.4, sheenColor: new THREE.Color(0xffffff), clearcoat: 0.15 });
+const mCover = mat(0xCFC3E6, { roughness: 0.95, sheen: 1.0, sheenRoughness: 0.6, sheenColor: new THREE.Color(0xffffff) });
+const mFace = mat(0xF2E8D5, { roughness: 0.45 });
+const mInk = mat(0x5a3a30, { roughness: 0.3 });
+const mBag = mat(0xF06C8C, { roughness: 0.35, transparent: true, opacity: 0.85 });
+const body = new THREE.Mesh(decode(MESHES.body), mBody);
+const cover = new THREE.Mesh(decode(MESHES.cover), mCover);
+const face = new THREE.Mesh(decode(MESHES.face), mFace);
+const ink = new THREE.Mesh(decode(MESHES.ink), mInk);
+const bag = new THREE.Mesh(decode(MESHES.bag), mBag);
+ppomo.add(body, cover, face, ink, bag);
+
+for (const bx of CFG.boxes) {                               // low-poly parts at real size
+  const [x0, y0, z0, x1, y1, z1] = bx.b;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), new THREE.MeshStandardMaterial({ color: bx.color, roughness: 0.5 }));
+  m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  ppomo.add(m);
+}
+{
+  const a = new THREE.Vector3(...CFG.port.a), b = new THREE.Vector3(...CFG.port.b);
+  const port = new THREE.Mesh(new THREE.CylinderGeometry(CFG.port.r, CFG.port.r, a.distanceTo(b), 16), new THREE.MeshStandardMaterial({ color: 0xD8DAE0, metalness: 0.8, roughness: 0.3 }));
+  port.position.copy(a).add(b).multiplyScalar(0.5);
+  port.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+  ppomo.add(port);
+  const curve = new THREE.CatmullRomCurve3(CFG.hose.map((p) => new THREE.Vector3(...p)));
+  ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 2.0, 12), new THREE.MeshPhysicalMaterial({ color: 0xBFE3F0, roughness: 0.2, transparent: true, opacity: 0.85 })));
+  for (const w of CFG.wires) {
+    const c = new THREE.CatmullRomCurve3(w.map((p) => new THREE.Vector3(...p)));
+    ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(c, 12, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0xD73C3C })));
+  }
+}
+
+// centre the model and stand it on the floor
+const bb = new THREE.Box3().setFromObject(body);
+const centre = bb.getCenter(new THREE.Vector3());
+ppomo.position.set(-centre.x, -bb.min.y, -centre.z);
+const TARGET = new THREE.Vector3(0, (bb.max.y - bb.min.y) * 0.45, 0);
+const shadow = new THREE.Mesh(new THREE.CircleGeometry(70, 48), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.06 }));
+shadow.rotation.x = -Math.PI / 2;
+shadow.scale.set(1, 1.3, 1);
+scene.add(shadow);
+
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 1, 3000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(TARGET);
+controls.enableDamping = true;
+controls.minDistance = 120; controls.maxDistance = 900;
+const VIEWS = { '34': [1, 0.55, 1.1], front: [0, 0.15, 1], side: [1, 0.12, 0], top: [0.001, 1, 0.001], back: [0, 0.2, -1] };
+function setView(v) {
+  const d = new THREE.Vector3(...VIEWS[v]).normalize().multiplyScalar(380);
+  camera.position.copy(TARGET).add(d);
+  controls.update();
+}
+setView('34');
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+
+// opacity controls: fully opaque writes depth; anything see-through is sorted as transparent
+function setOpacity(m, v) {
+  m.opacity = +v;
+  m.transparent = v < 0.999;
+  m.depthWrite = v >= 0.999;
+  m.visible = v > 0.01;
+  m.needsUpdate = true;
+}
+const sliders = { 'op-body': [mBody], 'op-cover': [mCover], 'op-face': [mFace] };
+for (const [id, ms] of Object.entries(sliders)) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => ms.forEach((m) => setOpacity(m, el.value)));
+}
+body.renderOrder = 2; cover.renderOrder = 3; face.renderOrder = 1;
+const showCover = document.getElementById('show-cover');
+showCover.addEventListener('change', () => { cover.visible = showCover.checked; });
+document.getElementById('xray').addEventListener('click', () => {
+  const vals = { 'op-body': 0.25, 'op-cover': 0.12, 'op-face': 0.35 };
+  for (const [id, v] of Object.entries(vals)) { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input')); }
+});
+const cutBox = document.getElementById('cut');
+cutBox.addEventListener('change', () => {
+  for (const m of [mBody, mCover, mFace, mBag]) { m.clippingPlanes = cutBox.checked ? [cut] : noCut; m.needsUpdate = true; }
+});
+const rot = document.getElementById('rotate');
+rot.addEventListener('change', () => { controls.autoRotate = rot.checked; });
+controls.autoRotateSpeed = 1.2;
+
+const I = CFG.info;
+document.getElementById('facts').innerHTML =
+  `크기 약 ${I.size[0]} × ${I.size[1]} × ${I.size[2]} mm<br>` +
+  `실리콘 약 ${I.silicone_cm3} cm³ (≈ ${I.silicone_g} g, 꽉 찬 몸은 약 271 g)<br>` +
+  `공기주머니 약 ${I.bag_cm3} cm³ · 호스 약 ${I.hose_mm} mm`;
+
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>
