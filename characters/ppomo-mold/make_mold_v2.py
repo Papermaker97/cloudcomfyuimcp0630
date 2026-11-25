@@ -38,7 +38,14 @@ from make_hollow_mold import h, mm, mv, sk, prism_y
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "mold-v2-hollow")
-WALL, FLANGE = v1.WALL, v1.FLANGE
+# --- fixed by the core and bridge-post already printed (2026-11-25): do not change ---
+YF = -73.0                    # the mold's front face: the core's handle flange rests here
+X_HALF_FROM_BODY = 6.0        # half width of the mold = body half width + 6 mm (about 43.4 mm)
+PIN_IN = 3.0                  # the bridge's two pins sit 3 mm in from the mold's sides (about +-40.4 mm)
+# --- free to change (lighter mold, v2.1) ---
+WALL = 4.5                    # wall around the body seen from the side (was 6)
+FLANGE_BACK = 11.0            # back bolt flange (was 12)
+TONGUE = (1.2, 3.0, 2.0)      # seam tongue: 1.2 to 3.0 mm out from the cavity edge, 2 mm tall
 POST_Y, POST_R, SOCKET_CLEAR = 14.0, 5.0, 0.25     # the post goes up into the torso core here
 BRIDGE_T, BRIDGE_W = 5.0, 12.0                     # bridge thickness and width
 BPIN_R, BPIN_H, BPIN_CLEAR = 2.0, 4.0, 0.25
@@ -65,11 +72,18 @@ if __name__ == "__main__":
     bt = trimesh.load(mm.BODY_STL)
     body = mm.to_manifold(bt)
     (bx0, by0, bz0), (bx1, by1, bz1) = bt.bounds
-    X0, X1, Y0, Y1, Z0, Z1 = bx0 - WALL, bx1 + WALL, by0 - WALL, by1 + WALL, 0.0, bz1 + WALL
-    YF = Y0 - FLANGE                                       # the mold's front face
+    X_HALF = bx1 + X_HALF_FROM_BODY
+    PIN_X = X_HALF - PIN_IN
+    X0, X1, Y0, Y1, Z0, Z1 = bx0 - X_HALF_FROM_BODY, X_HALF, by0 - WALL, by1 + WALL, 0.0, bz1 + WALL
+    YB = Y1 + FLANGE_BACK                                  # the mold's back face
     floor = Manifold.extrude(body.slice(0.4), 3.0).translate([0, 0, -2.6])
     hole = prism_y(sk.WIN_A + hm.HOLE_CLEAR, sk.WIN_B + hm.HOLE_CLEAR, YF - 1.0, sk.CY)
-    block = v1.outer_block(body, X0, X1, YF, Y1 + FLANGE, Z1) - (body + floor) - hole
+    side = body.rotate([0, 90, 0]).project().offset(WALL, v1.JoinType.Round)       # (z, y) side view + WALL
+    # the flange strips overlap the side-view part by WALL so everything is one solid (touching faces are not enough)
+    strips = v1.CrossSection.square([Z1, Y0 - YF + WALL]).translate([0.0, YF]) + v1.CrossSection.square([Z1, FLANGE_BACK + WALL]).translate([0.0, Y1 - WALL])
+    shape = (side + strips) ^ v1.CrossSection.square([Z1, YB - YF]).translate([0.0, YF])
+    outer = Manifold.extrude(shape, X1 - X0).translate([0, 0, -X1]).rotate([0, -90, 0])
+    block = outer - (body + floor) - hole
 
     # ---- core: the pockets, a handle out through the face, a socket for the post ----
     core = mm.to_manifold(mv.mc(ndimage.gaussian_filter(space.astype(np.float32), 0.6), h, lo, level=0.5))
@@ -86,7 +100,7 @@ if __name__ == "__main__":
     post_top = 14.5
     bridge = v1.box(X0 + 4, X1 - 4, POST_Y - BRIDGE_W / 2, POST_Y + BRIDGE_W / 2, -BRIDGE_T, 0.0)
     post = Manifold.cylinder(post_top + BRIDGE_T, POST_R, POST_R, 48).translate([0, POST_Y, -BRIDGE_T])
-    bpins = [(sx * (X1 - 3.0), POST_Y) for sx in (-1, 1)]
+    bpins = [(sx * PIN_X, POST_Y) for sx in (-1, 1)]
     bp = bridge + post
     for px, py in bpins:
         bp += Manifold.cylinder(BPIN_H + BRIDGE_T, BPIN_R, BPIN_R, 32).translate([px, py, -BRIDGE_T])
@@ -99,14 +113,14 @@ if __name__ == "__main__":
     print(f"post passes through the belly: {POST_R * 2:.0f} mm hole in the silicone floor")
 
     # ---- mold halves, seam and bolts as in version 1 (the face hole is kept clear of the tongue) ----
-    left = block ^ v1.box(X0 - 1, 0, YF - 1, Y1 + FLANGE + 1, -1, Z1 + 1)
-    right = block ^ v1.box(0, X1 + 1, YF - 1, Y1 + FLANGE + 1, -1, Z1 + 1)
+    left = block ^ v1.box(X0 - 1, 0, YF - 1, YB + 1, -1, Z1 + 1)
+    right = block ^ v1.box(0, X1 + 1, YF - 1, YB + 1, -1, Z1 + 1)
     section = body.rotate([0, 90, 0]).slice(0.0)
-    tongue = v1.ring_in_x(section, v1.TONGUE[0], v1.TONGUE[1], 0.0, v1.TONGUE[2], Z1) - hole
-    groove = v1.ring_in_x(section, v1.TONGUE[0] - v1.GAP, v1.TONGUE[1] + v1.GAP, 0.0, v1.TONGUE[2] + 0.4, Z1)
+    tongue = v1.ring_in_x(section, TONGUE[0], TONGUE[1], 0.0, TONGUE[2], Z1) - hole
+    groove = v1.ring_in_x(section, TONGUE[0] - v1.GAP, TONGUE[1] + v1.GAP, 0.0, TONGUE[2] + 0.4, Z1)
     left = left + tongue
     right = right - groove
-    for yy, zz in [(yy, zz) for yy in (YF + FLANGE / 2, Y1 + FLANGE / 2) for zz in (Z0 + 12.0, Z1 - 10.0)]:
+    for yy, zz in [(yy, zz) for yy in ((YF + Y0) / 2, (Y1 + YB) / 2) for zz in (Z0 + 12.0, Z1 - 10.0)]:
         hb = Manifold.cylinder(X1 - X0 + 4, v1.BOLT_R, v1.BOLT_R, 32).rotate([0, 90, 0]).translate([X0 - 2, yy, zz])
         pl = Manifold.cylinder(-v1.KEEP - X0 + 1, v1.NUT_R, v1.NUT_R, 6).rotate([0, 90, 0]).translate([X0 - 1, yy, zz])
         pr = Manifold.cylinder(X1 - v1.KEEP + 1, v1.NUT_R, v1.NUT_R, 6).rotate([0, 90, 0]).translate([v1.KEEP, yy, zz])

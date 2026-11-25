@@ -53,7 +53,15 @@ def save_clean(t, path):
         t = to_trimesh(m)
     t.apply_translation(-t.bounds[0])
     t.export(path)
-    return trimesh.load(path)
+    r = trimesh.load(path)
+    if not r.is_watertight:                      # float rounding in the STL can open a few edges: re-merge coarser
+        r.merge_vertices(digits_vertex=3); r.update_faces(r.nondegenerate_faces()); r.update_faces(r.unique_faces())
+        r.remove_unreferenced_vertices()
+        parts = sorted(r.split(only_watertight=False), key=lambda p: -p.area)
+        r = parts[0]                             # drop specks smaller than a pin head
+        r.export(path)
+        r = trimesh.load(path)
+    return r
 
 
 def box(x0, x1, y0, y1, z0, z1):
