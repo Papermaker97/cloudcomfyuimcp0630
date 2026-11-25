@@ -129,7 +129,7 @@ if __name__ == "__main__":
     tl = mm.to_trimesh(left); tl.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [0, 1, 0])); tl.apply_translation(-tl.bounds[0])
     tr = mm.to_trimesh(right); tr.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0])); tr.apply_translation(-tr.bounds[0])
     for name, t in (("mold-v2-left.stl", tl), ("mold-v2-right.stl", tr)):
-        t.export(os.path.join(OUT, name)); print(f"  {name}: watertight {t.is_watertight}, {np.round(t.extents, 1)} mm, {t.volume / 1000:.0f} cm3")
+        t = v1.save_clean(t, os.path.join(OUT, name)); print(f"  {name}: watertight {t.is_watertight}, {np.round(t.extents, 1)} mm, {t.volume / 1000:.0f} cm3")
     pins = Manifold()
     for py in (-52.0, 16.0 + 8.0):
         pins += Manifold.cylinder(10.0, 0.95, 0.95, 24).translate([0, py, CORE_SPLIT_Z - 5.0])

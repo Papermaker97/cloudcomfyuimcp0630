@@ -44,6 +44,18 @@ def to_trimesh(m):
     return trimesh.Trimesh(np.asarray(mesh.vert_properties)[:, :3], np.asarray(mesh.tri_verts), process=False)
 
 
+def save_clean(t, path):
+    """write an STL that reloads as one watertight solid (drops slivers, re-merges through manifold)."""
+    t = t.copy()
+    t.update_faces(t.nondegenerate_faces()); t.remove_unreferenced_vertices(); t.merge_vertices(digits_vertex=4)
+    m = to_manifold(t)
+    if not m.is_empty():
+        t = to_trimesh(m)
+    t.apply_translation(-t.bounds[0])
+    t.export(path)
+    return trimesh.load(path)
+
+
 def box(x0, x1, y0, y1, z0, z1):
     return Manifold.cube([x1 - x0, y1 - y0, z1 - z0]).translate([x0, y0, z0])
 
@@ -100,5 +112,5 @@ if __name__ == "__main__":
     tl.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [0, 1, 0])); tl.apply_translation(-tl.bounds[0])
     tr.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0])); tr.apply_translation(-tr.bounds[0])
     for name, t in (("mold-v1-left.stl", tl), ("mold-v1-right.stl", tr)):
-        t.export(os.path.join(OUT, name))
+        t = save_clean(t, os.path.join(OUT, name))
         print(f"{name}: watertight {t.is_watertight}, {np.round(t.extents, 1)} mm, plastic {t.volume / 1000:.0f} cm3 (~{t.volume / 1000 * 1.24:.0f} g PLA solid)")
