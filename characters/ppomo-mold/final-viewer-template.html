@@ -59,12 +59,13 @@
   <ul class="key">
     <li><span class="sw" style="background:#E9A7B6"></span><span>실리콘 몸<small>속이 빈 캐스팅: 머리 주머니 + 목 + 몸통 주머니</small></span></li>
     <li><span class="sw" style="background:#CFC3E6"></span><span>천 커버<small>얼굴만 열려 있음. 실리콘의 끈적임과 먼지를 가림</small></span></li>
-    <li><span class="sw" style="background:#F2E8D5"></span><span>얼굴 모듈<small>얼굴 + 마개 + 부품 상자 (프린트 한 덩어리)</small></span></li>
-    <li><span class="sw" style="background:#F06C8C"></span><span>공기주머니<small>몸통 주머니 속, 밀폐된 별도 주머니</small></span></li>
-    <li><span class="sw" style="background:#BFE3F0"></span><span>호스<small>공기주머니 → 센서 포트</small></span></li>
-    <li><span class="sw" style="background:#2F5FB8"></span><span>압력 센서 MPRLS<small>17.8 × 16.7 mm, 포트 2.5 mm (실제 치수)</small></span></li>
-    <li><span class="sw" style="background:#2E7D5C"></span><span>블루투스 보드 (자리 표시)<small>약 21 × 17.5 mm (XIAO 크기)</small></span></li>
-    <li><span class="sw" style="background:#C9A43A"></span><span>배터리 (자리 표시)<small>약 20 × 10 × 5 mm LiPo</small></span></li>
+    <li><span class="sw" style="background:#F2E8D5"></span><span>얼굴 모듈: 앞 껍데기<small>얼굴 + 마개 + 부품 상자, 벽 2.2 mm (PETG). 턱에 USB-C 구멍</small></span></li>
+    <li><span class="sw" style="background:#E2D3B8"></span><span>얼굴 모듈: 뒤 뚜껑<small>센서가 붙는 판. 앞 껍데기와 나사 2개로 조립</small></span></li>
+    <li><span class="sw" style="background:#F06C8C"></span><span>공기주머니 (목 달린 실리콘 주머니)<small>목이 뚜껑 구멍을 지나 센서 포트에 바로 끼워짐. 호스 없음</small></span></li>
+    <li><span class="sw" style="background:#2F5FB8"></span><span>압력 센서 MPRLS<small>17.8 × 16.7 mm, 포트 2.5 mm</small></span></li>
+    <li><span class="sw" style="background:#2E7D5C"></span><span>XIAO nRF52840<small>21 × 17.5 mm, 블루투스 + 충전 회로. 뒤집어 놓아 USB-C가 턱 쪽</small></span></li>
+    <li><span class="sw" style="background:#B8BCC6"></span><span>USB-C 단자<small>턱 구멍으로 충전</small></span></li>
+    <li><span class="sw" style="background:#C9A43A"></span><span>LiPo 배터리 401020<small>약 4 × 10 × 20 mm</small></span></li>
     <li><span class="sw" style="background:#D73C3C"></span><span>전선</span></li>
   </ul>
   <div class="facts" id="facts"></div>
@@ -121,14 +122,16 @@ scene.add(ppomo);
 const mBody = mat(0xE9A7B6, { roughness: 0.6, sheen: 0.4, sheenColor: new THREE.Color(0xffffff), clearcoat: 0.15 });
 const mCover = mat(0xCFC3E6, { roughness: 0.95, sheen: 1.0, sheenRoughness: 0.6, sheenColor: new THREE.Color(0xffffff) });
 const mFace = mat(0xF2E8D5, { roughness: 0.45 });
+const mCap = mat(0xE2D3B8, { roughness: 0.5 });
 const mInk = mat(0x5a3a30, { roughness: 0.3 });
 const mBag = mat(0xF06C8C, { roughness: 0.35, transparent: true, opacity: 0.85 });
 const body = new THREE.Mesh(decode(MESHES.body), mBody);
 const cover = new THREE.Mesh(decode(MESHES.cover), mCover);
 const face = new THREE.Mesh(decode(MESHES.face), mFace);
+const capM = new THREE.Mesh(decode(MESHES.cap), mCap);
 const ink = new THREE.Mesh(decode(MESHES.ink), mInk);
 const bag = new THREE.Mesh(decode(MESHES.bag), mBag);
-ppomo.add(body, cover, face, ink, bag);
+ppomo.add(body, cover, face, capM, ink, bag);
 
 for (const bx of CFG.boxes) {                               // low-poly parts at real size
   const [x0, y0, z0, x1, y1, z1] = bx.b;
@@ -142,8 +145,6 @@ for (const bx of CFG.boxes) {                               // low-poly parts at
   port.position.copy(a).add(b).multiplyScalar(0.5);
   port.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
   ppomo.add(port);
-  const curve = new THREE.CatmullRomCurve3(CFG.hose.map((p) => new THREE.Vector3(...p)));
-  ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 2.0, 12), new THREE.MeshPhysicalMaterial({ color: 0xBFE3F0, roughness: 0.2, transparent: true, opacity: 0.85 })));
   for (const w of CFG.wires) {
     const c = new THREE.CatmullRomCurve3(w.map((p) => new THREE.Vector3(...p)));
     ppomo.add(new THREE.Mesh(new THREE.TubeGeometry(c, 12, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0xD73C3C })));
@@ -182,7 +183,7 @@ function setOpacity(m, v) {
   m.visible = v > 0.01;
   m.needsUpdate = true;
 }
-const sliders = { 'op-body': [mBody], 'op-cover': [mCover], 'op-face': [mFace] };
+const sliders = { 'op-body': [mBody], 'op-cover': [mCover], 'op-face': [mFace, mCap] };
 for (const [id, ms] of Object.entries(sliders)) {
   const el = document.getElementById(id);
   el.addEventListener('input', () => ms.forEach((m) => setOpacity(m, el.value)));
@@ -196,7 +197,7 @@ document.getElementById('xray').addEventListener('click', () => {
 });
 const cutBox = document.getElementById('cut');
 cutBox.addEventListener('change', () => {
-  for (const m of [mBody, mCover, mFace, mBag]) { m.clippingPlanes = cutBox.checked ? [cut] : noCut; m.needsUpdate = true; }
+  for (const m of [mBody, mCover, mFace, mCap, mBag]) { m.clippingPlanes = cutBox.checked ? [cut] : noCut; m.needsUpdate = true; }
 });
 const rot = document.getElementById('rotate');
 rot.addEventListener('change', () => { controls.autoRotate = rot.checked; });
@@ -206,7 +207,7 @@ const I = CFG.info;
 document.getElementById('facts').innerHTML =
   `크기 약 ${I.size[0]} × ${I.size[1]} × ${I.size[2]} mm<br>` +
   `실리콘 약 ${I.silicone_cm3} cm³ (≈ ${I.silicone_g} g, 꽉 찬 몸은 약 271 g)<br>` +
-  `공기주머니 약 ${I.bag_cm3} cm³ · 호스 약 ${I.hose_mm} mm`;
+  `공기주머니 약 ${I.bag_cm3} cm³ · 목 길이 약 ${I.neck_mm} mm<br>얼굴 모듈 벽 ${I.wall} mm · 부품 4개 모두 안에 들어감 (여유 0.25–2.4 mm)`;
 
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });

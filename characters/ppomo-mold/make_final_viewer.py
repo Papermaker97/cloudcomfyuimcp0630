@@ -6,7 +6,7 @@ Ppomo final product, as one 3D viewer (no skeleton, no translucent body):
   * FABRIC COVER   a sewn cover over the silicone, open at the face (silicone feels tacky and grabs dust).
   * FACE MODULE    one printed part = the face (eyes, nose, mouth stand out), the plug that closes the
                    body, and the box that holds the electronics. It is pushed into the head pocket.
-  * AIR BAG        a sealed bag in the torso pocket. Squeezing the body squeezes the bag; a short hose
+  * AIR BAG        a sealed bag in the torso pocket. Squeezing the body squeezes the bag; the bag's own neck
                    carries the pressure to the sensor in the face module.
   * ELECTRONICS    in the face module, low-poly boxes at their real sizes:
                    MPRLS pressure sensor (Adafruit 3965: 17.8 x 16.7 mm, 2.5 mm port),
@@ -31,6 +31,29 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "ppomo-final")
 COVER_GAP, COVER_T = 0.4, 1.0        # mm: the cover sits this far off the silicone, this thick
 BAG_GAP = 1.5                        # mm: the air bag is this much smaller than its pocket
+
+# v2 (2026-11-25): real parts and the owner's choices
+#   * face module walls 2.2 mm (people press the face), PETG; two pieces: front shell + back cap
+#   * board: Seeed XIAO nRF52840 (Bluetooth, LiPo charger on board), about 21 x 17.5 mm, 4.4 mm with the
+#     USB-C socket. It lies upside down so the socket sits low, behind a slot in the chin (charging)
+#   * battery: a 401020 LiPo (about 4 x 10 x 20 mm, roughly 55 mAh)
+#   * no separate hose: the air bag has its own neck that passes through the cap and slides onto the port
+# All four parts were checked to sit inside the module with 0.25 to 2.4 mm to spare (fit check, 0.25 mm grid).
+sk.WALL = 2.2
+hm.PORT_R = 2.6
+hm.PORT_Z = 20.2
+hm.PORT = (-hm.PORT_D / 2, hm.PORT_D / 2, hm._cap_in - 0.25, hm._cap_in - 0.25 + hm.PORT_LEN, hm.PORT_Z - hm.PORT_D / 2, hm.PORT_Z + hm.PORT_D / 2)
+hm.PARTS = {
+    "board": (-8.75, 8.75, -48.6, -27.6, 9.1, 13.5),
+    "battery": (-10.0, 10.0, -40.6, -36.6, 15.0, 25.0),
+    "sensor": (-8.9, 8.9, hm._cap_in - 0.25 - hm.SENSOR_BODY - 1.6, hm._cap_in - 0.25 - hm.SENSOR_BODY, hm.PORT_Z - 8.35, hm.PORT_Z + 8.35),
+    "chip": (-2.5, 2.5, hm._cap_in - 0.25 - hm.SENSOR_BODY, hm._cap_in - 0.25, hm.PORT_Z - 2.5, hm.PORT_Z + 2.5),
+}
+USB = (-4.5, 4.5, -48.6, -41.1, 9.1, 12.3)     # the USB-C socket, under the board's front edge
+USB_Z = 10.7                                    # centre height of the socket
+SLOT = (4.6, 1.7)                               # half width, half height of the hole through the chin
+RECESS = (5.6, 3.1, -51.5)                      # half width, half height, and how far in (y) the plug's collar sinks
+NECK_A, NECK_B, NECK_R = (0.0, hm._cap_in - 0.25, hm.PORT_Z), (0.0, -8.0, 21.5), 2.3   # the bag's neck (outer radius)
 
 
 def pack(t):
@@ -60,13 +83,13 @@ if __name__ == "__main__":
     sil = m["body"] & ~m["space"]
     meshes["body"] = mv.slim(mv.mc(ndimage.gaussian_filter(sil.astype(np.float32), 0.6), h, lo, level=0.5), 90000)
 
-    # air bag: the torso pocket, BAG_GAP smaller all round, plus a short neck where the hose goes in
+    # air bag: the torso pocket, BAG_GAP smaller all round, plus its own neck that slides onto the sensor port
     inner = ndimage.distance_transform_edt(m["torso"]) * h >= BAG_GAP
-    a, b = np.array(hm.NECK[0]), np.array(hm.NECK[1])
+    a, b = np.array(NECK_A), np.array(NECK_B)
     P = np.stack([X, Y, Z], -1)
-    t = np.clip(((P - b) @ (a - b)) / ((a - b) @ (a - b)), 0, 0.35)
-    bag_neck = np.linalg.norm(P - (b + t[..., None] * (a - b)), axis=-1) < 2.6
-    bag = ndimage.gaussian_filter((inner | bag_neck).astype(np.float32), 0.8) > 0.5
+    t = np.clip(((P - a) @ (b - a)) / ((b - a) @ (b - a)), 0, 1)
+    bag_neck = np.linalg.norm(P - (a + t[..., None] * (b - a)), axis=-1) < NECK_R
+    bag = (ndimage.gaussian_filter(inner.astype(np.float32), 0.8) > 0.5) | bag_neck
     meshes["bag"] = mv.slim(mv.mc(ndimage.gaussian_filter(bag.astype(np.float32), 0.6), h, lo, level=0.5), 30000)
 
     # fabric cover: a thin skin just outside the silicone, open where the face is
@@ -81,7 +104,12 @@ if __name__ == "__main__":
     # face module: shell + back cap, and the raised face
     sp = hm.skull_plug()
     g = sp["g"]
-    meshes["face"] = mv.slim(mv.mc(ndimage.gaussian_filter((sp["shell"] | sp["cap"]).astype(np.float32), 0.6), sk.h, g["lo"], level=0.5), 80000)
+    GX, GY, GZ = g["X"], g["Y"], g["Z"]
+    slot = (np.abs(GX) < SLOT[0]) & (np.abs(GZ - USB_Z) < SLOT[1]) & (GY < USB[2])
+    recess = (np.abs(GX) < RECESS[0]) & (np.abs(GZ - USB_Z) < RECESS[1]) & (GY < RECESS[2])
+    shell = sp["shell"] & ~slot & ~recess
+    meshes["face"] = mv.slim(mv.mc(ndimage.gaussian_filter(shell.astype(np.float32), 0.6), sk.h, g["lo"], level=0.5), 80000)
+    meshes["cap"] = mv.slim(mv.mc(ndimage.gaussian_filter(sp["cap"].astype(np.float32), 0.6), sk.h, g["lo"], level=0.5), 20000)
     meshes["ink"] = mv.slim(mv.mc(ndimage.gaussian_filter(sp["face"].astype(np.float32), 0.5), sk.h, g["lo"], level=0.4), 8000)
 
     # numbers for the page
@@ -89,12 +117,10 @@ if __name__ == "__main__":
     vol_sil = sil.sum() * h ** 3 / 1000
     vol_bag = bag.sum() * h ** 3 / 1000
     ext = np.ptp(np.argwhere(m["body"]), 0) * h
-    port_tip_y = hm.PORT[3]
-    bag_front_y = float(Y[bag & (np.abs(X) < 1) & (np.abs(Z - 21) < 1.5)].min())
-    hose = [[0.0, hm.PORT_Z, -port_tip_y + 1.0], [0.0, (hm.PORT_Z + hm.NECK[1][2]) / 2, -(port_tip_y + bag_front_y) / 2], [0.0, hm.NECK[1][2], -bag_front_y - 3.0]]
+    neck_mm = float(np.linalg.norm(np.array(NECK_B) - np.array(NECK_A)))
     info = dict(
         size=[round(float(e)) for e in ext], body_cm3=round(float(vol_body)), silicone_cm3=round(float(vol_sil)),
-        silicone_g=round(float(vol_sil * 1.07)), bag_cm3=round(float(vol_bag)), hose_mm=round(float(bag_front_y + 3 - port_tip_y + 1)),
+        silicone_g=round(float(vol_sil * 1.07)), bag_cm3=round(float(vol_bag)), neck_mm=round(neck_mm), wall=sk.WALL,
     )
     print(info)
 
@@ -106,9 +132,9 @@ if __name__ == "__main__":
             dict(name="sensor", b=box(P_["chip"]), color=0xD5D8DE),
             dict(name="board", b=box(P_["board"]), color=0x2E7D5C),
             dict(name="battery", b=box(P_["battery"]), color=0xC9A43A),
+            dict(name="usb", b=box(USB), color=0xB8BCC6),
         ],
         port=dict(a=[0.0, hm.PORT_Z, -hm.PORT[2]], b=[0.0, hm.PORT_Z, -hm.PORT[3]], r=hm.PORT_D / 2),
-        hose=hose,
         wires=[[[7.0, 16.0, 28.8], [8.0, 15.2, 27.0], [7.5, 14.5, 26.5]], [[-7.0, 16.0, 28.8], [-8.0, 15.2, 27.0], [-7.5, 14.5, 26.5]],
                [[6.0, 15.6, 37.0], [6.5, 15.0, 36.0], [7.0, 14.5, 34.0]], [[-6.0, 15.6, 37.0], [-6.5, 15.0, 36.0], [-7.0, 14.5, 34.0]]],
     )
