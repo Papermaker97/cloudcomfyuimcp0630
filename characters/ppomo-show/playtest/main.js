@@ -16,10 +16,14 @@
 
   Run with VS Code Live Server (Web Serial and the camera do not work from a file:// address). Use Chrome.
   Arduino: ppomo_squeeze_amount (sends one number per line, hPa above resting, 50 per second).
-  Keys (for me): C connect sensor  S save CSV  D debug  F fullscreen  R reset  hold SPACE = fake squeeze
+  Sound comes from the computer (sound.js, made in the browser). Browsers only allow it after one click or key
+  press on the page, so click the screen once after opening it.
+  Keys (for me): C connect sensor  S save CSV  D debug  F fullscreen  R reset  M sound on/off  [ ] volume
+                 hold SPACE = fake squeeze
   Written with help from Claude.
 */
 import { FilesetResolver, FaceDetector } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+import { createSound } from './sound.js';
 
 // ---------- settings to tune ----------
 const RESTING = 1.0;        // hPa below which the squishy counts as untouched (same as the Arduino)
@@ -40,6 +44,11 @@ const ctx = canvas.getContext('2d');
 const video = document.getElementById('cam');
 const hint = document.getElementById('hint');
 const connectBtn = document.getElementById('connect');
+const soundNote = document.getElementById('sound');
+const sound = createSound();
+window.ppomoSound = sound;                     // for checking in the browser console
+let lastStep = 0, leaking = false;              // for the sounds: last puff step heard, and whether air is leaking
+const STEPS = 12;                              // one "blop" for every 1/12 of a full puff
 
 const sprites = [];
 for (let i = 0; i < FRAMES; i++) {
@@ -154,6 +163,7 @@ if ('serial' in navigator) {
   connectBtn.textContent = 'Use Chrome for the sensor';
 }
 connectBtn.addEventListener('click', () => connectSensor());
+addEventListener('pointerdown', () => sound.unlock());   // any click on the page turns sound on
 
 // one pressure reading (hPa above resting)
 function sample(v) {
@@ -167,12 +177,17 @@ function sample(v) {
     pressing = true;
     press = { start: now, amount: 0, peak: 0 };
     if (state !== 'session') startSession(now);
+    sound.squish(Math.min(1, v / 20));
+    leaking = false;
   }
   if (pressing) {
     const add = Math.max(0, v - RESTING) * dt;
     press.amount += add;
     press.peak = Math.max(press.peak, v);
     if (now > fullUntil) puff = Math.min(1, puff + add / AMOUNT_FULL);
+    const step = Math.floor(puff * STEPS);
+    if (step > lastStep && now > fullUntil) sound.bubble(puff);
+    lastStep = step;
     session.last = now;
     if (puff >= 1 && now > fullUntil) celebrate(now);
     if (v < PRESS_OFF) endPress(now);
@@ -184,6 +199,7 @@ function endPress(now) {
   if (press && press.amount > 0.05) {
     session.squeezes.push({ t: press.start - session.start, amount: press.amount });
     addLog(press);
+    sound.release(Math.min(1, press.amount / (AMOUNT_FULL * 0.3)));
     for (let i = 0; i < 3; i++) puffs.push({ x: pp.x + rand(-0.3, 0.3) * pp.w, y: pp.y - pp.w * 0.35, r: 4, a: 0.8 });
   }
   press = null;
@@ -193,14 +209,15 @@ function endPress(now) {
 function startSession(now) {
   state = 'session';
   session = { start: now, last: now, squeezes: [] };
-  puff = 0; shownPuff = 0;
+  puff = 0; shownPuff = 0; lastStep = 0;
   pp.drop = -1; pp.vy = 0; pp.alpha = 1;           // drops in from above
 }
 
 function celebrate(now) {
   fullUntil = now + 3000;
+  sound.full();
   for (let i = 0; i < 18; i++) hearts.push({ x: pp.x + rand(-0.5, 0.5) * pp.w, y: pp.y - pp.w * 0.4, vx: rand(-1.5, 1.5), vy: rand(-4, -1.5), a: 1 });
-  setTimeout(() => { puff = 0; }, 3000);            // then it lets all the air out and you can fill it again
+  setTimeout(() => { puff = 0; lastStep = 0; sound.deflate(1.4); }, 3000);   // then it lets all the air out and you can fill it again
 }
 
 function update(now, dt) {
@@ -213,9 +230,13 @@ function update(now, dt) {
 
   if (state === 'session') {
     const quiet = now - session.last;
-    if (!pressing && quiet > LEAK_AFTER && now > fullUntil) puff = Math.max(0, puff - LEAK_PER_SEC * dt);
+    if (!pressing && quiet > LEAK_AFTER && now > fullUntil && puff > 0) {
+      if (!leaking) { sound.leak(); leaking = true; }
+      puff = Math.max(0, puff - LEAK_PER_SEC * dt);
+      lastStep = Math.floor(puff * STEPS);
+    }
     const faceGone = now - lastFaceAt > NO_FACE_END && lastFaceAt > session.start;
-    if (!pressing && (quiet > END_AFTER || faceGone)) { state = 'leaving'; pp.vy = -1; }
+    if (!pressing && (quiet > END_AFTER || faceGone)) { state = 'leaving'; pp.vy = -1; sound.leave(); }
   } else if (state === 'leaving') {
     pp.alpha -= 0.6 * dt;
     if (pp.alpha <= 0) { state = 'idle'; puff = 0; }
@@ -238,7 +259,7 @@ function update(now, dt) {
   pp.x = lerp(pp.x, target.x, k); pp.y = lerp(pp.y, target.y, k);
   pp.w = lerp(pp.w, target.w, k); pp.angle = lerp(pp.angle, target.angle, k);
   // the drop: falls from above with a small bounce
-  if (state === 'session' && pp.drop < 0) { pp.vy += 6 * dt; pp.drop = Math.min(0, pp.drop + pp.vy * dt); if (pp.drop === 0) { pp.vy = 0; squish = 0.8; } }
+  if (state === 'session' && pp.drop < 0) { pp.vy += 6 * dt; pp.drop = Math.min(0, pp.drop + pp.vy * dt); if (pp.drop === 0) { pp.vy = 0; squish = 0.8; sound.land(); } }
   if (state === 'leaving') pp.drop -= 0.6 * dt;
 }
 
@@ -264,6 +285,9 @@ function draw(now) {
   hint.innerHTML = state === 'idle'
     ? (haveFace ? 'Squeeze Ppomo<small>whenever you feel FOMO</small>' : 'Step in front of the camera<small>and squeeze Ppomo</small>')
     : '';
+  // a quiet note for whoever sets up the screen: sound needs one click first
+  const msg = !sound.running() ? 'Click once to turn on sound' : sound.muted ? 'Sound off (M)' : '';
+  if (soundNote.textContent !== msg) soundNote.textContent = msg;
 }
 
 function drawPpomo(now) {
@@ -353,11 +377,15 @@ function saveCsv() {
 
 // ---------- keys ----------
 addEventListener('keydown', (e) => {
+  sound.unlock();
   if (e.code === 'Space') { fakeOn = true; e.preventDefault(); return; }
   const k = e.key.toLowerCase();
   if (k === 'c') connectSensor();
   if (k === 's') saveCsv();
   if (k === 'd') debug = !debug;
+  if (k === 'm') sound.setMuted(!sound.muted);
+  if (k === '[') sound.setVolume(sound.volume - 0.1);
+  if (k === ']') sound.setVolume(sound.volume + 0.1);
   if (k === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
   if (k === 'r') { state = 'idle'; puff = 0; pressing = false; press = null; }
 });
